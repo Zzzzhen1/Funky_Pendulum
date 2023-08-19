@@ -1119,32 +1119,3 @@ print("\nProgram ends.")
 
 # TODO: github repository
 # TODO: data anlysis class will do the analysis
-
-# Things to talk about with Prof P.C. on 15-08-2023:
-# Currently going on: (Zhen)
-# 1. examine the scan-response experiment, need to play with fft_length, sample time, 
-# (consider) transient behaviour, need to develop a program to plot and analyse the data
-# 2. Perfection of the main program, which might require multiple iterations
-# Currently going on: (Owen)
-# 1. Test with the downward control experiment and developing the corresponding practical manual
-
-# To be done:
-# 1. schematics of the program and the experiment
-# 2. Reconsider the derivative control, positive and negative sign?
-# 3. minimise the effect of transient behaviour in finding the NR (connect the changing waves???) needs math
-# (The reason why NR is a better way: 
-# 1. increase resolution of the spectrum by elongating the time 
-# 2. the response is more sensitive -- requires close examination)
-# 4. theory for large angle regime --> affects the scan-response experiment
-# 5. NR PID tuning, currently it's not working
-# 6. Explain that the resonant driven frequency is not the natural frequency
-
-# Done in the past few days (Zhen):
-# 1. Perfection of the real time plot
-# 2. Correction of fft, resolution, and phase calculation
-# 3. Perfection of the control of the motor
-# 4. Obtained some data for the scan-response experiment
-# 5. Close examination of the natural frequency and damping factor measurement experiment 
-# (of which the natural frequency corresponds to each other quite well, not the damping factor)
-# 6. Completion of the downward control code
-# 7. Perfection of exportation of data, facilitate the analysis of the data
