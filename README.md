@@ -1,1 +1,9 @@
 # Funky_Pendulum
+---
+## General Description of the project. Should include the following features:
+
+1. Schematics of the physical setup. (Possibly pictures and diagrams)
+2. Complete safety measures.
+3. What should students do to run the program. (Undecided yet: possibly use vscode or other editor space)
+4. Possible changes that can be made in the program and how can students revert their changes. (In both python and Arduino)
+
