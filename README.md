@@ -1,7 +1,7 @@
 # Funky_Pendulum
 Based on the project accomplished by Owen and Zhen during 2023 summer. Code developed by Zhen @Zzzzhen1. 
 Any queries about the code please feel free to contact zy336@cam.ac.uk
----
+
 ## General Description of the project. Should include the following features:
 
 1. Schematics of the physical setup. (Possibly pictures and diagrams)
