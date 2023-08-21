@@ -1,6 +1,6 @@
 # Funky_Pendulum
 Based on the project accomplished by Owen and Zhen during 2023 summer. Most code developed by Zhen.
----
+
 ## General Description of the project. Should include the following features:
 
 1. Schematics of the physical setup. (Possibly pictures and diagrams)
