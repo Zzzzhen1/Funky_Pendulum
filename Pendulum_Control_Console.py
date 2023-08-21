@@ -4,6 +4,7 @@ import serial, time, os, csv, threading
 from scipy.fft import fft, fftfreq
 from datetime import datetime
 import serial.tools.list_ports
+from scan_data_process import data_analysis as da
 plt.rcParams['axes.grid'] = True
 plt.rcParams["figure.autolayout"] = True
 mpl.use('TkAgg')
@@ -46,9 +47,9 @@ class data():
         self.amp = 100.
         self.amp_0 = 200.0 # This is used for characterised the constant oscillation
         self.phase = 0.
-        self.NR_Kp = 0.2
+        self.NR_Kp = 0.02
         self.NR_Kd = 0.1
-        self.NR_Ki = 0.1
+        self.NR_Ki = 0.002
         self.fft_angle = np.zeros(fft_length)
         self.fft_pos = np.zeros(fft_length)
         self.fft_freq = np.zeros(fft_length)
@@ -598,6 +599,8 @@ class data():
             return False
         
     def NR_update(self, scan = False, interpolation = True):
+        '''Needs to be called to update the plot 
+        for the phase and amplitude'''
         if (self.NR_phase_calc(interpolation)):
             if scan:
                 # This is the set up for scanning
@@ -634,7 +637,7 @@ class data():
     # TODO: check the NR_update function
     # TODO: rethink about the derivative control
     # TODO: add a different title for downward and upward control
-    # TODO: add a differetn title for scanning for response
+    # TODO: add a different title for scanning for response
     # TODO: label in the csv file of different setup !!! Useful for later analysis
     # TODO: much clever way to update the amplitude use previous amplitude because 
     # overall the motion is sinusoidal, so maybe use this property to connect the two waves?
@@ -780,6 +783,43 @@ class arduino():
         self.board.write(self.message.encode('ASCII'))
         if(save_to_omega):
             self.omega = self.message
+    
+    def send_list_omega(self):
+        temp_flag = True
+        while(temp_flag):
+            try:
+                num = int(input("Number of frequencies to scan simultaneously (maximum 10): "))
+            except ValueError:
+                print("Please enter a valid number")
+            if(num == 1):
+                print("Please enter the driven frequency: ")
+                self.send_input_message()
+                temp_flag = False
+            elif(num >= 2 and num <= 10): 
+                start_point, end_point = int(input("Please enter the start and end frequency in this format (a,b): ").split(','))
+                if(end_point <= start_point):
+                    print("Please enter a valid range")
+                    continue
+                else:
+                    msg = ""
+                    omega_list = np.linspace(start_point, end_point, num)
+                    for i in range(num - 1):
+                        msg += str(omega_list[i]) + ","
+                    msg += str(omega_list[-1]) + "\n"
+                    temp_flag_check = True
+                    while(temp_flag_check):
+                        print("The frequency list is: ", msg, "\n")
+                        temp = input("Is this correct? (y/n): ")
+                        if(temp == "y"):
+                            self.send_message(msg)
+                            temp_flag = False
+                            temp_flag_check = False
+                        elif(temp == "n"):
+                            temp_flag_check = False
+                        else:
+                            print("Please enter a valid input")
+            else:
+                print("Invalid input, please enter an integer between 1 and 10")
         
     def read_single(self, prt = True, in_waiting = True):
         if(in_waiting):
@@ -927,6 +967,21 @@ class cart_pendulum():
                 self.arduino.board.reset_input_buffer()
                 pass
     
+    def thread_writer(self):
+        while(not temp_datum.flag_close_event):
+            msg = input("Send the new amplitude/steps\n") + "\n"
+            try:
+                a = float(msg.split(',')[0])
+                if(self.data.omega * abs(a) > 2000):
+                    print("The amplitude is too large. Please try again.\n")
+                else:
+                    msg = str(abs(a)) + "," + str(temp_datum.phase) + "\n"
+                    self.arduino.send_message(msg)
+                    print(msg)
+            except ValueError:
+                print("Invalid input. Please try again.\n")
+            time.sleep(0.01)
+    
     def center(self):
         self.module_name = r"center"
         self.arduino.read_single(prt = False)
@@ -1006,8 +1061,9 @@ class cart_pendulum():
             pass
         if(self.flag_list["omega"]):
             self.flag_list["omega"] = False
-            self.arduino.read_single()
-            self.arduino.send_input_message()
+            self.arduino.read_single(prt = False)
+            # self.arduino.send_input_message()
+            self.arduino.send_list_omega()
             self.arduino.read_single()
             if(self.arduino.receive.rstrip() == "Invalid input, please try again."):
                 self.flag_list["omega"] = True
@@ -1022,6 +1078,9 @@ class cart_pendulum():
                     reader = threading.Thread(target = self.thread_reader, 
                                             args = (True, False))
                     reader.start()
+                    if (not NR_scan):
+                        writer = threading.Thread(target = self.thread_writer, args = ())
+                        writer.start()
                     self.flag_list["thread_init"] = False
                 
                 if(not temp_datum.flag_close_event):
@@ -1029,13 +1088,17 @@ class cart_pendulum():
                     temp_datum.init_plot(self.module_name)
                     temp_datum.real_time_plot(self.module_name)
                 else:
+                    reader.join()
+                    if(not NR_scan):
+                        writer.join()
                     self.reconnect(exp = True)
-
-                if(self.NR_counter >= temp_datum.wait_to_stable): 
-                    # call the update function limited times
-                    amp, phase = temp_datum.NR_update(NR_scan, interpolation) 
+                
+                # BUG: currently disabled because the PID of the 
+                # NR stage has not been fine tuned
+                if(self.NR_counter >= temp_datum.wait_to_stable):
+                    _, _ = temp_datum.NR_update(NR_scan, interpolation) 
                     # print("Amplitude: ", amp, " Phase: ", phase / np.pi, "\n")
-                    self.arduino.send_message(str(amp) + "," + str(phase) + "\n")
+                    # self.arduino.send_message(str(amp) + "," + str(phase) + "\n")
                     self.NR_counter = 0
                 else:
                     self.NR_counter += 1
@@ -1098,27 +1161,30 @@ class cart_pendulum():
                 self.reset_flag_list()
                 break
 
-# Start up routine of the test
-fft_lengths = 1024
-sampling_divs = 0.05
-wait_to_stables = 5
-# fft_length = int(input("fft_length: "))
-# sampling_div = float(input("sampling_div: "))
-# wait_to_stable = int(input("wait_to_stable: "))
+
+if __name__ == "__main__":
     
-#  Initialisation of the arduino board and the data class
-arduino_board = arduino(port, baudrate)
-df = data_frame()
-datum = data(fft_length = fft_lengths, 
-             sampling_div = sampling_divs, 
-             wait_to_stable = wait_to_stables)
-temp_datum = live_data(fft_length = fft_lengths, 
-             sampling_div = sampling_divs, 
-             wait_to_stable = wait_to_stables) # variable for thread plotting
-cartER = cart_pendulum(arduino_board, datum)
+    # Start up routine of the test
+    fft_lengths = 1024
+    sampling_divs = 0.1
+    wait_to_stables = 5
+    # fft_length = int(input("fft_length: "))
+    # sampling_div = float(input("sampling_div: "))
+    # wait_to_stable = int(input("wait_to_stable: "))
+        
+    #  Initialisation of the arduino board and the data class
+    arduino_board = arduino(port, baudrate)
+    df = data_frame()
+    datum = data(fft_length = fft_lengths, 
+                sampling_div = sampling_divs, 
+                wait_to_stable = wait_to_stables)
+    temp_datum = live_data(fft_length = fft_lengths, 
+                sampling_div = sampling_divs, 
+                wait_to_stable = wait_to_stables) # variable for thread plotting
+    cartER = cart_pendulum(arduino_board, datum)
 
-cartER.main()
-print("\nProgram ends.")
+    cartER.main()
+    print("\nProgram ends.")
 
-# TODO: github repository
-# TODO: data anlysis class will do the analysis
+# TODO: ask whether to enter data analysis mode
+# TODO: check whether the platformio can do the arduino code upload
