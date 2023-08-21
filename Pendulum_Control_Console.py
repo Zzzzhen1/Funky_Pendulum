@@ -439,7 +439,10 @@ class data():
                     except ZeroDivisionError:
                         pass
                     
-                    self.figure.suptitle('PID Parameters(' + self.pid_param + ')')
+                    if(self.pid_param == 'r'):
+                        self.figure.suptitle('PID parameters (resumed previous values)')
+                    else:
+                        self.figure.suptitle('PID parameters(' + self.pid_param + ')')
                     
                     for axes in self.ax_list:
                         for ax in axes:
