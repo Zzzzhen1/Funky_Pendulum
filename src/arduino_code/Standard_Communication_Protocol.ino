@@ -301,6 +301,7 @@ bool isMultiFreq(String str) {
       temp_str += str.charAt(i);
     }
   }
+  omega_list[count] = temp_str.toDouble();
   return true;
 }
 
@@ -705,15 +706,14 @@ void NR() {
           reset();
         } else if (isMultiFreq(message)) {
           Serial.print("Starting with these frequencies (in Hz): ");
-          for(int i = 0; i < freq_size - 1; i++){
+          for(int i = 0; i < freq_size; i++){
             if(omega_list[i] == 0){
-              continue;
+              break;
             }else{
               Serial.print(omega_list[i], 4);
-              Serial.print(",");
+              Serial.print(" ");
             }
           }
-          Serial.print(omega_list[freq_size - 1]);
           Serial.println("");
           flag_omega = 0;
         } else {
