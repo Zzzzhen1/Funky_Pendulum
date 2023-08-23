@@ -537,24 +537,24 @@ class data():
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             special_info = input("Any special info to add to the csv file?\n\n")
-            writer.writerow(["special_info:"], [special_info])
+            writer.writerow(["special_info:", special_info])
             if(module_name == "pid"):
                 try:
                     writer.writerow(["Kp", "Ki", "Kd", "Kp_pos", "Ki_pos", "Kd_pos"])
                     writer.writerow([self.pid_param.split(',')[i] for i in range(6)])
                 except (AttributeError, IndexError):
                     pass
-            writer.writerow(["start_time:"], [str(self.start_time)])
+            writer.writerow(["start_time:", str(self.start_time)])
             if(self.omega_list is None):
-                writer.writerow(["omega:"], [str(self.omega)])
+                writer.writerow(["omega:", str(self.omega)])
             else:
-                writer.writerow(["multiple_omega: "], [(str(i) for i in self.omega_list)])
+                writer.writerow(["multiple_omega:", (str(i) for i in self.omega_list)])
             try:
-                writer.writerow(["amplitude:"], [str(self.amp_list[-1][1])])
+                writer.writerow(["amplitude:", str(self.amp_list[-1][1])])
                 if(self.omega_list is None):
-                    writer.writerow(["phase/pi:"], [str(self.phase_list[-1][1])])
+                    writer.writerow(["phase/pi:", str(self.phase_list[-1][1])])
                 else:
-                    writer.writerow(["multiple phase/pi: "], [(str(i[-1][1]) for i in self.multi_phase_list)])
+                    writer.writerow(["multiple phase/pi:", (str(i[-1][1]) for i in self.multi_phase_list)])
             except (AttributeError, IndexError):
                 pass
             writer.writerow(["time", "angle", "position", "angular_velocity", "cart_velocity"])
@@ -645,7 +645,7 @@ class data():
         '''Needs to be called frequently to update the plot for the phase and amplitude'''
         # TODO: calls out multiple times for different frequencies
         if(self.omega_list is None):
-            if (self.NR_phase_calc(interpolation, self.omega)):
+            if (self.NR_phase_calc(self.omega, interpolation)):
                 self.phase_list.pop(0)
                 self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
                 if scan:
@@ -672,7 +672,7 @@ class data():
                 return 0, 0
         else:
             for index, omega in enumerate(self.omega_list):
-                if(self.NR_phase_calc(interpolation, omega)):
+                if(self.NR_phase_calc(omega, interpolation)):
                     print(omega, self.phase / np.pi)
                     self.multi_phase_list[index].pop(0)
                     self.multi_phase_list[index].append((self.time[self.temp_index], self.phase / np.pi))
@@ -897,7 +897,7 @@ class arduino():
                     while(temp_flag_check):
                         print("\nThe frequency list is: ", msg)
                         print("\nThe minimum spacing between frequencies is: %.3f" % ((end_point - start_point) / (num - 1)))
-                        print("\nTo obtain nice phase calculation results, 1 / (fft_length * sampling_div) should be greater than this")
+                        print("\nTo obtain nice phase calculation results, 1 / (fft_length * sampling_div) should be smaller than this")
                         temp = input("\nIs this what you want? (y/n): ")
                         if(temp == "y"):
                             self.send_message(msg)
