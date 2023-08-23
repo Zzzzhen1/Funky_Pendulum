@@ -4,24 +4,18 @@ import serial, time, os, csv, threading
 from scipy.fft import fft, fftfreq
 from datetime import datetime
 import serial.tools.list_ports
-from scan_data_process import data_analysis as da
+# from scan_data_process import data_analysis as da
 plt.rcParams['axes.grid'] = True
 plt.rcParams["figure.autolayout"] = True
+prop_cycle = plt.rcParams['axes.prop_cycle']
+colors = prop_cycle.by_key()['color']
 mpl.use('TkAgg')
 
 # Initialisation of some constants and variables
 port = 'COM6' 
-baudrate = 230400 # TODO: extract the baudrate from a larger project file?
+baudrate = 230400 # TODO: extract all constants from a larger project file?
 MAX_COUNT = 5 # Number of points waited to plot a frame
-
-class pid_param():
-    '''Initialisation of the pid parameter class, 
-    used to store the pid parameters for machine learning'''
-    def __init__(self) -> None:
-        pass
-# TODO: create a pid parameter class -- deep learning? or add a neural network to the pid parameter class? pytorch required
 # TODO: how to achieve higher precision of the accelstepper library??? Using microsteps?
-
 class data():
     
     '''Initialisation of the data class, used to store the data from the arduino
@@ -68,7 +62,9 @@ class data():
         self.flag_close_event = False
         self.module_name = ""
         self.path = ""
-        self.bg_list = []
+        self.omega_num = 0
+        self.omega_list = None
+        self.multi_phase_list = None
     
     def append_data(
         self,
@@ -113,6 +109,9 @@ class data():
         self.phase_list = [(0., 0.)] * self.plot_length
         self.amp_list = [(0., 0.)] * self.plot_length
         self.index_list = np.zeros(self.fft_length, dtype = int)
+        self.omega_num = 0
+        self.omega_list = None
+        self.multi_phase_list = None
         
     def clear_figure(self):
         plt.close("all")
@@ -146,7 +145,12 @@ class data():
                     self.figure, self.ax_list = plt.subplots(2, 2, figsize=(8, 5))
                     self.flag_subplot_init = False
                     self.figure.suptitle('NR')
-                    self.phase_list = [(0., 0.)] * self.plot_length
+                    if(self.omega_list is None):
+                        self.phase_list = [(0., 0.)] * self.plot_length
+                    else: 
+                        self.phase_list = None
+                        for i in range(self.omega_num):
+                            self.multi_phase_list[i] = [(0., 0.)] * self.plot_length
                     self.amp_list = [(0., 0.)] * self.plot_length
                     
                 self.line_angle, = self.ax_list[0, 0].plot([], [], 'b-')
@@ -155,30 +159,47 @@ class data():
                 self.line_fft_ang, = self.ax_list[0, 1].plot([], [], 'b-', label = 'angle')
                 ax1 = self.ax_list[0, 1].twinx()
                 self.line_fft_pos, = ax1.plot([], [], 'r-', label = 'position')
-                self.line_phase, = self.ax_list[1, 1].plot([], [], 'b-', label = 'phase')
+                if(self.omega_list is None):
+                    self.line_phase, = self.ax_list[1, 1].plot([], [], 'b-', label = 'phase')
+                else:
+                    for i in range(self.omega_num):
+                        self.line_phase_list[i], = self.ax_list[1, 1].plot([], [], color = colors[i], 
+                                                                      label = '%.3f Hz'%(self.omega_list[i]))
                 ax2 = self.ax_list[1, 1].twinx()
                 self.line_amp, = ax2.plot([], [], 'r-', label = 'amplitude')
                 
                 self.ax_list[0, 1].legend(loc = 'upper left')
-                self.ax_list[1, 1].legend(loc = 'lower right')
+                self.ax_list[1, 1].legend(loc = ' right')
                 ax1.legend(loc = 'upper right')
                 ax2.legend(loc = 'upper right')
                 ax1.grid(False)
                 ax2.grid(False)
-                
-                self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
-                                    self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
-                                    self.ax_list[0, 1]: self.line_fft_ang,
-                                    ax1: self.line_fft_pos,
-                                    self.ax_list[1, 1]: self.line_phase,
-                                    ax2: self.line_amp}
+                # Initiate a new dictionary for all the artists objects
+                if(self.omega_list is None):
+                    self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
+                                        self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
+                                        self.ax_list[0, 1]: self.line_fft_ang,
+                                        ax1: self.line_fft_pos,
+                                        self.ax_list[1, 1]: self.line_phase,
+                                        ax2: self.line_amp}
+                else:
+                    self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
+                                        self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
+                                        self.ax_list[0, 1]: self.line_fft_ang,
+                                        ax1: self.line_fft_pos,
+                                        self.ax_list[1, 1]: self.line_phase_list,
+                                        ax2: self.line_amp
+                                        }
                     
                 self.ax_list[0, 0].set_xlabel('Time/s')
                 self.ax_list[0, 0].set_ylabel('Angle/rad')
                 self.ax_list[1, 0].set_xlabel('Time/s')
                 self.ax_list[1, 0].set_ylabel('Position/steps')
                 self.ax_list[0, 1].set_xlabel('Frequency/Hz')
-                self.ax_list[0, 1].set_xlim(0, self.omega)
+                if(self.omega_list is None):
+                    self.ax_list[0, 1].set_xlim(0, self.omega)
+                else:
+                    self.ax_list[0, 1].set_xlim(0, self.omega_list[-1])
                 self.ax_list[0, 1].set_ylabel('Arbitrary Unit')
                 self.ax_list[1, 1].set_xlabel('Time/s')
                 self.ax_list[1, 1].set_ylabel('Phase/pi')
@@ -209,7 +230,6 @@ class data():
                 
             # Configure the events
             self.figure.canvas.mpl_connect('close_event', self.handle_close)
-            self.figure.canvas.mpl_connect('motion_notify_event', self.handle_move)
             self.figure.canvas.manager.set_window_title(module_name)
             self.figure.canvas.draw_idle()
             plt.tight_layout()
@@ -305,7 +325,12 @@ class data():
                                                 abs(self.fft_angle))
                     self.line_fft_pos.set_data(self.fft_freq,
                                                abs(self.fft_pos))
-                    self.line_phase.set_data(*zip(*self.phase_list))
+                    # TODO: multi phase plot and copy the form for the else stage
+                    if(self.omega_list is None):
+                        self.line_phase.set_data(*zip(*self.phase_list))
+                    else:
+                        for index, line in enumerate(self.line_phase_list):
+                            line.set_data(*zip(*self.multi_phase_list[index]))
                     self.line_amp.set_data(*zip(*self.amp_list))
                     
                     try:
@@ -316,7 +341,10 @@ class data():
                     except ZeroDivisionError:
                         pass
                     
-                    self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                    if(self.omega_list is None):
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                    else:
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join(str(i) for i in self.omega_list) + 'Hz')
                     
                     for ax in self.ax_new_list:
                         ax.relim()
@@ -324,7 +352,10 @@ class data():
                         for label in ax.get_yticklabels():
                             label.set_rotation(45)
                         
-                    self.ax_list[0, 1].set_xlim(0, self.omega * 2)
+                    if(self.omega_list is None):
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega)
+                    else:
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega_list[-1])
                     self.figure.canvas.draw()
                     self.figure.canvas.flush_events()
                     try:
@@ -351,7 +382,11 @@ class data():
                                                 abs(self.fft_angle))
                     self.line_fft_pos.set_data(self.fft_freq,
                                                abs(self.fft_pos))
-                    self.line_phase.set_data(*zip(*self.phase_list))
+                    if(self.omega_list is None):
+                        self.line_phase.set_data(*zip(*self.phase_list))
+                    else:
+                        for index, line in enumerate(self.line_phase_list):
+                            line.set_data(*zip(*self.multi_phase_list[index]))
                     self.line_amp.set_data(*zip(*self.amp_list))
                     
                     try:
@@ -362,7 +397,10 @@ class data():
                     except ZeroDivisionError:
                         pass
                     
-                    self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                    if(self.omega_list is None):
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                    else:
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join(str(i) for i in self.omega_list) + 'Hz')
                     
                     for ax in self.ax_new_list:
                         ax.relim()
@@ -370,7 +408,10 @@ class data():
                         for label in ax.get_yticklabels():
                             label.set_rotation(45)
                 
-                    self.ax_list[0, 1].set_xlim(0, self.omega * 2)
+                    if(self.omega_list is None):
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega)
+                    else:
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega_list[-1])
                     self.figure.canvas.draw()
                     self.figure.canvas.flush_events()
                     try:
@@ -460,8 +501,8 @@ class data():
                         pass
                     
                 self.counter += 1            
-        
-    def handle_close(self, event):
+    
+    def handle_close(self, _):
         self.flag_close_event = True
         self.flag_subplot_init = True
             
@@ -476,13 +517,6 @@ class data():
         self.figure.clf()
         self.figure.canvas.flush_events()
         plt.close("all")
-    
-    def handle_move(self, event):
-        # TODO: Add annotation really this is secondary
-        # if event.inaxes:
-        #     self.ann = plt.gca().annotate(str(event.xdata) + ',' + str(event.ydata), \
-        #         xy = (event.xdata, event.ydata))
-        pass
 
     def export_csv(
         self, 
@@ -506,11 +540,17 @@ class data():
                     writer.writerow([self.pid_param.split(',')[i] for i in range(6)])
                 except (AttributeError, IndexError):
                     pass
-            writer.writerow(["temp_index: " + str(self.temp_index)])
-            writer.writerow(["omega: " + str(self.omega)])
+            writer.writerow(["start_time: " + str(self.start_time)])
+            if(self.omega_list is None):
+                writer.writerow(["omega: " + str(self.omega)])
+            else:
+                writer.writerow(["multiple_omega: " + ', '.join(str(i) for i in self.omega_list)])
             try:
                 writer.writerow(["amplitude: " + str(self.amp_list[-1][1])])
-                writer.writerow(["phase/pi: " + str(self.phase_list[-1][1])])
+                if(self.omega_list is None):
+                    writer.writerow(["phase/pi: " + str(self.phase_list[-1][1])])
+                else:
+                    writer.writerow(["multiple phase/pi: " + ', '.join(str(i[1]) for i in self.multi_phase_list[-1])])
             except (AttributeError, IndexError):
                 pass
             writer.writerow(["time", "angle", "position", "angular_velocity", "cart_velocity"])
@@ -551,7 +591,7 @@ class data():
             fft_ang = fft(self.angle[index_list])
             fft_pos = fft(self.position[index_list])
             fft_freq = fftfreq(len(index_list), avg_spacing)
-            # print("Length of fft_freq: ", len(index_list))
+            
             self.fft_angle = fft_ang[1:int(len(fft_freq) / 2)]
             self.fft_pos = fft_pos[1:int(len(fft_freq) / 2)]
             self.fft_freq = fft_freq[1:int(len(fft_freq) / 2)]
@@ -559,28 +599,30 @@ class data():
         else:
             return False
     
-    def NR_phase_calc(self, interpolation = True):
+    def NR_phase_calc(self, omega, interpolation = True):
+        # BUG: TODO: IMPORTANT: How to convey the original oscillation phase!!! 
+        # Start off at zero position in Arduino might help?
         if (self.fft()):
-            close_ind = np.argmin(np.abs(self.fft_freq - self.omega))
+            close_ind = np.argmin(np.abs(self.fft_freq - omega))
             if interpolation:
-                if self.fft_freq[close_ind] < self.omega:
+                if self.fft_freq[close_ind] < omega:
                     delta_phase_1 = self.phase_rectify(np.angle(self.fft_angle[close_ind\
                         + 1]) - np.angle(self.fft_pos[close_ind + 1]) + np.pi)
                     delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
                         - np.angle(self.fft_pos[close_ind]) + np.pi)
                     
-                    self.phase = delta_phase_0 + (self.omega - \
+                    self.phase = delta_phase_0 + (omega - \
                         self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
                             + 1] - self.fft_freq[close_ind]) * \
                                 (delta_phase_1 - delta_phase_0)
 
-                elif self.fft_freq[close_ind] > self.omega:
+                elif self.fft_freq[close_ind] > omega:
                     delta_phase_1 =  self.phase_rectify(np.angle(self.fft_angle[close_ind\
                         - 1]) - np.angle(self.fft_pos[close_ind - 1]) + np.pi)
                     delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
                         - np.angle(self.fft_pos[close_ind]) + np.pi)
                     
-                    self.phase = delta_phase_0 + (self.omega - \
+                    self.phase = delta_phase_0 + (omega - \
                         self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
                             - 1] - self.fft_freq[close_ind]) * \
                                 (delta_phase_1 - delta_phase_0)
@@ -591,34 +633,45 @@ class data():
             else:
                 self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
                     - np.angle(self.fft_pos[close_ind]) + np.pi)
-            
-            self.phase_list.pop(0)
-            self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
             return True
         else:
             return False
         
-    def NR_update(self, scan = False, interpolation = True):
-        '''Needs to be called to update the plot 
-        for the phase and amplitude'''
-        if (self.NR_phase_calc(interpolation)):
-            if scan:
-                # This is the set up for scanning
-                return 0, 0
+    def NR_update(self, scan = False, interpolation = True, manual = True):
+        '''Needs to be called frequently to update the plot for the phase and amplitude'''
+        # TODO: calls out multiple times for different frequencies
+        if(self.omega_list is None):
+            if (self.NR_phase_calc(interpolation, self.omega)):
+                self.phase_list.pop(0)
+                self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
+                if scan:
+                    return 0., 0.
+                else:
+                    if(manual):
+                        self.amp_list.pop(0)
+                        self.amp_list.append((self.time[self.temp_index], self.amp))
+                        return self.amp, self.phase
+                    else:
+                        # This is for the automatic finding of normalised resonance
+                        delta_amp_Kp = self.NR_Kp * ((self.phase + np.pi / 2))/ (2 * np.pi)
+                        try:
+                            delta_amp_Kd = self.NR_Kd * (self.phase_list[-1][1] - self.phase_list[-2][1]) / \
+                                (self.phase_list[-1][0] - self.phase_list[-2][0])
+                        except RuntimeError:
+                            pass
+                        self.amp *= (1 - delta_amp_Kp) * (1 - delta_amp_Kd)
+                        # Need a way to transmit this to a thread...
+                        self.amp_list.pop(0)
+                        self.amp_list.append((self.time[self.temp_index], self.amp))
+                        return self.amp, self.phase
             else:
-                delta_amp_Kp = self.NR_Kp * ((self.phase + np.pi / 2))/ (2 * np.pi)
-                try:
-                    delta_amp_Kd = self.NR_Kd * (self.phase_list[-1][1] - self.phase_list[-2][1]) / \
-                        (self.phase_list[-1][0] - self.phase_list[-2][0])
-                except RuntimeError:
-                    pass
-                self.amp *= (1 - delta_amp_Kp) * (1 - delta_amp_Kd)
-                # Need a way to transmit this to a thread...
-                self.amp_list.pop(0)
-                self.amp_list.append((self.time[self.temp_index], self.amp))
-                return self.amp, self.phase
+                return 0, 0
         else:
-            return 0, 0
+            for index, omega in enumerate(self.omega_list):
+                if(self.NR_phase_calc(interpolation, omega)):
+                    self.multi_phase_list[index].pop(0)
+                    self.multi_phase_list[index].append((self.time[self.temp_index], self.phase / np.pi))
+            return 0., 0.
     
     def phase_rectify(self, phase):
         '''Shifts the phase to be between 0.5 * pi and -1.5*pi, which is symmetric abour -0.5*pi'''
@@ -628,19 +681,14 @@ class data():
         else:
             return phase
     
-    # TODO: Add a function to analyse the frequency spectrum (secondary, let students do these)
     # TODO: fix plot_length with updated index_list (secondary)
     # TODO: add a sampling rate selection in arduino (secondary)
-    # TODO: to make the step function in the NR stage continuous
-    # TODO: rethink about the integral control,, integrate from the start (secondary)
-    # TODO: NR amplitude tuning? --> this is related to the resonance driving frequency???
-    # TODO: check the NR_update function
-    # TODO: rethink about the derivative control
+    # TODO: to make the step function in the NR stage continuous (secondary)
+    # TODO: check the NR_update function, how the phase is related to the original 
+    # oscillation but not the entire position oscillation (!!!)
     # TODO: add a different title for downward and upward control
     # TODO: add a different title for scanning for response
-    # TODO: label in the csv file of different setup !!! Useful for later analysis
-    # TODO: much clever way to update the amplitude use previous amplitude because 
-    # overall the motion is sinusoidal, so maybe use this property to connect the two waves?
+    # TODO: label in the csv file of different minimal stage !!! Useful for later analysis
     
 class live_data(data):
     
@@ -677,6 +725,11 @@ class live_data(data):
             self.pid_param = data.pid_param
         except AttributeError:
             pass
+        # Important, update the amp and phase in the data class
+        data.amp = self.amp
+        data.phase = self.phase
+        self.omega_num = data.omega_num
+        self.omega_list = data.omega_list
     
 class data_frame():
     
@@ -713,7 +766,7 @@ class data_frame():
 
 class arduino():
     
-    '''Arduino class'''
+    '''arduino class for I2C communication and Arduino initialisation'''
     
     def __init__(
         self,
@@ -743,18 +796,33 @@ class arduino():
             pass
 
     def find_port(self):
+        '''Automatically find the port of the arduino. 
+        Adjust 'USB Serial Device' to your arduino's description'''
         arduino_ports = [
         p.device
         for p in serial.tools.list_ports.comports()
         if 'USB Serial Device' in p.description  # Adjust this condition based on your Arduino's description
-    ]
+        ]
+        num = 0 # default set to the first port
         if not arduino_ports:
             raise IOError("No Arduino found. Please make sure it's connected.")
         elif len(arduino_ports) > 1:
-            print("Multiple Arduinos found. Selecting the first one.")
-        
-        self.port = arduino_ports[0]
-        # TODO: select the port from the list of ports (secondary)
+            print("Multiple Arduinos found:")
+            for index, ard in enumerate(arduino_ports):
+                print(str(index) + ": " + ard)
+            temp_flag = True
+            while temp_flag:
+                try:
+                    num = int(input("Please enter the number of the port you want to use: "))
+                except ValueError:
+                    print("Please enter a valid number")
+                    continue
+                if(num > len(arduino_ports) or num <= 0):
+                    print("Please enter a valid number")
+                    continue
+                else:
+                    temp_flag = False
+        self.port = arduino_ports[num]
     
     def initiate(self):
         self.find_port()
@@ -791,35 +859,53 @@ class arduino():
                 num = int(input("Number of frequencies to scan simultaneously (maximum 10): "))
             except ValueError:
                 print("Please enter a valid number")
+                continue
             if(num == 1):
                 print("Please enter the driven frequency: ")
                 self.send_input_message()
                 temp_flag = False
+                return False
             elif(num >= 2 and num <= 10): 
-                start_point, end_point = int(input("Please enter the start and end frequency in this format (a,b): ").split(','))
+                try:
+                    start_point, end_point = (input("\nPlease enter the start and end frequency in this format (a,b): ").split(','))
+                except ValueError:
+                    print("\nPlease enter a valid range")
+                    continue
+                try:
+                    start_point = float(start_point)
+                    end_point = float(end_point)
+                except ValueError:
+                    print("\nPlease enter valid numbers")
+                    continue
+                
                 if(end_point <= start_point):
-                    print("Please enter a valid range")
+                    print("\nPlease enter a valid range")
                     continue
                 else:
                     msg = ""
-                    omega_list = np.linspace(start_point, end_point, num)
+                    omega_list = np.linspace(start_point, end_point, num, dtype = float)
                     for i in range(num - 1):
                         msg += str(omega_list[i]) + ","
                     msg += str(omega_list[-1]) + "\n"
                     temp_flag_check = True
                     while(temp_flag_check):
-                        print("The frequency list is: ", msg, "\n")
-                        temp = input("Is this correct? (y/n): ")
+                        print("\nThe frequency list is: ", msg)
+                        print("\nThe minimum spacing between frequencies is: ", (end_point - start_point) / (num - 1))
+                        print("\nTo obtain nice phase calculation results, fft_length * sampling_div should\
+                                be greater than this")
+                        temp = input("\nIs this what you want? (y/n): ")
                         if(temp == "y"):
                             self.send_message(msg)
+                            self.omega_list = omega_list
                             temp_flag = False
                             temp_flag_check = False
+                            return True
                         elif(temp == "n"):
                             temp_flag_check = False
                         else:
-                            print("Please enter a valid input")
+                            print("\nPlease enter a valid input")
             else:
-                print("Invalid input, please enter an integer between 1 and 10")
+                print("\nInvalid input, please enter an integer between 1 and 10")
         
     def read_single(self, prt = True, in_waiting = True):
         if(in_waiting):
@@ -858,6 +944,7 @@ class cart_pendulum():
             "pid": False, # pid command
             "measure": False, # measure command
             "NR": False, # Normalised Resonance command
+            "multi_freq": False, # whether multiple frequencies are sent
             "omega": True, # Input driven frequency command
             "swing_request": True, # whether the swing is requested
             "pid_input": True, # whether the pid input is requested
@@ -874,7 +961,8 @@ class cart_pendulum():
                                      "center", 
                                      "pid", 
                                      "measure", 
-                                     "NR"]
+                                     "NR",
+                                     "multi_freq"]
         self.reset_dict = { # To renew the flag_command
             "Resetting...",
             "No command detected.",
@@ -977,10 +1065,13 @@ class cart_pendulum():
                 else:
                     msg = str(abs(a)) + "," + str(temp_datum.phase) + "\n"
                     self.arduino.send_message(msg)
-                    print(msg)
+                    temp_datum.amp = abs(a)
+                    self.data.amp = abs(a)
+                    print("sent amp, phase: " + msg)
+                    # BUG: not sending the phase at the same time!
             except ValueError:
                 print("Invalid input. Please try again.\n")
-            time.sleep(0.01)
+            time.sleep(2) # wait 2 seconds for the transient behaviour to fade away a bit
     
     def center(self):
         self.module_name = r"center"
@@ -1008,7 +1099,7 @@ class cart_pendulum():
         else: 
             if(self.flag_list["pid_input"]):
                 self.arduino.read_all()
-                self.arduino.send_input_message()
+                self.arduino.send_input_message(save_to_omega = False)
                 self.arduino.read_all()
                 if(self.arduino.receive.rstrip() == "Start inversion control."):
                     self.data.pid_param = self.arduino.message.rstrip()
@@ -1062,23 +1153,35 @@ class cart_pendulum():
         if(self.flag_list["omega"]):
             self.flag_list["omega"] = False
             self.arduino.read_single(prt = False)
-            # self.arduino.send_input_message()
-            self.arduino.send_list_omega()
+            if(NR_scan):
+                if (self.arduino.send_list_omega()):
+                    self.flag_list["multi_freq"] = True
+                    self.data.omega_num = len(self.arduino.omega_list)
+                else:
+                    self.data.omega_num = 1
+            else:
+                self.arduino.send_input_message(save_to_omega = True)
             self.arduino.read_single()
             if(self.arduino.receive.rstrip() == "Invalid input, please try again."):
                 self.flag_list["omega"] = True
-            if(self.flag_list["omega"] == False):
+            if(self.flag_list["omega"] == False and self.flag_list["multi_freq"] == False):
                 self.data.omega = float(self.arduino.omega.rstrip())
+            elif(self.flag_list["omega"] == False and self.flag_list["multi_freq"] == True):
+                self.data.omega_list = self.arduino.omega_list
+                self.data.omega = self.arduino.omega_list[-1] # default to take the largest value in the list
         else:
             if(self.arduino.receive.rstrip() == "Kill switch hit."):
                 print("Kill switch hit. Resetting the system...\n")
                 self.reconnect(exp = True)
             else:
+                manual = True # turn up manual control of the amplitude
+                # BUG: Automation currently disabled because the PID coefficients of the 
+                # NR stage has not been fine tuned
                 if(self.flag_list["thread_init"]):
                     reader = threading.Thread(target = self.thread_reader, 
                                             args = (True, False))
                     reader.start()
-                    if (not NR_scan):
+                    if (not NR_scan and manual):
                         writer = threading.Thread(target = self.thread_writer, args = ())
                         writer.start()
                     self.flag_list["thread_init"] = False
@@ -1087,18 +1190,18 @@ class cart_pendulum():
                     temp_datum.copy(self.data)
                     temp_datum.init_plot(self.module_name)
                     temp_datum.real_time_plot(self.module_name)
+                    # TODO: plot multiple phase curve with legends, would be a bit messy
                 else:
                     reader.join()
-                    if(not NR_scan):
+                    if(not NR_scan and manual):
                         writer.join()
                     self.reconnect(exp = True)
                 
-                # BUG: currently disabled because the PID of the 
-                # NR stage has not been fine tuned
                 if(self.NR_counter >= temp_datum.wait_to_stable):
-                    _, _ = temp_datum.NR_update(NR_scan, interpolation) 
-                    # print("Amplitude: ", amp, " Phase: ", phase / np.pi, "\n")
-                    # self.arduino.send_message(str(amp) + "," + str(phase) + "\n")
+                    amp, phase = temp_datum.NR_update(NR_scan, interpolation, manual) 
+                    if(not manual):
+                        # print("Amplitude: ", amp, " Phase: ", phase / np.pi, "\n")
+                        self.arduino.send_message(str(amp) + "," + str(phase) + "\n")
                     self.NR_counter = 0
                 else:
                     self.NR_counter += 1
@@ -1165,8 +1268,9 @@ class cart_pendulum():
 if __name__ == "__main__":
     
     # Start up routine of the test
-    fft_lengths = 1024
-    sampling_divs = 0.1
+    # hidden variables
+    fft_lengths = 1024 # TODO: add some possible values
+    sampling_divs = 0.1 # The minimum sampling division set in Arduino is 50 ms
     wait_to_stables = 5
     # fft_length = int(input("fft_length: "))
     # sampling_div = float(input("sampling_div: "))
@@ -1187,4 +1291,9 @@ if __name__ == "__main__":
     print("\nProgram ends.")
 
 # TODO: ask whether to enter data analysis mode
-# TODO: check whether the platformio can do the arduino code upload
+# TODO: check whether the platformio can do the arduino code upload 
+# because the Arduino IDE would be inefficient and faulty
+# TODO: what to do if there are two peaks in the FFT?
+# TODO: all the parameters in the code should have a reasonable range
+# TODO: separate the different classes in different python files
+# TODO: find delay time (a day of investigation) draw block diagram
