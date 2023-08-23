@@ -169,7 +169,7 @@ class data():
                 self.line_amp, = ax2.plot([], [], 'r-', label = 'amplitude')
                 
                 self.ax_list[0, 1].legend(loc = 'upper left')
-                self.ax_list[1, 1].legend(loc = ' right')
+                self.ax_list[1, 1].legend(loc = 'right')
                 ax1.legend(loc = 'upper right')
                 ax2.legend(loc = 'upper right')
                 ax1.grid(False)
@@ -858,10 +858,10 @@ class arduino():
             try:
                 num = int(input("Number of frequencies to scan simultaneously (maximum 10): "))
             except ValueError:
-                print("Please enter a valid number")
+                print("\nPlease enter a valid number")
                 continue
             if(num == 1):
-                print("Please enter the driven frequency: ")
+                print("\nPlease enter the driven frequency: ")
                 self.send_input_message()
                 temp_flag = False
                 return False
