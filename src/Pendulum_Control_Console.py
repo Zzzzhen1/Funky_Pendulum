@@ -149,6 +149,7 @@ class data():
                         self.phase_list = [(0., 0.)] * self.plot_length
                     else: 
                         self.phase_list = None
+                        self.multi_phase_list = [[(0., 0.)] * self.plot_length] * self.omega_num
                         for i in range(self.omega_num):
                             self.multi_phase_list[i] = [(0., 0.)] * self.plot_length
                     self.amp_list = [(0., 0.)] * self.plot_length
@@ -162,14 +163,16 @@ class data():
                 if(self.omega_list is None):
                     self.line_phase, = self.ax_list[1, 1].plot([], [], 'b-', label = 'phase')
                 else:
+                    self.line_phase_list = []
                     for i in range(self.omega_num):
-                        self.line_phase_list[i], = self.ax_list[1, 1].plot([], [], color = colors[i], 
+                        _line, = self.ax_list[1, 1].plot([], [], color = colors[i], 
                                                                       label = '%.3f Hz'%(self.omega_list[i]))
+                        self.line_phase_list.append(_line)
                 ax2 = self.ax_list[1, 1].twinx()
                 self.line_amp, = ax2.plot([], [], 'r-', label = 'amplitude')
                 
                 self.ax_list[0, 1].legend(loc = 'upper left')
-                self.ax_list[1, 1].legend(loc = 'right')
+                self.ax_list[1, 1].legend(loc = 'upper left')
                 ax1.legend(loc = 'upper right')
                 ax2.legend(loc = 'upper right')
                 ax1.grid(False)
@@ -885,17 +888,17 @@ class arduino():
                     msg = ""
                     omega_list = np.linspace(start_point, end_point, num, dtype = float)
                     for i in range(num - 1):
-                        msg += str(omega_list[i]) + ","
+                        msg += str(omega_list[i][:6]) + ","
                     msg += str(omega_list[-1]) + "\n"
                     temp_flag_check = True
                     while(temp_flag_check):
                         print("\nThe frequency list is: ", msg)
                         print("\nThe minimum spacing between frequencies is: ", (end_point - start_point) / (num - 1))
-                        print("\nTo obtain nice phase calculation results, fft_length * sampling_div should\
-                                be greater than this")
+                        print("\nTo obtain nice phase calculation results, fft_length * sampling_div should be greater than this")
                         temp = input("\nIs this what you want? (y/n): ")
                         if(temp == "y"):
                             self.send_message(msg)
+                            print("")
                             self.omega_list = omega_list
                             temp_flag = False
                             temp_flag_check = False
@@ -1152,14 +1155,15 @@ class cart_pendulum():
             pass
         if(self.flag_list["omega"]):
             self.flag_list["omega"] = False
-            self.arduino.read_single(prt = False)
             if(NR_scan):
+                self.arduino.read_single(prt = False)
                 if (self.arduino.send_list_omega()):
                     self.flag_list["multi_freq"] = True
                     self.data.omega_num = len(self.arduino.omega_list)
                 else:
                     self.data.omega_num = 1
             else:
+                self.arduino.read_single()
                 self.arduino.send_input_message(save_to_omega = True)
             self.arduino.read_single()
             if(self.arduino.receive.rstrip() == "Invalid input, please try again."):
