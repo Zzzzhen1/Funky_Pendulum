@@ -693,7 +693,7 @@ void NR() {
         message = read_msg();
         if (isFloat(message)) {
           omega = message.toFloat() * 2 * M_PI;
-          omega_list[10] = {0};
+          memset(omega_list, 0., sizeof(omega_list));
           omega_list[0] = omega;
           Serial.print("Start with driven frequency: ");
           Serial.print(message);
