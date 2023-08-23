@@ -537,24 +537,24 @@ class data():
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             special_info = input("Any special info to add to the csv file?\n\n")
-            writer.writerow(["special_info:", special_info])
+            writer.writerow(["special_info", special_info])
             if(module_name == "pid"):
                 try:
                     writer.writerow(["Kp", "Ki", "Kd", "Kp_pos", "Ki_pos", "Kd_pos"])
                     writer.writerow([self.pid_param.split(',')[i] for i in range(6)])
                 except (AttributeError, IndexError):
                     pass
-            writer.writerow(["start_time:", str(self.start_time)])
+            writer.writerow(["start_time", str(self.start_time)])
             if(self.omega_list is None):
-                writer.writerow(["omega:", str(self.omega)])
+                writer.writerow(["omega", str(self.omega)])
             else:
-                writer.writerow(["multiple_omega:", (str(i) for i in self.omega_list)])
+                writer.writerow(["multiple_omega", *(str(i) for i in self.omega_list)])
             try:
-                writer.writerow(["amplitude:", str(self.amp_list[-1][1])])
+                writer.writerow(["amplitude", str(self.amp_list[-1][1])])
                 if(self.omega_list is None):
-                    writer.writerow(["phase/pi:", str(self.phase_list[-1][1])])
+                    writer.writerow(["phase/pi", str(self.phase_list[-1][1])])
                 else:
-                    writer.writerow(["multiple phase/pi:", (str(i[-1][1]) for i in self.multi_phase_list)])
+                    writer.writerow(["multiple_phase/pi", *(str(i[-1][1]) for i in self.multi_phase_list)])
             except (AttributeError, IndexError):
                 pass
             writer.writerow(["time", "angle", "position", "angular_velocity", "cart_velocity"])
@@ -673,7 +673,6 @@ class data():
         else:
             for index, omega in enumerate(self.omega_list):
                 if(self.NR_phase_calc(omega, interpolation)):
-                    print(omega, self.phase / np.pi)
                     self.multi_phase_list[index].pop(0)
                     self.multi_phase_list[index].append((self.time[self.temp_index], self.phase / np.pi))
             return 0., 0.
