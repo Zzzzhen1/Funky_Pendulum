@@ -1,4 +1,5 @@
 # Funky_Pendulum
+Inherited from Will and Jeppe. (Their github link)
 Based on the project accomplished by Owen and Zhen during 2023 summer. Code developed by Zhen @Zzzzhen1. 
 Any questions about the code please feel free to contact zy336@cam.ac.uk
 
