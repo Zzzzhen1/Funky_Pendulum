@@ -743,7 +743,7 @@ void NR() {
           steps = 0;
           for(int i = 0; i < freq_size; i++){
             if(omega_list[i] != 0){
-              steps += amp_0 * sin(omega * current_time);
+              steps += amp_0 * sin(omega_list[i] * current_time);
             }
           }
           steps += amp * sin(omega * current_time + phase);
