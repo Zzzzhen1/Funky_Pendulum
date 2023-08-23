@@ -671,9 +671,9 @@ class data():
             else:
                 return 0, 0
         else:
-            print(self.omega_list)
             for index, omega in enumerate(self.omega_list):
                 if(self.NR_phase_calc(interpolation, omega)):
+                    print(omega, self.phase / np.pi)
                     self.multi_phase_list[index].pop(0)
                     self.multi_phase_list[index].append((self.time[self.temp_index], self.phase / np.pi))
             return 0., 0.
@@ -896,7 +896,7 @@ class arduino():
                     temp_flag_check = True
                     while(temp_flag_check):
                         print("\nThe frequency list is: ", msg)
-                        print("\nThe minimum spacing between frequencies is: %.3f" % (end_point - start_point) / (num - 1))
+                        print("\nThe minimum spacing between frequencies is: %.3f" % ((end_point - start_point) / (num - 1)))
                         print("\nTo obtain nice phase calculation results, 1 / (fft_length * sampling_div) should be greater than this")
                         temp = input("\nIs this what you want? (y/n): ")
                         if(temp == "y"):
