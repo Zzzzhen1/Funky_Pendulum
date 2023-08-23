@@ -206,6 +206,7 @@ class data():
                 self.ax_list[0, 1].set_ylabel('Arbitrary Unit')
                 self.ax_list[1, 1].set_xlabel('Time/s')
                 self.ax_list[1, 1].set_ylabel('Phase/pi')
+                ax2.set_ylabel('Amplitude/steps')
             
             elif(module_name == "pid"):
                 if(self.flag_subplot_init):
@@ -347,7 +348,7 @@ class data():
                     if(self.omega_list is None):
                         self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
                     else:
-                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join(str(i) for i in self.omega_list) + 'Hz')
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join("%.3f" % i for i in self.omega_list) + 'Hz')
                     
                     for ax in self.ax_new_list:
                         ax.relim()
@@ -403,7 +404,7 @@ class data():
                     if(self.omega_list is None):
                         self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
                     else:
-                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join(str(i) for i in self.omega_list) + 'Hz')
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join("%.3f" % i for i in self.omega_list) + 'Hz')
                     
                     for ax in self.ax_new_list:
                         ax.relim()
@@ -536,24 +537,24 @@ class data():
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             special_info = input("Any special info to add to the csv file?\n\n")
-            writer.writerow(["special_info: " + special_info])
+            writer.writerow(["special_info:"], [special_info])
             if(module_name == "pid"):
                 try:
                     writer.writerow(["Kp", "Ki", "Kd", "Kp_pos", "Ki_pos", "Kd_pos"])
                     writer.writerow([self.pid_param.split(',')[i] for i in range(6)])
                 except (AttributeError, IndexError):
                     pass
-            writer.writerow(["start_time: " + str(self.start_time)])
+            writer.writerow(["start_time:"], [str(self.start_time)])
             if(self.omega_list is None):
-                writer.writerow(["omega: " + str(self.omega)])
+                writer.writerow(["omega:"], [str(self.omega)])
             else:
-                writer.writerow(["multiple_omega: " + ', '.join(str(i) for i in self.omega_list)])
+                writer.writerow(["multiple_omega: "], [(str(i) for i in self.omega_list)])
             try:
-                writer.writerow(["amplitude: " + str(self.amp_list[-1][1])])
+                writer.writerow(["amplitude:"], [str(self.amp_list[-1][1])])
                 if(self.omega_list is None):
-                    writer.writerow(["phase/pi: " + str(self.phase_list[-1][1])])
+                    writer.writerow(["phase/pi:"], [str(self.phase_list[-1][1])])
                 else:
-                    writer.writerow(["multiple phase/pi: " + ', '.join(str(i[1]) for i in self.multi_phase_list[-1])])
+                    writer.writerow(["multiple phase/pi: "], [(str(i[-1][1]) for i in self.multi_phase_list)])
             except (AttributeError, IndexError):
                 pass
             writer.writerow(["time", "angle", "position", "angular_velocity", "cart_velocity"])
@@ -670,6 +671,7 @@ class data():
             else:
                 return 0, 0
         else:
+            print(self.omega_list)
             for index, omega in enumerate(self.omega_list):
                 if(self.NR_phase_calc(interpolation, omega)):
                     self.multi_phase_list[index].pop(0)
@@ -731,6 +733,7 @@ class live_data(data):
         # Important, update the amp and phase in the data class
         data.amp = self.amp
         data.phase = self.phase
+        data.multi_phase_list = self.multi_phase_list
         self.omega_num = data.omega_num
         self.omega_list = data.omega_list
     
@@ -888,13 +891,13 @@ class arduino():
                     msg = ""
                     omega_list = np.linspace(start_point, end_point, num, dtype = float)
                     for i in range(num - 1):
-                        msg += str(omega_list[i][:6]) + ","
-                    msg += str(omega_list[-1]) + "\n"
+                        msg += "%.3f" % omega_list[i] + ","
+                    msg += "%.3f" % omega_list[num - 1] + "\n"
                     temp_flag_check = True
                     while(temp_flag_check):
                         print("\nThe frequency list is: ", msg)
-                        print("\nThe minimum spacing between frequencies is: ", (end_point - start_point) / (num - 1))
-                        print("\nTo obtain nice phase calculation results, fft_length * sampling_div should be greater than this")
+                        print("\nThe minimum spacing between frequencies is: %.3f" % (end_point - start_point) / (num - 1))
+                        print("\nTo obtain nice phase calculation results, 1 / (fft_length * sampling_div) should be greater than this")
                         temp = input("\nIs this what you want? (y/n): ")
                         if(temp == "y"):
                             self.send_message(msg)
@@ -1066,7 +1069,7 @@ class cart_pendulum():
                 if(self.data.omega * abs(a) > 2000):
                     print("The amplitude is too large. Please try again.\n")
                 else:
-                    msg = str(abs(a)) + "," + str(temp_datum.phase) + "\n"
+                    msg = str(abs(a)) + "," + str(self.data.phase) + "\n"
                     self.arduino.send_message(msg)
                     temp_datum.amp = abs(a)
                     self.data.amp = abs(a)
@@ -1194,11 +1197,11 @@ class cart_pendulum():
                     temp_datum.copy(self.data)
                     temp_datum.init_plot(self.module_name)
                     temp_datum.real_time_plot(self.module_name)
-                    # TODO: plot multiple phase curve with legends, would be a bit messy
+                    # BUG: plot multiple phase curve with legends, would be a bit messy
                 else:
-                    reader.join()
-                    if(not NR_scan and manual):
-                        writer.join()
+                    # reader.join()
+                    # if(not NR_scan and manual):
+                    #     writer.join()
                     self.reconnect(exp = True)
                 
                 if(self.NR_counter >= temp_datum.wait_to_stable):
@@ -1273,8 +1276,8 @@ if __name__ == "__main__":
     
     # Start up routine of the test
     # hidden variables
-    fft_lengths = 1024 # TODO: add some possible values
-    sampling_divs = 0.1 # The minimum sampling division set in Arduino is 50 ms
+    fft_lengths = 512 # TODO: add some possible values
+    sampling_divs = 0.05 # The minimum sampling division set in Arduino is 50 ms
     wait_to_stables = 5
     # fft_length = int(input("fft_length: "))
     # sampling_div = float(input("sampling_div: "))
@@ -1301,3 +1304,4 @@ if __name__ == "__main__":
 # TODO: all the parameters in the code should have a reasonable range
 # TODO: separate the different classes in different python files
 # TODO: find delay time (a day of investigation) draw block diagram
+# TODO: check what's the difference of calculating the phase in different version.
