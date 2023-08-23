@@ -861,7 +861,7 @@ class arduino():
                 print("\nPlease enter a valid number")
                 continue
             if(num == 1):
-                print("\nPlease enter the driven frequency: ")
+                print("\nPlease enter the driven frequency: \n")
                 self.send_input_message()
                 temp_flag = False
                 return False
