@@ -174,7 +174,8 @@ class data():
                 self.ax_list[0, 1].legend(loc = 'upper left')
                 self.ax_list[1, 1].legend(loc = 'upper left')
                 ax1.legend(loc = 'upper right')
-                ax2.legend(loc = 'upper right')
+                if(self.omega_list is None):
+                    ax2.legend(loc = 'upper right')
                 ax1.grid(False)
                 ax2.grid(False)
                 # Initiate a new dictionary for all the artists objects
