@@ -112,6 +112,7 @@ class data_analysis():
                         for header in self.header:
                             if(row[0] == 'multiple_omega' or row[0] == 'multiple_phase'):
                                 self.properties.update({header:(row[i] for i in range(1, len(row)))})
+                                print(self.properties[header])
                                 break
                             if(row[0].startswith(header)):
                                 self.properties.update({header:row[1]})
@@ -309,7 +310,7 @@ class data_analysis():
         '''Plot phase curve and fft on the axes objects'''
         for i in range(len(self.temp_data[0][start_index:end_index])):
             if(self.temp_data[0][i + start_index] - self.temp_data[0][0] \
-                > self.fft_length * self.sampling_div):
+                > 5):
                 fft_angle, fft_position, fft_freq, avg = self.general_fft(
                     self.temp_data[0][:i + start_index],
                     self.temp_data[1][:i + start_index],
@@ -492,19 +493,18 @@ class data_analysis():
         self.load_csv()
         if(self.check_csv_type()):
             if(self.data_flag_dict['measure']):
+                print("Measure data processing is not implemented yet")
                 pass
             elif(self.data_flag_dict['scan']):
                 for file in self.csv_list:
                     self.properties.update({'file_name':file})
                     print("processing " + file)
                     if(self.read_csv(file)):
-                        try:
-                            if('multiple_omega' in self.properties):
-                                print("Multiple frequency detected, currently not supported")
-                                continue
-                        except KeyError:
-                            self.scan_plot(file)
-                            self.clear_data()
+                        if('multiple_omega' in self.properties):
+                            print("Multiple frequency detected, currently not supported")
+                            continue
+                        self.scan_plot(file)
+                        self.clear_data()
             elif(self.data_flag_dict['pid']):
                 print("PID data processing is not implemented yet")
                 pass
