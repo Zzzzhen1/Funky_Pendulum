@@ -230,6 +230,7 @@ void reset() {
   flag_switch_regime = 1;
   center_count = 0;
   amp = 0.;
+  amp_0 =  200.;
   buf_ind = 0;
   temp_ind = 0;
   memset(circ_buffer_angle, 0., sizeof(circ_buffer_angle));
@@ -290,7 +291,7 @@ bool isMultiFreq(String str) {
         return false;
       }
       if(isFloat(temp_str)){
-        omega_list[count] = temp_str.toDouble();
+        omega_list[count] = 2 * M_PI * temp_str.toDouble();
         count += 1;
       }else{
         memset(omega_list, 0., sizeof(omega_list));
@@ -301,7 +302,9 @@ bool isMultiFreq(String str) {
       temp_str += str.charAt(i);
     }
   }
-  omega_list[count] = temp_str.toDouble();
+  // Final conversion
+  omega_list[count] = 2 * M_PI * temp_str.toDouble();
+  amp_0 = 2 * amp_0 / (count + 1);
   return true;
 }
 
@@ -710,7 +713,7 @@ void NR() {
             if(omega_list[i] == 0){
               break;
             }else{
-              Serial.print(omega_list[i], 4);
+              Serial.print(omega_list[i] / 2 / M_PI, 4);
               Serial.print(" ");
             }
           }
