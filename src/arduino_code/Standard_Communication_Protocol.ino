@@ -47,7 +47,7 @@ double omega = 0.;             // Driven frequency of the cart
 const int freq_size = 10;      // Maximum number of frequencies this cart can run at
 double omega_list[freq_size];         // Multiple driven frequencies of the cart
 float amp = 0.;                // Initial sinosuidal amplitude (steps)
-const float amp_0 = 200.;      // Constant initial sinosuidal amplitude (steps)
+float amp_0 = 200.;      // Constant initial sinosuidal amplitude (steps)
 const float amp_swing = 220.;  // Constant swing up amplitude (steps)
 float phase = 0.;              // Initial angle phase (in terms of the cart position)
 
