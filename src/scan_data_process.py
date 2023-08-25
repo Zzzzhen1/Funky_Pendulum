@@ -16,6 +16,8 @@ mpl.use('TkAgg')
 
 # TODO: correnspondingly, adjustment in the scan_data_process code: multiple frequency assessment
 
+# TODO: correnspondingly, adjustment in the scan_data_process code: multiple frequency assessment
+
 def sinusoid(time, omega, phi, amp, offset):
     '''Fit to the amplitude response scan plot'''
     return amp * np.sin(2 * np.pi * omega * time + phi) + offset
@@ -110,11 +112,6 @@ class data_analysis():
                             self.load_data(row, file)
                     else:
                         for header in self.header:
-                            if(row[0] == 'multiple_omega' or row[0] == 'multiple_phase'):
-                                self.properties.update({header:(row[i] for i in range(1, len(row)))})
-                                print(self.properties[header])
-                                # TODO: multiple frequency assessment
-                                return False
                             if(row[0].startswith(header)):
                                 self.properties.update({header:row[1]})
                                 break
