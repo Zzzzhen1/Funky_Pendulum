@@ -5,7 +5,7 @@ Any questions about the code please feel free to contact zy336@cam.ac.uk or leav
 dicussion session in this GitHub repository.
 
 ## 3D Files Uploading List (Each with src, image, and stl files for print)
-- [ ]Belt_Fixture
+- [x]Belt_Fixture
 - [ ]Belt_Fixture_Spacer
 - [ ]Carriage_Whole
 - [ ]Pendulum_Rod
