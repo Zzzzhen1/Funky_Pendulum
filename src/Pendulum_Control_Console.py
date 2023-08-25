@@ -26,7 +26,7 @@ class data():
         fft_length,
         sampling_div,
         wait_to_stable,
-        buffer_length = 8192,
+        buffer_length = 4 * 8192,
         plot_length = 512,
         ):
         self.start_time = 0.
@@ -169,7 +169,7 @@ class data():
                                                                       label = '%.3f Hz'%(self.omega_list[i]))
                         self.line_phase_list.append(_line)
                 ax2 = self.ax_list[1, 1].twinx()
-                self.line_amp, = ax2.plot([], [], 'r-', label = 'amplitude')
+                self.line_amp, = ax2.plot([], [], 'k-', label = 'amplitude')
                 
                 self.ax_list[0, 1].legend(loc = 'upper left')
                 self.ax_list[1, 1].legend(loc = 'upper left')
@@ -238,6 +238,7 @@ class data():
             self.figure.canvas.manager.set_window_title(module_name)
             self.figure.canvas.draw_idle()
             plt.tight_layout()
+            plt.get_current_fig_manager().window.state('zoomed')
             plt.show(block = False)
 
     def real_time_plot(self, module_name):
@@ -323,15 +324,17 @@ class data():
                                         self.angle[low_ind:high_ind])
                     self.line_pos.set_data(self.time[low_ind:high_ind],
                                            self.position[low_ind:high_ind])
-                    self.line_pos_const.set_data(self.time[low_ind:high_ind],
-                                                 self.amp_0 * np.sin(2 * np.pi * \
-                                                     self.omega * (self.time[low_ind:high_ind] + self.start_time)))
                     self.line_fft_ang.set_data(self.fft_freq, 
                                                 abs(self.fft_angle))
                     self.line_fft_pos.set_data(self.fft_freq,
                                                abs(self.fft_pos))
-                    # TODO: multi phase plot and copy the form for the else stage
+                    
+                    # TODO: write a delay_fit function to fit the phase
+                    
                     if(self.omega_list is None):
+                        self.line_pos_const.set_data(self.time[low_ind:high_ind],
+                                                 self.amp_0 * np.sin(2 * np.pi * \
+                                                 self.omega * (self.time[low_ind:high_ind] + self.start_time)))
                         self.line_phase.set_data(*zip(*self.phase_list))
                     else:
                         for index, line in enumerate(self.line_phase_list):
@@ -380,15 +383,15 @@ class data():
                                         self.angle[low_ind:high_ind])
                     self.line_pos.set_data(self.time[low_ind:high_ind],
                                            self.position[low_ind:high_ind])
-                    self.line_pos_const.set_data(self.time[low_ind:high_ind],
-                                                 self.amp_0 * np.sin(2 * np.pi * \
-                                                     self.omega * (self.time[low_ind:high_ind] + self.start_time)))
                     self.line_fft_ang.set_data(self.fft_freq, 
                                                 abs(self.fft_angle))
                     self.line_fft_pos.set_data(self.fft_freq,
                                                abs(self.fft_pos))
                     if(self.omega_list is None):
                         self.line_phase.set_data(*zip(*self.phase_list))
+                        self.line_pos_const.set_data(self.time[low_ind:high_ind],
+                                                 self.amp_0 * np.sin(2 * np.pi * \
+                                                 self.omega * (self.time[low_ind:high_ind] + self.start_time)))
                     else:
                         for index, line in enumerate(self.line_phase_list):
                             line.set_data(*zip(*self.multi_phase_list[index]))
@@ -644,7 +647,6 @@ class data():
         
     def NR_update(self, scan = False, interpolation = True, manual = True):
         '''Needs to be called frequently to update the plot for the phase and amplitude'''
-        # TODO: calls out multiple times for different frequencies
         if(self.omega_list is None):
             if (self.NR_phase_calc(self.omega, interpolation)):
                 self.phase_list.pop(0)
@@ -1276,7 +1278,7 @@ if __name__ == "__main__":
     
     # Start up routine of the test
     # hidden variables
-    fft_lengths = 512 # TODO: add some possible values
+    fft_lengths = 1024 # TODO: add some possible values
     sampling_divs = 0.05 # The minimum sampling division set in Arduino is 50 ms
     wait_to_stables = 5
     # fft_length = int(input("fft_length: "))
@@ -1299,9 +1301,11 @@ if __name__ == "__main__":
 
 # TODO: ask whether to enter data analysis mode
 # TODO: check whether the platformio can do the arduino code upload 
-# because the Arduino IDE would be inefficient and faulty
-# TODO: what to do if there are two peaks in the FFT?
+# because the Arduino IDE would be inefficient and faulty (secondary)
+# TODO: what to do if there are two peaks in the measure FFT?
 # TODO: all the parameters in the code should have a reasonable range
 # TODO: separate the different classes in different python files
 # TODO: find delay time (a day of investigation) draw block diagram
-# TODO: check what's the difference of calculating the phase in different version.
+# TODO: change the total maximum amplitude for multiple frequencies
+# TODO: the csv file saved after the scan experiment needs a date and time
+# TODO: decide the amplitude of the NR scan drive stage

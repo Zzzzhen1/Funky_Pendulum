@@ -2,7 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load data from CSV
-data = pd.read_csv('C:\Programming\Python\Funky Pendulum\scan_for_response_test_data\scan_data.csv')
+# TODO: ask for file path
+data = pd.read_csv(r'C:\Programming\Python\Funky Pendulum_local\scan_for_response_test_data\scan_data.csv')
 
 # Calculate response amplitude to driving amplitude ratio
 data['amp_ratio'] = data['response_amp'] / data['driving_amp']

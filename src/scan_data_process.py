@@ -14,6 +14,8 @@ plt.rcParams['axes.grid'] = True
 plt.rcParams["figure.autolayout"] = True
 mpl.use('TkAgg')
 
+# TODO: correnspondingly, adjustment in the scan_data_process code: multiple frequency assessment
+
 def sinusoid(time, omega, phi, amp, offset):
     '''Fit to the amplitude response scan plot'''
     return amp * np.sin(2 * np.pi * omega * time + phi) + offset
@@ -35,11 +37,13 @@ class data_analysis():
         }
         self.properties = {} # A dictionary of numbers read from the header
         self.header = [
-            'special_info: ',
-            'temp_index: ',
-            'omega: ',
-            'amplitude: ',
-            'phase/pi: ',
+            'special_info',
+            'start_time',
+            'omega',
+            'multiple_omega',
+            'amplitude',
+            'phase/pi',
+            'multiple_phase/pi',
             'time,angle,position,angular_velocity,cart_velocity',
             'Kp,Ki,Kd,Kp_pos,Ki_pos,Kd_pos',
         ]
@@ -98,7 +102,7 @@ class data_analysis():
                             continue
                         for header in self.header:
                             if(row[0].startswith(header)):
-                                self.properties.update({header:row[0][len(header):]})
+                                self.properties.update({header:row[1]})
                                 break
                         if(row[0].startswith('time')):
                             continue
@@ -106,8 +110,13 @@ class data_analysis():
                             self.load_data(row, file)
                     else:
                         for header in self.header:
+                            if(row[0] == 'multiple_omega' or row[0] == 'multiple_phase'):
+                                self.properties.update({header:(row[i] for i in range(1, len(row)))})
+                                print(self.properties[header])
+                                # TODO: multiple frequency assessment
+                                return False
                             if(row[0].startswith(header)):
-                                self.properties.update({header:row[0][len(header):]})
+                                self.properties.update({header:row[1]})
                                 break
                         if(row[0].startswith('time')):
                             continue
@@ -133,7 +142,7 @@ class data_analysis():
     def load_data(self, row, file):
         '''Load a single row of data'''
         if(float(row[0]) < 0):
-            print("Detect negative time stamp at " + self.path)
+            print("Detect negative time stamp at " + self.path + " Deleting...")
             file.close()
             os.remove(self.path)
             return
@@ -171,7 +180,7 @@ class data_analysis():
         self.figure, axes = plt.subplots(2, 2, figsize = (10, 6))
         self.scan_fft_plot((axes[0, 1], axes[1, 1]), start_index, end_index)
         try:
-            self.figure.suptitle(self.properties['special_info: '])
+            self.figure.suptitle(self.properties['special_info'])
         except KeyError:
             self.figure.suptitle('No special info')
         self.figure.canvas.manager.set_window_title(self.properties['file_name'])
@@ -246,7 +255,7 @@ class data_analysis():
         pass
     
     def phase_rectify(self, phase):
-        '''Shifts the phase to be between 0.5 * pi and -1.5*pi, which is symmetric abour -0.5*pi'''
+        '''Shifts the phase to be between 0.5 * pi and -1.5 * pi, which is symmetric abour -0.5*pi'''
         phase = phase - 2 * np.pi * int(phase / (2 * np.pi))
         if phase > 0.5 * np.pi:
             return phase - 2 * np.pi
@@ -290,7 +299,7 @@ class data_analysis():
     def scan_fit(self, time, angle,
                  amp_range):
         popt, pcov = curve_fit(sinusoid, time, angle,
-                               p0 = [float(self.properties['omega: ']), np.pi, 
+                               p0 = [float(self.properties['omega']), np.pi, 
                                      0.5*(amp_range[0] + amp_range[1]), 0.],
                                bounds = ((0., 0, amp_range[0], -0.6),
                                          (4., 2 * np.pi, amp_range[1], 0.6)),
@@ -302,7 +311,7 @@ class data_analysis():
         '''Plot phase curve and fft on the axes objects'''
         for i in range(len(self.temp_data[0][start_index:end_index])):
             if(self.temp_data[0][i + start_index] - self.temp_data[0][0] \
-                > self.fft_length * self.sampling_div):
+                > 5):
                 fft_angle, fft_position, fft_freq, avg = self.general_fft(
                     self.temp_data[0][:i + start_index],
                     self.temp_data[1][:i + start_index],
@@ -312,7 +321,7 @@ class data_analysis():
                 )
                 phase = self.phase_calc(
                     fft_freq,
-                    float(self.properties['omega: ']),
+                    float(self.properties['omega']),
                     fft_angle,
                     fft_position
                 )
@@ -410,7 +419,7 @@ class data_analysis():
         self.ax0 = axes[0, 1].twinx()
         self.scan_fft_plot((axes[0, 1], axes[1, 1]))
         try:
-            self.figure.suptitle(self.properties['special_info: '])
+            self.figure.suptitle(self.properties['special_info'])
         except KeyError:
             self.figure.suptitle('No special info')
         self.figure.canvas.manager.set_window_title(self.properties['file_name'])
@@ -475,7 +484,7 @@ class data_analysis():
                                  'phase_err'])
             writer.writerow([file,
                              current_dir_name,
-                             float(self.properties['omega: ']), 
+                             float(self.properties['omega']), 
                              exp_data[0], exp_data[1], 
                              exp_data[2], exp_data[3], 
                              exp_data[4], exp_data[5]])
@@ -485,20 +494,26 @@ class data_analysis():
         self.load_csv()
         if(self.check_csv_type()):
             if(self.data_flag_dict['measure']):
+                print("Measure data processing is not implemented yet")
                 pass
             elif(self.data_flag_dict['scan']):
                 for file in self.csv_list:
                     self.properties.update({'file_name':file})
-                    print("processing " + file)
+                    print("\nprocessing " + file)
                     if(self.read_csv(file)):
+                        if('multiple_omega' in self.properties):
+                            print("Multiple frequency detected, currently not supported")
+                            continue
                         self.scan_plot(file)
                         self.clear_data()
             elif(self.data_flag_dict['pid']):
+                print("PID data processing is not implemented yet")
                 pass
         else:
             return
         
 if __name__ == '__main__':
+    '''Currently not compatible with multiple frequency assessment'''
     data = data_analysis()
     data.main()
         
