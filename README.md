@@ -5,7 +5,7 @@ Any questions about the code please feel free to contact zy336@cam.ac.uk or leav
 dicussion session in this GitHub repository.
 
 ## 3D Files Uploading List (Each with src, image, and stl files for print)
-- [x] Belt_Fixture
+- [ ] Belt_Fixture
 - [ ] Belt_Fixture_Spacer
 - [ ] Carriage_Whole
 - [ ] Pendulum_Rod
@@ -16,6 +16,7 @@ dicussion session in this GitHub repository.
 - [ ] Pendulum_Arm
 - [ ] Rod_Holder_Back
 - [ ] Rod_Holder_Front
+- [ ] Base
  
 ## General Description of the project. Should include the following features:
 
