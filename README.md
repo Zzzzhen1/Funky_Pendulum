@@ -5,18 +5,18 @@ Any questions about the code please feel free to contact zy336@cam.ac.uk or leav
 dicussion session in this GitHub repository.
 
 ## 3D Files Uploading List (Each with src, image, and stl files for print)
-- [ ] Belt_Fixture
-- [ ] Belt_Fixture_Spacer
-- [ ] Carriage_Whole
-- [ ] Pendulum_Rod
-- [ ] Stepper_Fixture
-- [ ] Limit_Switch_Fixture
-- [ ] Pendulum_Idler
-- [ ] Rod_Clamp_Fixture
-- [ ] Pendulum_Arm
-- [ ] Rod_Holder_Back
-- [ ] Rod_Holder_Front
-- [ ] Base
+- [x] Belt_Fixture
+- [x] Belt_Fixture_Spacer
+- [x] Carriage_Whole
+- [x] Pendulum_Rod
+- [x] Stepper_Fixture
+- [x] Limit_Switch_Fixture
+- [x] Pendulum_Idler
+- [x] Rod_Clamp_Fixture
+- [x] Pendulum_Arm
+- [x] Rod_Holder_Back
+- [x] Rod_Holder_Front
+- [x] Base
  
 ## General Description of the project. Should include the following features:
 
