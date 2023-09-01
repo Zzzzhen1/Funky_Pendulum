@@ -1339,3 +1339,4 @@ if __name__ == "__main__":
 # TODO: change the total maximum amplitude for multiple frequencies ! in the arduino code
 # TODO: the csv file saved after the scan experiment needs a date and time
 # TODO: decide the amplitude of the NR scan drive stage (secondary)
+# TODO: check Control System Designer in MATLAB and setClock() in Arduino
