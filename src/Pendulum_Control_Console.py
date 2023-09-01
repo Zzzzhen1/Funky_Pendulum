@@ -65,6 +65,7 @@ class data():
         self.omega_num = 0
         self.omega_list = None
         self.multi_phase_list = None
+        self.pos_const = None
     
     def append_data(
         self,
@@ -112,6 +113,7 @@ class data():
         self.omega_num = 0
         self.omega_list = None
         self.multi_phase_list = None
+        self.pos_const = None
         
     def clear_figure(self):
         plt.close("all")
@@ -598,10 +600,14 @@ class data():
             
             fft_ang = fft(self.angle[index_list])
             fft_pos = fft(self.position[index_list])
+            if(self.pos_const is not None):
+                fft_pos_const = fft(self.pos_const[index_list])
             fft_freq = fftfreq(len(index_list), avg_spacing)
             
             self.fft_angle = fft_ang[1:int(len(fft_freq) / 2)]
             self.fft_pos = fft_pos[1:int(len(fft_freq) / 2)]
+            if(self.pos_const is not None):
+                self.fft_pos_const = fft_pos_const[1:int(len(fft_freq) / 2)]  
             self.fft_freq = fft_freq[1:int(len(fft_freq) / 2)]
             return True
         else:
@@ -609,7 +615,9 @@ class data():
     
     def NR_phase_calc(self, omega, interpolation = True):
         # BUG: TODO: IMPORTANT: How to convey the original oscillation phase!!! 
-        # Start off at zero position in Arduino might help?
+        # TODO: Once determined the delay time between the two waves 
+        # need to double check whether there is such a relationship delta t * omega = delta phi???
+        # Because this would simply be the issue of pos_cart_target vs. pos_cart! which is not fancy at all
         if (self.fft()):
             close_ind = np.argmin(np.abs(self.fft_freq - omega))
             if interpolation:
@@ -652,6 +660,8 @@ class data():
                 self.phase_list.pop(0)
                 self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
                 if scan:
+                    self.pos_const = self.amp_0 * np.sin(2 * np.pi * \
+                        self.omega * (self.time[self.temp_index] + self.start_time))
                     return 0., 0.
                 else:
                     if(manual):
@@ -695,8 +705,8 @@ class data():
     # TODO: add a sampling rate selection in arduino (secondary)
     # TODO: to make the step function in the NR stage continuous (secondary)
     # TODO: check the NR_update function, how the phase is related to the original 
-    # oscillation but not the entire position oscillation (!!!)
-    # TODO: add a different title for downward and upward control
+    # oscillation but not the entire position oscillation (!!!) check the delay time first
+    # TODO: add a different title for downward and upward control (secondary)
     # TODO: add a different title for scanning for response
     # TODO: label in the csv file of different minimal stage !!! Useful for later analysis
     
@@ -739,6 +749,7 @@ class live_data(data):
         data.amp = self.amp
         data.phase = self.phase
         data.multi_phase_list = self.multi_phase_list
+        data.pos_const = self.pos_const
         self.omega_num = data.omega_num
         self.omega_list = data.omega_list
     
@@ -1202,18 +1213,15 @@ class cart_pendulum():
                     temp_datum.copy(self.data)
                     temp_datum.init_plot(self.module_name)
                     temp_datum.real_time_plot(self.module_name)
-                    # BUG: plot multiple phase curve with legends, would be a bit messy
                 else:
-                    # reader.join()
-                    # if(not NR_scan and manual):
-                    #     writer.join()
                     self.reconnect(exp = True)
                 
                 if(self.NR_counter >= temp_datum.wait_to_stable):
                     amp, phase = temp_datum.NR_update(NR_scan, interpolation, manual) 
                     if(not manual):
-                        # print("Amplitude: ", amp, " Phase: ", phase / np.pi, "\n")
                         self.arduino.send_message(str(amp) + "," + str(phase) + "\n")
+                    elif(manual and not NR_scan):
+                        print("Amplitude: ", amp, " Phase: ", phase / np.pi, "\n")
                     self.NR_counter = 0
                 else:
                     self.NR_counter += 1
@@ -1280,7 +1288,6 @@ class cart_pendulum():
 if __name__ == "__main__":
     
     # Start up routine of the test
-    # hidden variables
     fft_lengths = 1024 # TODO: add some possible values
     sampling_divs = 0.05 # The minimum sampling division set in Arduino is 50 ms
     wait_to_stables = 5
@@ -1305,10 +1312,10 @@ if __name__ == "__main__":
 # TODO: ask whether to enter data analysis mode
 # TODO: check whether the platformio can do the arduino code upload 
 # because the Arduino IDE would be inefficient and faulty (secondary)
-# TODO: what to do if there are two peaks in the measure FFT?
+# TODO: what to do if there are two peaks in the measure FFT? Worth mentioning in the handout
 # TODO: all the parameters in the code should have a reasonable range
-# TODO: separate the different classes in different python files
-# TODO: find delay time (a day of investigation) draw block diagram
-# TODO: change the total maximum amplitude for multiple frequencies
+# TODO: separate the different classes in different python files (secondary)
+# TODO: find delay time (a day of investigation) and make a plot
+# TODO: change the total maximum amplitude for multiple frequencies ! in the arduino code
 # TODO: the csv file saved after the scan experiment needs a date and time
-# TODO: decide the amplitude of the NR scan drive stage
+# TODO: decide the amplitude of the NR scan drive stage (secondary)
