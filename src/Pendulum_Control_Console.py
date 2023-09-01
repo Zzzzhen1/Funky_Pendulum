@@ -689,6 +689,9 @@ class data():
         else:
             return phase
     
+    def delay_fit(self):
+        pass
+    
     # TODO: fix plot_length with updated index_list (secondary)
     # TODO: add a sampling rate selection in arduino (secondary)
     # TODO: to make the step function in the NR stage continuous (secondary)
