@@ -598,6 +598,7 @@ class data():
             
             fft_ang = fft(self.angle[index_list])
             fft_pos = fft(self.position[index_list])
+            # TODO: add one more fft for the constant motion of the cart
             fft_freq = fftfreq(len(index_list), avg_spacing)
             
             self.fft_angle = fft_ang[1:int(len(fft_freq) / 2)]
