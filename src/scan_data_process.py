@@ -16,8 +16,6 @@ mpl.use('TkAgg')
 
 # TODO: correnspondingly, adjustment in the scan_data_process code: multiple frequency assessment
 
-# TODO: correnspondingly, adjustment in the scan_data_process code: multiple frequency assessment
-
 def sinusoid(time, omega, phi, amp, offset):
     '''Fit to the amplitude response scan plot'''
     return amp * np.sin(2 * np.pi * omega * time + phi) + offset
@@ -402,7 +400,7 @@ class data_analysis():
             popt_position[2], np.sqrt(pcov_position[2, 2]), \
                 avg_phase, err_phase
           
-    def scan_plot(self, file, block = True, save = False):
+    def scan_plot(self, file, block = True):
         '''Plot two graphs:
         1. The angle-time graph with best fit line and parameters
         2. The phase curve and cumulated error
@@ -486,6 +484,9 @@ class data_analysis():
                              exp_data[2], exp_data[3], 
                              exp_data[4], exp_data[5]])
             csvfile.close()
+    
+    def measure_plot(self, file, block = True):
+        pass
     
     def main(self):
         self.load_csv()
