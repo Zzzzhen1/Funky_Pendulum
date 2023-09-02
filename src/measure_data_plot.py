@@ -11,6 +11,8 @@ plt.rcParams['axes.grid'] = True
 plt.rcParams.update({'text.usetex': True,
                      'font.family': 'serif',})
 
+# TODO: need to change the data_reading procedure
+
 filename = r"C:\Programming\Python\Funky Pendulum\cart_pendulum_data\Natural_Freqency_Check\param_zhen.csv"
 
 gamma = []

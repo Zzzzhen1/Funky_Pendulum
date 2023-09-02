@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import pandas as pd
-import os, csv, scipy, statistics, tkinter
+import os, csv, tkinter
 from statistics import mean, stdev
 from scipy.fft import fft, fftfreq
 from scipy.signal import find_peaks
@@ -23,7 +23,9 @@ def sinusoid(time, omega, phi, amp, offset):
     return amp * np.sin(2 * np.pi * omega * time + phi) + offset
 
 class data_analysis():
+    
     '''Analysis class to analyze the data'''
+    
     def __init__(self):
         self.buffer_length = 16 * 65536 # The buffer length of the data
         self.dirc = os.getcwd() # Get the csv file directory, either by input
@@ -69,6 +71,8 @@ class data_analysis():
         self.temp_data = np.zeros((5,self.buffer_length), dtype = float)
         self.phase_list = []
         self.amp_list = []
+        self.ax0 = None
+        self.txt_list = None
         
     def load_csv(self):
         '''Load the csv file'''
@@ -116,6 +120,11 @@ class data_analysis():
                             self.load_data(row, file)
                     else:
                         for header in self.header:
+                            if(row[0] == 'multiple_omega' or row[0] == 'multiple_phase'):
+                                self.properties.update({header:(row[i] for i in range(1, len(row)))})
+                                print(self.properties[header])
+                                # TODO: multiple frequency assessment
+                                return False
                             if(row[0].startswith(header)):
                                 self.properties.update({header:row[1]})
                                 break
@@ -144,6 +153,7 @@ class data_analysis():
         '''Load a single row of data'''
         if(float(row[0]) < 0):
             print("Detect negative time stamp at " + self.path + " Deleting...")
+            input("Press ENTER to continue")
             file.close()
             os.remove(self.path)
             return
@@ -171,6 +181,7 @@ class data_analysis():
                     
         if(temp_index == 0 and time_stamp == 0):
             print('Empty file found at ' + self.dirc + '\\' + file + " Deleting...")
+            input("Press ENTER to continue")
             os.remove(self.path)
             raise FileNotFoundError
         return self.data[:, temp_index : temp_index + int(self.count / 2)]
@@ -309,7 +320,6 @@ class data_analysis():
         return popt, pcov    
     
     def scan_fft_plot(self, axs, start_index = 0, end_index = -1):
-        
         '''Plot phase curve and fft on the axes objects'''
         for i in range(len(self.temp_data[0][start_index:end_index])):
             if(self.temp_data[0][i + start_index] - self.temp_data[0][0] \
@@ -398,7 +408,8 @@ class data_analysis():
         avg_phase = mean(self.phase_list)
         err_phase = stdev(self.phase_list)
         print('phase = %.4f ' % avg_phase + u"\u00B1" + ' %.4f' % err_phase + " pi")
-        # / np.sqrt(len(self.phase_list) - 1)
+        # / np.sqrt(len(self.phase_list) - 1) (this represents the error of the mean, which is 
+        # too small in terms of the fluctuation of the phase)
         
         plt.show()
         self.ax0.clear()
@@ -414,7 +425,7 @@ class data_analysis():
         And save the timestamp, the amplitude of the best-fit, and the 
         phase with errors to a csv file or a temporary data structure'''
         self.temp_data = self.clean_data(file)
-        # Default values the rolling fft
+        # Default values of the rolling fft
         self.fft_length = 512
         self.sampling_div = 0.05
         self.figure, axes = plt.subplots(2, 2, figsize = (10, 6))
@@ -440,13 +451,18 @@ class data_analysis():
         flag_request = True
         while flag_request:
             try:
-                start_time = float(input('Start time of calculation: '))
-                end_time = float(input('End time of calculation: '))
+                start_time = float(input('Start time of calculation in seconds: '))
+                if(start_time < self.temp_data[0][0]):
+                    start_time = self.temp_data[0][0]
+                print('Start time = ' + str(start_time)[:5] + ' s')
+                end_time = float(input('\nEnd time of calculation in seconds: '))
                 if(end_time > self.temp_data[0][-1]):
                     end_time = self.temp_data[0][-1]
-                rolling_time = float(input('Rolling fft time: '))
+                print('End time = ' + str(end_time)[:5] + ' s')
+                rolling_time = float(input('\nRolling fft window time in seconds: '))
+                print('Rolling window time = ' + str(rolling_time)[:5] + ' s')
                 exp_data = self.scan_process(axes, start_time, end_time, rolling_time)
-                msg = input('Do you want to save the data? (y to save, n to continue, r to adjust): ')
+                msg = input('\nDo you want to save the data? (y to save, n to continue, r to adjust): ')
                 flag_yn = True
                 while flag_yn:
                     if(msg == 'y'):
@@ -492,40 +508,193 @@ class data_analysis():
                              exp_data[4], exp_data[5]])
             csvfile.close()
     
-    def measure_init(self, restore = False):
+    def measure_init(self, restore = False, process = False, start_index = 0, end_index = -1):
+        if(restore):
+            print("Restoring figure...")
         figure, axes = plt.subplots(1, 2, figsize = (10, 6))
+        fft_angle, _, fft_freq, avg_spacing = self.general_fft(
+            self.temp_data[0][start_index:end_index],
+            self.temp_data[1][start_index:end_index],
+            self.temp_data[2][start_index:end_index],
+            self.fft_length,
+            self.sampling_div)
+        axes[0].plot(self.temp_data[0],
+                     self.temp_data[1],
+                     'b-', label = 'angle')
+        axes[1].plot(fft_freq[1:int(len(fft_freq)/2)],
+                     abs(fft_angle[1:int(len(fft_freq)/2)]),
+                     'b-', label = 'angle')
+        if(process):
+            peaks, _ = find_peaks(abs(fft_angle[1:int(len(fft_freq)/2)]), height = 0.9)
+            for i,j in zip(peaks, abs(fft_angle[peaks])):
+                self.txt_list.append(axes[1].annotate(str(fft_freq[i])[:5] + "Hz", xy=(fft_freq[i], j)))
+            
+            popt, pcov = self.measure_fit(self.temp_data[0][start_index:end_index],
+                                          self.temp_data[1][start_index:end_index])
+            axes[0].plot(self.temp_data[0][start_index:end_index],
+                         damp_sin(self.temp_data[0][start_index:end_index], *popt),
+                         'r--', label = 'best-fit-line')
+            str_eqn_best_fit = 'y = %.3f' % popt[3] + ' * exp(-%.3f' % popt[0] + ' * t) * cos(%.3f' \
+                % (2 * np.pi * popt[1]) + ' * t + %.3f' % popt[2] + ')'
+            txt_3 = axes[0].text(0.6, 0.9, str_eqn_best_fit, transform = axes[0].transAxes)
+            self.txt_list.append(txt_3)
+            txt_4 = axes[0].text(0.6, 0.8, 'gamma = %.3f' % popt[0] + u"\u00B1" + str(np.sqrt(pcov[0, 0]))[:5] + \
+                ' rad/s', transform = axes[0].transAxes)
+            self.txt_list.append(txt_4)
+            txt_5 = axes[0].text(0.6, 0.7, 'freq = %.3f' % popt[1] + u"\u00B1" + str(np.sqrt(pcov[1, 1]))[:5] + \
+                ' Hz', transform = axes[0].transAxes)
+            self.txt_list.append(txt_5)
+            
+        try:
+            self.figure.suptitle(self.properties['special_info'])
+        except KeyError:
+            self.figure.suptitle('No special info')
+        self.figure.canvas.manager.set_window_title(self.properties['file_name'])
+        self.txt_list = []
+        res = (1/(self.temp_data[0][-1] - self.temp_data[0][0]))
+        txt_1 = axes[1].text(0.9, 0.9, 'resolution = ' + str(res)[:5] + ' Hz', 
+                             transform = axes[1].transAxes)
+        txt_2 = axes[1].text(0.9, 0.8, 'sampling_rate = ' + str(1/avg_spacing)[:4] + ' Hz',
+                             transform = axes[1].transAxes)
+        self.txt_list.append(txt_1)
+        self.txt_list.append(txt_2)
+        axes[0].legend(loc = 'upper left')
+        axes[1].legend(loc = 'upper left')
+        if(process):
+            if(len(peaks) == 0):
+                print("\nNo peak detected, please adjust the time range")
+                return None
+            elif(len(peaks) > 1):
+                print("\nMultiple peaks detected, please adjust the time range")
+                return None
+            return peaks[0], 0.5*res, popt[1], np.sqrt(pcov[1, 1]), popt[0], np.sqrt(pcov[0, 0])
         return figure, axes
+    
+    def measure_process(self, axes, start_time, end_time):
+        self.fft_length = int((end_time - start_time) / self.sampling_div)
+        if(self.temp_data[0][0] >= start_time):
+            print("Invalid input of time range")
+            return
+        for i in range(len(self.temp_data[0])):
+            if(self.temp_data[0][i] <= start_time):
+                start_index = i
+            if(self.temp_data[0][i] >= end_time):
+                end_index = i
+                break
+            end_index = -1
+        exp_data = self.measure_init(restore = True, process = True, start_index = start_index, end_index = end_index)
+        plt.show(block = True)
+        for txt in self.txt_list:
+            txt.remove()
+        return exp_data
     
     def measure_plot(self, file, block = True):
         '''Plot two graphs:
         1. The angle-time graph
         2. The fft of the angle-time graph'''
         self.temp_data = self.clean_data(file)
-        # Default values the rolling fft
+        # Default values of the rolling fft
         self.fft_length = 512
         self.sampling_div = 0.05
         self.figure, axes = self.measure_init(restore = False)
+        plt.show(block = block)
+        
+        for txt in self.txt_list:
+            txt.remove()
+        
+        flag_request = True
+        while flag_request:
+            try:
+                start_time = float(input('Start time of calculation in seconds: '))
+                if(start_time < self.temp_data[0][0]):
+                    start_time = self.temp_data[0][0]
+                print('Start time = ' + str(start_time)[:5] + ' s')
+                end_time = float(input('\nEnd time of calculation in seconds: '))
+                if(end_time > self.temp_data[0][-1]):
+                    end_time = self.temp_data[0][-1]
+                print('End time = ' + str(end_time)[:5] + ' s')
+                exp_data = self.measure_process(axes, start_time, end_time)
+                if(exp_data == None):
+                    continue
+                msg = input('\nDo you want to save the data? (y to save, n to continue, r to adjust): ')
+                flag_yn = True
+                while flag_yn:
+                    if(msg == 'y'):
+                        flag_request = False
+                        flag_yn = False
+                        self.save_measure_data(exp_data, file)
+                    elif(msg == 'n'):
+                        flag_request = False
+                        flag_yn = False
+                    elif (msg == 'r'):
+                        flag_yn = False
+                    else:
+                        msg = input('Please enter y or n: ')
+            except (ValueError, AssertionError):
+                print('Invalid input, please try again')
+    
+    def save_measure_data(self, exp_data, file):
+        parent_dir = os.path.dirname(self.dirc)
+        current_dir_name = os.path.split(self.dirc)[1]
+        csv_dir = parent_dir + '\\measure_data.csv'
+        flag = True
+        
+        if(os.path.isfile(csv_dir)):
+            flag = False
+            
+        with open(csv_dir, 'a', newline = '') as csvfile:
+            writer = csv.writer(csvfile)
+            if(flag):
+                writer.writerow(['file_name',
+                                 'parent_dir',
+                                 'omega_peak',
+                                 'omega_peak_err',
+                                 'omega_fit',
+                                 'omega_fit_err',
+                                 'gamma_fit',
+                                 'gamma_fit_err'])
+            writer.writerow([file,
+                             current_dir_name,
+                             exp_data[0],
+                             exp_data[1],
+                             exp_data[2],
+                             exp_data[3],
+                             exp_data[4],
+                             exp_data[5]])
+            csvfile.close()
     
     def main(self):
         '''Main function of the data analysis class'''
         self.load_csv()
         if(self.check_csv_type()):
             if(self.data_flag_dict['measure']):
-                print("Measure data processing is not implemented yet")
-                pass
+                for file in self.csv_list:
+                    self.properties.update({'file_name':file})
+                    print('\n-----------------------------------')
+                    print("processing " + file)
+                    if(self.read_csv(file)):
+                        self.measure_plot(file)
+                        self.clear_data()
+                        
             elif(self.data_flag_dict['scan']):
                 for file in self.csv_list:
                     self.properties.update({'file_name':file})
-                    print("\nprocessing " + file)
+                    print('\n-----------------------------------')
+                    print("processing " + file)
                     if(self.read_csv(file)):
-                        if('multiple_omega' in self.properties):
-                            print("Multiple frequency detected, currently not supported")
-                            continue
                         self.scan_plot(file)
                         self.clear_data()
+                
+                    if('multiple_omega' in self.properties):
+                        print("Multiple frequency detected, currently not supported")
+                        input("Press ENTER to continue")
+                        continue
+                    
             elif(self.data_flag_dict['pid']):
+                # TODO: to reconstruct the pid history
+                # Further ideas --> the data goes into reinforcement learning
                 print("PID data processing is not implemented yet")
-                pass
+            
         else:
             return
         
