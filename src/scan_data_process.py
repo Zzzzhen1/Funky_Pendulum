@@ -45,7 +45,12 @@ class data_analysis():
             'phase/pi',
             'multiple_phase/pi',
             'time,angle,position,angular_velocity,cart_velocity',
-            'Kp,Ki,Kd,Kp_pos,Ki_pos,Kd_pos',
+            'Kp',
+            'Ki',
+            'Kd',
+            'Kp_pos',
+            'Ki_pos',
+            'Kd_pos',
         ]
         self.data = np.zeros((5,self.buffer_length), dtype = float)
         self.count = 0
@@ -96,7 +101,10 @@ class data_analysis():
                 for index, row in enumerate(reader):
                     if(flag_pid):
                         if(index == 2):
-                            self.properties.update({header:row[0]}) # Read the pid parameters
+                            # Read the pid parameters
+                            pid_headers = ['Kp', 'Ki', 'Kd', 'Kp_pos', 'Ki_pos', 'Kd_pos']
+                            for index, param in row:
+                                self.properties.update({pid_headers[index]:param})
                             continue
                         if(row[0].startswith('Kp')):
                             continue
@@ -485,8 +493,19 @@ class data_analysis():
                              exp_data[4], exp_data[5]])
             csvfile.close()
     
+    def measure_init(self, restore = False):
+        figure, axes = plt.subplots(1, 2, figsize = (10, 6))
+        return figure, axes
+    
     def measure_plot(self, file, block = True):
-        pass
+        '''Plot two graphs:
+        1. The angle-time graph
+        2. The fft of the angle-time graph'''
+        self.temp_data = self.clean_data(file)
+        # Default values the rolling fft
+        self.fft_length = 512
+        self.sampling_div = 0.05
+        self.figure, axes = self.measure_init(restore = False)
     
     def main(self):
         self.load_csv()
