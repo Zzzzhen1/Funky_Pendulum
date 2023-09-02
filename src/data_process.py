@@ -200,7 +200,8 @@ class data_analysis():
         return self.figure, axes
     
     def fft_index_list(self, time, fft_length, sampling_div):
-        '''return the list and average time spacing'''
+        '''return the list and average time spacing based on the 
+        given sampling_div and fft_length'''
         current_time = time[len(time) - 1]
         time_stamp = current_time
         index = fft_length - 2
