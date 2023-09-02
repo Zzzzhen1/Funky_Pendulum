@@ -5,7 +5,7 @@ Any questions about the code please feel free to contact zy336@cam.ac.uk or leav
 dicussion session in this GitHub repository.
 
 ## 3D Files Uploading List (Each with src, image, and stl files for print)
-- [ ] Pendulum_Idler (src)
+- [ ] Pendulum_Idler (src, updated version of Fusion 360 file)
  
 ## General Description of the project. Should include the following features:
 
