@@ -14,6 +14,14 @@ plt.rcParams['axes.grid'] = True
 plt.rcParams["figure.autolayout"] = True
 mpl.use('TkAgg')
 
+def damp_sin(time, gamma, omega, phi, amp, offset):
+    '''Fit to the natural frequency measurement plot'''
+    return amp * np.exp(- 0.5 * gamma * time) * np.sin(2 * np.pi * omega * time + phi) + offset
+
+def sinusoid(time, omega, phi, amp, offset):
+    '''Fit to the amplitude response scan plot'''
+    return amp * np.sin(2 * np.pi * omega * time + phi) + offset
+
 class data_analysis():
     '''Analysis class to analyze the data'''
     def __init__(self):
@@ -272,11 +280,6 @@ class data_analysis():
                  amp_range):
         '''Fit the sinusoidal function to the data, and return the 
         optimized parameters and the covariance matrix'''
-                
-        def sinusoid(time, omega, phi, amp, offset):
-            '''Fit to the amplitude response scan plot'''
-            return amp * np.sin(2 * np.pi * omega * time + phi) + offset
-        
         popt, pcov = curve_fit(sinusoid, time, angle,
                                p0 = [float(self.properties['omega']), np.pi, 
                                      0.5*(amp_range[0] + amp_range[1]), 0.],
@@ -294,9 +297,6 @@ class data_analysis():
                     maxfev = 200000000):
         '''Fit the decaying sinusoidal exponential to the data,
         and return the optimized parameters and the covariance matrix'''
-        def damp_sin(time, gamma, omega, phi, amp, offset):
-            '''Fit to the natural frequency measurement plot'''
-            return amp * np.exp(- 0.5 * gamma * time) * np.sin(2 * np.pi * omega * time + phi) + offset
         popt, pcov = curve_fit(damp_sin, time, angle, 
                             p0 = [0.5*(gamma_range[0] + gamma_range[1]), 
                                   0.5*(omega_range[0] + omega_range[1]), 
