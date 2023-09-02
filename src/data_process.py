@@ -235,29 +235,7 @@ class data_analysis():
         fft_position = temp_pos / np.max(abs(temp_pos))
         fft_freq = fftfreq(len(index), avg)
         return fft_angle, fft_position, fft_freq, avg
-    
-    def measure_fit(self, time, angle,
-                    gamma_range = (0.01, 0.3),
-                    omega_range = (2*np.pi*1., 2*np.pi*1.3),
-                    phi_range = (-np.pi, np.pi),
-                    amp_range = (0., np.inf),
-                    offset_range = (-0.2, 0.2),
-                    maxfev = 200000000):
-        '''Fit the decaying sinusoidal exponential to the data'''
-        popt, pcov = curve_fit(damp_sin, time, angle, 
-                            p0 = [0.5*(gamma_range[0] + gamma_range[1]), 
-                                  0.5*(omega_range[0] + omega_range[1]), 
-                                  0.5*(phi_range[0] + phi_range[1]), 
-                                  0.5*(amp_range[0] + amp_range[1]), 
-                                  0.5*(offset_range[0] + offset_range[1])], 
-                            bounds = ((gamma_range[0], omega_range[0], phi_range[0], amp_range[0], offset_range[0]), 
-                                    (gamma_range[1], omega_range[1], phi_range[1], amp_range[1], offset_range[1])),
-                                    maxfev = maxfev)
-        return popt, pcov
-    
-    def measure_plot(self):
-        pass
-    
+
     def phase_rectify(self, phase):
         '''Shifts the phase to be between 0.5 * pi and -1.5 * pi, which is symmetric abour -0.5*pi'''
         phase = phase - 2 * np.pi * int(phase / (2 * np.pi))
@@ -302,6 +280,8 @@ class data_analysis():
      
     def scan_fit(self, time, angle,
                  amp_range):
+        '''Fit the sinusoidal function to the data, and return the 
+        optimized parameters and the covariance matrix'''
         popt, pcov = curve_fit(sinusoid, time, angle,
                                p0 = [float(self.properties['omega']), np.pi, 
                                      0.5*(amp_range[0] + amp_range[1]), 0.],
@@ -351,6 +331,26 @@ class data_analysis():
                  'r-', 
                  label = 'position')
         self.ax0.legend(loc = 'right')
+        
+    def measure_fit(self, time, angle,
+                    gamma_range = (0.01, 1),
+                    omega_range = (2*np.pi*1., 2*np.pi*1.5),
+                    phi_range = (-np.pi, np.pi),
+                    amp_range = (0., np.pi),
+                    offset_range = (-0.4, 0.4),
+                    maxfev = 200000000):
+        '''Fit the decaying sinusoidal exponential to the data,
+        and return the optimized parameters and the covariance matrix'''
+        popt, pcov = curve_fit(damp_sin, time, angle, 
+                            p0 = [0.5*(gamma_range[0] + gamma_range[1]), 
+                                  0.5*(omega_range[0] + omega_range[1]), 
+                                  0.5*(phi_range[0] + phi_range[1]), 
+                                  0.5*(amp_range[0] + amp_range[1]), 
+                                  0.5*(offset_range[0] + offset_range[1])], 
+                            bounds = ((gamma_range[0], omega_range[0], phi_range[0], amp_range[0], offset_range[0]), 
+                                    (gamma_range[1], omega_range[1], phi_range[1], amp_range[1], offset_range[1])),
+                                    maxfev = maxfev)
+        return popt, pcov
     
     def scan_process(self, axes, start_time, end_time, rolling_time):
         self.phase_list = []
@@ -509,6 +509,7 @@ class data_analysis():
         self.figure, axes = self.measure_init(restore = False)
     
     def main(self):
+        '''Main function of the data analysis class'''
         self.load_csv()
         if(self.check_csv_type()):
             if(self.data_flag_dict['measure']):
