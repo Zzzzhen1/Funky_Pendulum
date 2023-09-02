@@ -13,7 +13,12 @@ plt.rcParams.update({'text.usetex': True,
 
 # TODO: need to change the data_reading procedure
 
-filename = r"C:\Programming\Python\Funky Pendulum\cart_pendulum_data\Natural_Freqency_Check\param_zhen.csv"
+while True:
+    filename = input("Enter the file name: ")
+    if os.path.isfile(filename):
+        break
+    else:
+        print("File does not exist. Please try again.")
 
 gamma = []
 gamma_err = []
@@ -32,17 +37,15 @@ avg_freq_err = 0
 with open(filename, "r", newline = '') as file:
     reader = csv.reader(file)
     for row in reader:
-        if row[0] == "gamma":
+        if row[0] == "file_name":
             continue
         else:
-            if(row[11] == "0"):
-                continue
-            gamma.append(float(row[0]))
+            gamma.append(float(row[4]))
             gamma_err.append(float(row[5]))
-            omega.append(float(row[1]) / 2 / np.pi)
-            omega_err.append(float(row[6]))
-            freq.append(float(row[10]))
-            freq_err.append(float(row[11].rstrip())/2)
+            omega.append(float(row[2]))
+            omega_err.append(float(row[3]))
+            freq.append(float(row[0]))
+            freq_err.append(float(row[1].rstrip()))
             
 figure, axes = plt.subplots(3, 1, figsize = (8, 6), sharex = True)
 for i in range(len(gamma)):
@@ -71,5 +74,5 @@ axes[2].set_ylabel(r'$f$/Hz')
 axes[0].legend()
 axes[1].legend()
 axes[2].legend()
-figure.suptitle("Natural Frequency With Short Rail Zhen Data")
+figure.suptitle("Natural Frequency With Short Rail")
 plt.show()
