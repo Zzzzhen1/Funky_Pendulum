@@ -6,6 +6,7 @@ from scipy.optimize import curve_fit
 from datetime import datetime
 import serial.tools.list_ports
 # from data_process import data_analysis as da
+# from data_process import damp_sin, sinusoid
 plt.rcParams['axes.grid'] = True
 plt.rcParams["figure.autolayout"] = True
 prop_cycle = plt.rcParams['axes.prop_cycle']
