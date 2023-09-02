@@ -14,16 +14,6 @@ plt.rcParams['axes.grid'] = True
 plt.rcParams["figure.autolayout"] = True
 mpl.use('TkAgg')
 
-# TODO: correnspondingly, adjustment in the scan_data_process code: multiple frequency assessment
-
-def sinusoid(time, omega, phi, amp, offset):
-    '''Fit to the amplitude response scan plot'''
-    return amp * np.sin(2 * np.pi * omega * time + phi) + offset
-
-def damp_sin(time, gamma, omega, phi, amp, offset):
-    '''Fit to the natural frequency measurement plot'''
-    return amp * np.exp(- 0.5 * gamma * time) * np.sin(2 * np.pi * omega * time + phi) + offset
-
 class data_analysis():
     '''Analysis class to analyze the data'''
     def __init__(self):
@@ -282,6 +272,11 @@ class data_analysis():
                  amp_range):
         '''Fit the sinusoidal function to the data, and return the 
         optimized parameters and the covariance matrix'''
+                
+        def sinusoid(time, omega, phi, amp, offset):
+            '''Fit to the amplitude response scan plot'''
+            return amp * np.sin(2 * np.pi * omega * time + phi) + offset
+        
         popt, pcov = curve_fit(sinusoid, time, angle,
                                p0 = [float(self.properties['omega']), np.pi, 
                                      0.5*(amp_range[0] + amp_range[1]), 0.],
@@ -289,6 +284,29 @@ class data_analysis():
                                          (4., 2 * np.pi, amp_range[1], 0.6)),
                                maxfev = 2000000000)
         return popt, pcov
+        
+    def measure_fit(self, time, angle,
+                    gamma_range = (0.01, 1),
+                    omega_range = (2*np.pi*1., 2*np.pi*1.5),
+                    phi_range = (-np.pi, np.pi),
+                    amp_range = (0., np.pi),
+                    offset_range = (-0.4, 0.4),
+                    maxfev = 200000000):
+        '''Fit the decaying sinusoidal exponential to the data,
+        and return the optimized parameters and the covariance matrix'''
+        def damp_sin(time, gamma, omega, phi, amp, offset):
+            '''Fit to the natural frequency measurement plot'''
+            return amp * np.exp(- 0.5 * gamma * time) * np.sin(2 * np.pi * omega * time + phi) + offset
+        popt, pcov = curve_fit(damp_sin, time, angle, 
+                            p0 = [0.5*(gamma_range[0] + gamma_range[1]), 
+                                  0.5*(omega_range[0] + omega_range[1]), 
+                                  0.5*(phi_range[0] + phi_range[1]), 
+                                  0.5*(amp_range[0] + amp_range[1]), 
+                                  0.5*(offset_range[0] + offset_range[1])], 
+                            bounds = ((gamma_range[0], omega_range[0], phi_range[0], amp_range[0], offset_range[0]), 
+                                    (gamma_range[1], omega_range[1], phi_range[1], amp_range[1], offset_range[1])),
+                                    maxfev = maxfev)
+        return popt, pcov    
     
     def scan_fft_plot(self, axs, start_index = 0, end_index = -1):
         
@@ -331,27 +349,7 @@ class data_analysis():
                  'r-', 
                  label = 'position')
         self.ax0.legend(loc = 'right')
-        
-    def measure_fit(self, time, angle,
-                    gamma_range = (0.01, 1),
-                    omega_range = (2*np.pi*1., 2*np.pi*1.5),
-                    phi_range = (-np.pi, np.pi),
-                    amp_range = (0., np.pi),
-                    offset_range = (-0.4, 0.4),
-                    maxfev = 200000000):
-        '''Fit the decaying sinusoidal exponential to the data,
-        and return the optimized parameters and the covariance matrix'''
-        popt, pcov = curve_fit(damp_sin, time, angle, 
-                            p0 = [0.5*(gamma_range[0] + gamma_range[1]), 
-                                  0.5*(omega_range[0] + omega_range[1]), 
-                                  0.5*(phi_range[0] + phi_range[1]), 
-                                  0.5*(amp_range[0] + amp_range[1]), 
-                                  0.5*(offset_range[0] + offset_range[1])], 
-                            bounds = ((gamma_range[0], omega_range[0], phi_range[0], amp_range[0], offset_range[0]), 
-                                    (gamma_range[1], omega_range[1], phi_range[1], amp_range[1], offset_range[1])),
-                                    maxfev = maxfev)
-        return popt, pcov
-    
+
     def scan_process(self, axes, start_time, end_time, rolling_time):
         self.phase_list = []
         self.fft_length = int(rolling_time / self.sampling_div)
