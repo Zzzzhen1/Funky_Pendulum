@@ -17,6 +17,4 @@ init
 
 ## Upward Balancing Video
 
-[![Upward Balancing Video]          // Title
-(https://github.com/Zzzzhen1/Funky_Pendulum/blob/main/image/CartER_1.jpg)] // Thumbnail
-(https://youtu.be/zVNbTGS4LvY  "Upward Balancing Video")    // Video Link
+[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/main/image/CartER_1.jpg)](https://youtu.be/zVNbTGS4LvY  "Upward Balancing Video")
