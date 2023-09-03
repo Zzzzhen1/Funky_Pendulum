@@ -13,7 +13,7 @@ dicussion session in this GitHub repository.
 
 ## Experiment Setup
 
-init
+TODO: attach the pictures in the images folders here
 
 ## Upward Balancing Video
 
