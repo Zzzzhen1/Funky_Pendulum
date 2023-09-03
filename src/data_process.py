@@ -1,6 +1,5 @@
-'''Extract from NR file, need to determine the amplitude and the phase response
-   This is in general the data analysis class, currently compatible with the 
-   measure and scan data analysis'''
+'''This is in general the data analysis class, currently compatible with the 
+   measure and scan for response data analysis'''
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -24,7 +23,124 @@ def sinusoid(time, omega, phi, amp, offset):
 
 class data_analysis():
     
-    '''Analysis class to analyze the data'''
+    '''Analysis class to analyse the data
+    
+    -----------------
+    Attributes
+    -----------------
+    1. default buffer length of 16 * 65536
+    2. default directory given by os.getcwd()
+    3. a set of flags to indicate the stage of the analysis
+    process
+    4. a dictionary of properties, keys are assigned by the
+    a list of headers
+    
+    Methods
+    -----------------
+    1. clear_flag(): 
+        reset all the flags to their original state
+    2. clear_data(): 
+        clear all the data
+    3. load_csv():
+        load all the csv files from the input directory, returns 
+        True if there is any csv file, False otherwise. This method
+        will also turn up the flags for the csv type based on the
+        header of the csv file
+    4. read_csv(file_name, flag_pid = False):
+        Args: 
+            file_name: the name of the csv file
+            flag_pid: whether the csv file is a pid type file, if True,
+            read_csv will read the values starting from a different row
+        Yields: 
+            read the csv file and store the data in the data array
+            update the properties dictionary
+        Returns: 
+            True if the csv file is read successfully, False otherwise
+            (including negative time stamp, and sometimes empty file)
+    5. check_csv_type():
+        check whether all the csv files are of the same type, returns
+        True if all the csv files are of the same type, False otherwise
+    6. load_data(row, file):
+        Args:
+            row: a row of data from the csv file
+            file: the csv file name
+        Yields:
+            load the data into the data array, delete the files if negative
+            time stamp is detected
+    7. clean_data(file):
+        Yields:
+            rotate the circular buffer to the correct starting time stamp
+            and return the data array
+    8. restore_figure(start_index = 0, end_index = -1):
+        Args:
+            start_index: the starting index of the data to be plotted
+            end_index: the ending index of the data to be plotted
+        Yields:
+            restore the figure for the scan type data
+    9. fft_index_list(time, fft_length, sampling_div):
+        Args:
+            time: the time array
+            fft_length: the length of the fft
+            sampling_div: the sampling interval
+        Returns:
+            index_list: the list of indices for the fft
+            avg_spacing: the average time spacing, which determines
+            the maximum frequency (refer to the Nyquist-Shannon sampling)
+    10. general_fft(time, angle, position, fft_length, sampling_div):
+        Args:
+            time: the time array
+            angle: the angle array
+            position: the position array
+            fft_length: the number of points used for fast fourier transform
+            sampling_div: the desired sampling interval
+        Returns:
+            fft_angle: the fourier transform of the angle array
+            fft_position: the fourier transform of the position array
+            fft_freq: the frequency array
+            avg: the average time spacing
+    11. phase_rectify(phase):
+        Args:
+            phase: the phase to be rectified
+        Returns:
+            a phase in the range of -0.5 * pi to 1.5 * pi
+    12. phase_calc(fft_freq, omega, fft_angle, fft_pos, interpolation = True):
+        Args:
+            fft_freq: the frequency array
+            omega: the driving frequency in Hz
+            fft_angle: the fourier transform of the angle array
+            fft_pos: the fourier transform of the position array
+            interpolation: whether to use interpolation to calculate the phase
+        Returns:
+            phase: the phase in the range of -0.5 * pi to 1.5 * pi
+    13. scan_fit(time, angle, amp_range):
+        Args:
+            time: the time array
+            angle: the angle array
+            amp_range: the range of the amplitude to be fitted
+        Returns:
+            popt: the optimized parameters to fit the sinusoidal function
+            pcov: the covariance matrix
+    14. scan_fft_plot(axs, start_index = 0, end_index = -1):
+        plot the phase curve and fft on the axes objects
+    15. scan_process(axes, start_time, end_time, rolling_time):
+        calculate the phase and amplitude of the scan data
+        based on the input time range and rolling time
+    16. scan_plot(file, block = True):
+        plot two graphs:
+        1. The angle-time graph with best fit line and parameters
+        2. The phase curve and cumulated error
+        And save the timestamp, the amplitude of the best-fit, and the
+        phase with errors to a csv file
+    17. save_scan_data(exp_data, file):
+        save the scan data to a csv file
+    18. measure_plot(file, block = True):
+        plot the angle-time graph with best fit line and parameters
+        And save the timestamp, the optimized parameters to a csv file
+    19. save_measure_data(exp_data, file):
+        save the measure data to a csv file
+    20. main():
+        the main function of the data analysis class
+        '''
     
     def __init__(self):
         self.buffer_length = 16 * 65536 # The buffer length of the data
@@ -163,7 +279,7 @@ class data_analysis():
             self.count += 1
                 
     def clean_data(self, file):
-        '''Returns an array with correct starting point'''
+        '''Returns an array with correct starting time stamp'''
         temp_index = 0
         time_stamp = self.data[0][0]
         flag = True
@@ -187,7 +303,7 @@ class data_analysis():
         return self.data[:, temp_index : temp_index + int(self.count / 2)]
     
     def restore_figure(self, start_index = 0, end_index = -1):
-        '''Restore the figure'''
+        '''Restore the figure for the scan type data'''
         print("Restoring figure...")
         self.figure, axes = plt.subplots(2, 2, figsize = (10, 6))
         self.scan_fft_plot((axes[0, 1], axes[1, 1]), start_index, end_index)
@@ -236,7 +352,8 @@ class data_analysis():
             return index_list, avg_spacing
     
     def general_fft(self, time, angle, position, fft_length, sampling_div):
-        '''Return the power spectrum of the input'''
+        '''Return the normalised frequency spectrum of the input angle
+        and position data, and the corresponding frequency array'''
         index, avg = self.fft_index_list(time, fft_length, sampling_div)
         temp_angle = fft(angle[index])
         temp_pos = fft(position[index])
@@ -298,27 +415,7 @@ class data_analysis():
                                          (4., 2 * np.pi, amp_range[1], 0.6)),
                                maxfev = 2000000000)
         return popt, pcov
-        
-    def measure_fit(self, time, angle,
-                    gamma_range = (0.01, 1),
-                    omega_range = (2*np.pi*1., 2*np.pi*1.5),
-                    phi_range = (-np.pi, np.pi),
-                    amp_range = (0., np.pi),
-                    offset_range = (-0.4, 0.4),
-                    maxfev = 200000000):
-        '''Fit the decaying sinusoidal exponential to the data,
-        and return the optimized parameters and the covariance matrix'''
-        popt, pcov = curve_fit(damp_sin, time, angle, 
-                            p0 = [0.5*(gamma_range[0] + gamma_range[1]), 
-                                  0.5*(omega_range[0] + omega_range[1]), 
-                                  0.5*(phi_range[0] + phi_range[1]), 
-                                  0.5*(amp_range[0] + amp_range[1]), 
-                                  0.5*(offset_range[0] + offset_range[1])], 
-                            bounds = ((gamma_range[0], omega_range[0], phi_range[0], amp_range[0], offset_range[0]), 
-                                    (gamma_range[1], omega_range[1], phi_range[1], amp_range[1], offset_range[1])),
-                                    maxfev = maxfev)
-        return popt, pcov    
-    
+
     def scan_fft_plot(self, axs, start_index = 0, end_index = -1):
         '''Plot phase curve and fft on the axes objects'''
         for i in range(len(self.temp_data[0][start_index:end_index])):
@@ -507,6 +604,26 @@ class data_analysis():
                              exp_data[2], exp_data[3], 
                              exp_data[4], exp_data[5]])
             csvfile.close()
+            
+    def measure_fit(self, time, angle,
+                    gamma_range = (0.01, 1),
+                    omega_range = (2*np.pi*1., 2*np.pi*1.5),
+                    phi_range = (-np.pi, np.pi),
+                    amp_range = (0., np.pi),
+                    offset_range = (-0.4, 0.4),
+                    maxfev = 200000000):
+        '''Fit the decaying sinusoidal exponential to the data,
+        and return the optimized parameters and the covariance matrix'''
+        popt, pcov = curve_fit(damp_sin, time, angle, 
+                            p0 = [0.5*(gamma_range[0] + gamma_range[1]), 
+                                  0.5*(omega_range[0] + omega_range[1]), 
+                                  0.5*(phi_range[0] + phi_range[1]), 
+                                  0.5*(amp_range[0] + amp_range[1]), 
+                                  0.5*(offset_range[0] + offset_range[1])], 
+                            bounds = ((gamma_range[0], omega_range[0], phi_range[0], amp_range[0], offset_range[0]), 
+                                    (gamma_range[1], omega_range[1], phi_range[1], amp_range[1], offset_range[1])),
+                                    maxfev = maxfev)
+        return popt, pcov    
     
     def measure_init(self, restore = False, process = False, start_index = 0, end_index = -1):
         if(restore):
