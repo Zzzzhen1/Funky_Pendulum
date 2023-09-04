@@ -609,7 +609,7 @@ class data_analysis():
                     gamma_range = (0.01, 1),
                     omega_range = (0.5, 1.5),
                     phi_range = (-np.pi, np.pi),
-                    amp_range = (0., 4 * np.pi),
+                    amp_range = (0., np.inf),
                     offset_range = (-0.4, 0.4),
                     maxfev = 200000000):
         '''Fit the decaying sinusoidal exponential to the data,
