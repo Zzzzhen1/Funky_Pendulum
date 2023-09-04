@@ -605,13 +605,16 @@ class data_analysis():
                              exp_data[4], exp_data[5]])
             csvfile.close()
             
-    def measure_fit(self, time, angle,
-                    gamma_range = (0.01, 1),
-                    omega_range = (0.5, 1.5),
+    def measure_fit(self, 
+                    time, 
+                    angle,
+                    gamma_range = (0.01, 0.4),
+                    omega_range = (0.8, 1.5),
                     phi_range = (-np.pi, np.pi),
-                    amp_range = (0., np.inf),
+                    amp_range = (0., np.pi),
                     offset_range = (-0.4, 0.4),
-                    maxfev = 200000000):
+                    maxfev = 200000000,
+                    ):
         '''Fit the decaying sinusoidal exponential to the data,
         and return the optimized parameters and the covariance matrix'''
         popt, pcov = curve_fit(damp_sin, time, angle, 
@@ -625,7 +628,11 @@ class data_analysis():
                                     maxfev = maxfev)
         return popt, pcov    
     
-    def measure_init(self, restore = False, process = False, start_index = 0, end_index = -1):
+    def measure_init(self, 
+                     restore = False, 
+                     process = False, 
+                     start_index = 0, 
+                     end_index = -1):
         if(restore):
             print("Restoring figure...")
         figure, axes = plt.subplots(1, 2, figsize = (10, 6))
@@ -651,9 +658,9 @@ class data_analysis():
             axes[0].plot(self.temp_data[0][start_index:end_index],
                          damp_sin(self.temp_data[0][start_index:end_index], *popt),
                          'r--', label = 'best-fit-line')
-            str_eqn_best_fit = 'y = %.3f' % popt[3] + ' * exp(-%.3f' % popt[0] + ' * t) * cos(%.3f' \
-                % (2*np.pi*popt[1]) + ' * t + %.3f' % popt[2] + ')'
-            txt_3 = axes[0].text(0.6, 0.9, str_eqn_best_fit, transform = axes[0].transAxes)
+            str_eqn_best_fit = 'y = %.1f' % popt[3] + ' * exp(-%.2f' % popt[0] + 't) * cos(%.3f' \
+                % (2*np.pi*popt[1]) + 't + %.2f' % popt[2] + ')'
+            txt_3 = axes[0].text(0.3, 0.9, str_eqn_best_fit, transform = axes[0].transAxes)
             self.txt_list.append(txt_3)
             txt_4 = axes[0].text(0.6, 0.8, 'gamma = %.3f' % popt[0] + u"\u00B1" + str(np.sqrt(pcov[0, 0]))[:5] + \
                 ' rad/s', transform = axes[0].transAxes)
@@ -669,9 +676,9 @@ class data_analysis():
         figure.canvas.manager.set_window_title(self.properties['file_name'])
         self.txt_list = []
         res = (1/(self.temp_data[0][-1] - self.temp_data[0][0]))
-        txt_1 = axes[1].text(0.9, 0.9, 'resolution = ' + str(res)[:5] + ' Hz', 
+        txt_1 = axes[1].text(0.7, 0.9, 'resolution = ' + str(res)[:5] + ' Hz', 
                              transform = axes[1].transAxes)
-        txt_2 = axes[1].text(0.9, 0.8, 'sampling_rate = ' + str(1/avg_spacing)[:4] + ' Hz',
+        txt_2 = axes[1].text(0.7, 0.8, 'sampling_rate = ' + str(1/avg_spacing)[:4] + ' Hz',
                              transform = axes[1].transAxes)
         self.txt_list.append(txt_1)
         self.txt_list.append(txt_2)
