@@ -1246,7 +1246,8 @@ class cart_pendulum():
                     if(not manual):
                         self.arduino.send_message(str(amp) + "," + str(phase) + "\n")
                     elif(manual and not NR_scan):
-                        print("Amplitude: ", amp, " Phase: ", phase / np.pi, "\n")
+                        # print("Amplitude: ", amp, " Phase: ", phase / np.pi, "\n")
+                        pass
                     self.NR_counter = 0
                 else:
                     self.NR_counter += 1
