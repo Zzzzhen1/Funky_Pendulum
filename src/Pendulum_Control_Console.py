@@ -551,8 +551,8 @@ class data():
         except OSError:
             pass
         filename = dirc + '\\' + module_name + \
-            datetime.now().strftime("-%H-%M-%S") + ".csv"
-        with open(filename, 'w', newline='') as csvfile:
+            datetime.now().strftime("-%H-%M-%S")
+        with open(filename + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             special_info = input("Any special info to add to the csv file?\n\n")
             writer.writerow(["special_info", special_info])
@@ -579,6 +579,12 @@ class data():
             for i in range(len(self.time)):
                 writer.writerow([self.time[i], self.angle[i], self.position[i],\
                     self.angular_velocity[i], self.position_velocity[i]])
+            csvfile.close()
+        with open('fft-' + filename + '.csv', 'w', newline = '') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['freq', 'fft_angle', 'fft_position'])
+            for i in range(len(self.fft_freq)):
+                writer.writerow([self.fft_freq[i], self.fft_angle[i], self.fft_pos[i]])
             csvfile.close()
 
         print("\nExported to " + filename + "\n")
