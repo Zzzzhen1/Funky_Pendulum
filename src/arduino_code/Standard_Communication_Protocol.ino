@@ -37,7 +37,7 @@ float pos_integ = 0;              // Integral control bit for position
 float vel = 0;                    // Cart velocity calculated using buffer arrays.
 const float speed_lim = 12000.0;  // Maximum speed, also the speed for the run() method
 float run_speed = 1000.0;         // Speed that the stepper normally runs at
-const float accel = 28000.;       // Pre-set acceleration
+const float accel = 280000.;       // Pre-set acceleration
 long int safe_steps = 50;         // Safe distance to both switches
 const float safe_speed = 300.0;   // Avoid crushing into the swtich too hard
 float steps = 0.;                 // Target position or relative movement, depends on the situation
@@ -474,7 +474,7 @@ void center() {
     } else if (!state_L) {
       pos_L = stepper.currentPosition();
       stepper.move(1);
-      stepper.run();
+      stepper.runSpeedToPosition();
       stepper.stop();
       stepper.setSpeed(safe_speed);
       stepper.runToNewPosition(pos_L + safe_steps);
@@ -482,7 +482,7 @@ void center() {
     } else if (!state_R) {
       pos_R = stepper.currentPosition();
       stepper.move(-1);
-      stepper.run();
+      stepper.runSpeedToPosition();
       stepper.stop();
       stepper.setSpeed(safe_speed);
       stepper.runToNewPosition(pos_R - safe_steps);
