@@ -663,10 +663,10 @@ class data_analysis():
             self.txt_list.append(txt_5)
             
         try:
-            self.figure.suptitle(self.properties['special_info'])
+            figure.suptitle(self.properties['special_info'])
         except KeyError:
-            self.figure.suptitle('No special info')
-        self.figure.canvas.manager.set_window_title(self.properties['file_name'])
+            figure.suptitle('No special info')
+        figure.canvas.manager.set_window_title(self.properties['file_name'])
         self.txt_list = []
         res = (1/(self.temp_data[0][-1] - self.temp_data[0][0]))
         txt_1 = axes[1].text(0.9, 0.9, 'resolution = ' + str(res)[:5] + ' Hz', 
