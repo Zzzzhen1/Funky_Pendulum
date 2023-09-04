@@ -1109,7 +1109,7 @@ class cart_pendulum():
                 if(self.data.omega * abs(a) > 2000):
                     print("The amplitude is too large. Please try again.\n")
                 else:
-                    msg = str(abs(a)) + "," + str(self.data.phase) + "\n"
+                    msg = str(abs(a)) + "," + str(self.phase) + "\n"
                     self.arduino.send_message(msg)
                     temp_datum.amp = abs(a)
                     self.data.amp = abs(a)
@@ -1242,9 +1242,9 @@ class cart_pendulum():
                     self.reconnect(exp = True)
                 
                 if(self.NR_counter >= temp_datum.wait_to_stable):
-                    amp, phase = temp_datum.NR_update(NR_scan, interpolation, manual) 
+                    amp, self.phase = temp_datum.NR_update(NR_scan, interpolation, manual) 
                     if(not manual):
-                        self.arduino.send_message(str(amp) + "," + str(phase) + "\n")
+                        self.arduino.send_message(str(amp) + "," + str(self.phase) + "\n")
                     elif(manual and not NR_scan):
                         # print("Amplitude: ", amp, " Phase: ", phase / np.pi, "\n")
                         pass
