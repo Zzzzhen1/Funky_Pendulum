@@ -651,14 +651,15 @@ class data_analysis():
         if(process):
             peaks, _ = find_peaks(abs(fft_angle[1:int(len(fft_freq)/2)]), height = 0.9)
             for i,j in zip(peaks, abs(fft_angle[peaks])):
-                self.txt_list.append(axes[1].annotate(str(fft_freq[i])[:5] + "Hz", xy=(fft_freq[i], j)))
+                txt = axes[1].annotate(str(fft_freq[i])[:5] + "Hz", xy=(fft_freq[i], j))
+                self.txt_list.append(txt)
             
             popt, pcov = self.measure_fit(self.temp_data[0][start_index:end_index],
                                           self.temp_data[1][start_index:end_index])
             axes[0].plot(self.temp_data[0][start_index:end_index],
                          damp_sin(self.temp_data[0][start_index:end_index], *popt),
                          'r--', label = 'best-fit-line')
-            str_eqn_best_fit = 'y = %.1f' % popt[3] + ' * exp(-%.2f' % popt[0] + 't) * cos(%.3f' \
+            str_eqn_best_fit = 'y = %.1f' % popt[3] + 'exp(-%.2f' % popt[0] + 't)cos(%.3f' \
                 % (2*np.pi*popt[1]) + 't + %.2f' % popt[2] + ')'
             txt_3 = axes[0].text(0.3, 0.9, str_eqn_best_fit, transform = axes[0].transAxes)
             self.txt_list.append(txt_3)
