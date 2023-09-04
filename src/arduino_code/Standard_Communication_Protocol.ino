@@ -458,7 +458,7 @@ void center() {
       } else if (!flag_L && !flag_R) {
         // Calculate and move to the central position. Then, set this position as zero.
         distance = pos_R - pos_L;
-        stepper.setSpeed(run_speed);
+        stepper.setSpeed(safe_speed);
         stepper.runToNewPosition(pos_L + int(distance / 2));
         flag_center = 0;
         center_count += 1;
