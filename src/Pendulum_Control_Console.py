@@ -242,7 +242,7 @@ class data():
             self.figure.canvas.manager.set_window_title(module_name)
             self.figure.canvas.draw_idle()
             plt.tight_layout()
-            plt.get_current_fig_manager().window.state('zoomed')
+            # plt.get_current_fig_manager().window.state('zoomed')
             plt.show(block = False)
 
     def real_time_plot(self, module_name):
