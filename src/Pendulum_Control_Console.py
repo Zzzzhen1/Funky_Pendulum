@@ -716,9 +716,11 @@ class data():
             return self.amp_0 * np.sin(2 * np.pi * self.omega * (time + self.start_time + delay))
         
         popt, pcov = curve_fit(delay_func, 
-                               self.time[low:high], 
+                               self.time[low - 1:high - 1], 
                                self.position[low:high],
                                p0 = 0.007)
+        # the idea here is that the proposed position of the cart at this moment 
+        # is the position of the cart at the next moment
         delay_time = popt[0]
         delay_error = np.sqrt(np.diag(pcov))[0]
         return delay_time, delay_error
