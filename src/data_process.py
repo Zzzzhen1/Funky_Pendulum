@@ -607,7 +607,7 @@ class data_analysis():
             
     def measure_fit(self, time, angle,
                     gamma_range = (0.01, 1),
-                    omega_range = (2*np.pi*1., 2*np.pi*1.5),
+                    omega_range = (0.5, 1.5),
                     phi_range = (-np.pi, np.pi),
                     amp_range = (0., np.pi),
                     offset_range = (-0.4, 0.4),
@@ -652,14 +652,14 @@ class data_analysis():
                          damp_sin(self.temp_data[0][start_index:end_index], *popt),
                          'r--', label = 'best-fit-line')
             str_eqn_best_fit = 'y = %.3f' % popt[3] + ' * exp(-%.3f' % popt[0] + ' * t) * cos(%.3f' \
-                % (2 * np.pi * popt[1]) + ' * t + %.3f' % popt[2] + ')'
+                % (2*np.pi*popt[1]) + ' * t + %.3f' % popt[2] + ')'
             txt_3 = axes[0].text(0.6, 0.9, str_eqn_best_fit, transform = axes[0].transAxes)
             self.txt_list.append(txt_3)
             txt_4 = axes[0].text(0.6, 0.8, 'gamma = %.3f' % popt[0] + u"\u00B1" + str(np.sqrt(pcov[0, 0]))[:5] + \
                 ' rad/s', transform = axes[0].transAxes)
             self.txt_list.append(txt_4)
-            txt_5 = axes[0].text(0.6, 0.7, 'freq = %.3f' % popt[1] + u"\u00B1" + str(np.sqrt(pcov[1, 1]))[:5] + \
-                ' Hz', transform = axes[0].transAxes)
+            txt_5 = axes[0].text(0.6, 0.7, 'freq = %.3f' % (popt[1]) + u"\u00B1" + \
+                str(np.sqrt(pcov[1, 1]))[:5] + ' Hz', transform = axes[0].transAxes)
             self.txt_list.append(txt_5)
             
         try:
@@ -677,6 +677,7 @@ class data_analysis():
         self.txt_list.append(txt_2)
         axes[0].legend(loc = 'upper left')
         axes[1].legend(loc = 'upper left')
+        axes[1].set_xlim(0, 3)
         if(process):
             if(len(peaks) == 0):
                 print("\nNo peak detected, please adjust the time range")
@@ -691,7 +692,7 @@ class data_analysis():
         self.fft_length = int((end_time - start_time) / self.sampling_div)
         if(self.temp_data[0][0] >= start_time):
             print("Invalid input of time range")
-            return
+            return None
         for i in range(len(self.temp_data[0])):
             if(self.temp_data[0][i] <= start_time):
                 start_index = i

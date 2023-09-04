@@ -353,7 +353,7 @@ class data():
                         txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                         if(self.index > 20):
-                            txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:5] + 'ms' \
+                            txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
                                 + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
                     except ZeroDivisionError:
                         pass
@@ -413,7 +413,7 @@ class data():
                                                 transform = self.ax_list[0, 1].transAxes)
                         txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:5] + 'ms' \
+                        txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
                             + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
                     except ZeroDivisionError:
                         pass
