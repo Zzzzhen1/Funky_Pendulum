@@ -1079,6 +1079,7 @@ class cart_pendulum():
     def clear_data(self):
         self.center_count = 0
         self.distance = 0
+        self.phase = 0.
     
     def command_flag(self): # command flag controlled by the arduino output
         if(self.arduino.receive.rstrip() not in self.reset_dict \
