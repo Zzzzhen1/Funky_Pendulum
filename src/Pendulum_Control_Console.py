@@ -559,7 +559,7 @@ class data():
             datetime.now().strftime("-%H-%M-%S")
         with open(filename + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            special_info = input("Any special info to add to the csv file?\n\n")
+            special_info = input("Any special info to add to the fft-csv file?\n\n")
             writer.writerow(["special_info", special_info])
             if(module_name == "pid"):
                 try:
@@ -588,6 +588,21 @@ class data():
         if(module_name != "pid"):
             with open(filename_fft + '.csv', 'w', newline = '') as csvfile:
                 writer = csv.writer(csvfile)
+                special_info = input("Any special info to add to the csv file?\n\n")
+                writer.writerow(["special_info", special_info])
+                writer.writerow(["start_time", str(self.start_time)])
+                if(self.omega_list is None):
+                    writer.writerow(["omega", str(self.omega)])
+                else:
+                    writer.writerow(["multiple_omega", *(str(i) for i in self.omega_list)])
+                try:
+                    writer.writerow(["amplitude", str(self.amp_list[-1][1])])
+                    if(self.omega_list is None):
+                        writer.writerow(["phase/pi", str(self.phase_list[-1][1])])
+                    else:
+                        writer.writerow(["multiple_phase/pi", *(str(i[-1][1]) for i in self.multi_phase_list)])
+                except (AttributeError, IndexError):
+                    pass
                 writer.writerow(['freq', 'fft_angle', 'fft_position'])
                 for i in range(len(self.fft_freq)):
                     writer.writerow([self.fft_freq[i], self.fft_angle[i], self.fft_pos[i]])
