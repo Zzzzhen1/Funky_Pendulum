@@ -647,8 +647,9 @@ class data_analysis():
                      abs(fft_angle[1:int(len(fft_freq)/2)]),
                      'b-', label = 'angle')
         if(process):
-            peaks, _ = find_peaks(abs(fft_angle[1:int(len(fft_freq)/2)]), height = 0.8)
-            for i,j in zip(peaks, abs(fft_angle[peaks])):
+            temp_fft_angle = abs(fft_angle[1:int(len(fft_freq)/2)])
+            peaks, _ = find_peaks(temp_fft_angle, height = 0.8)
+            for i,j in zip(peaks, temp_fft_angle[peaks]):
                 txt = axes[1].annotate(str(fft_freq[i])[:5] + "Hz", xy=(fft_freq[i], j))
                 self.txt_list.append(txt)
             
