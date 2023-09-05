@@ -605,11 +605,9 @@ class data_analysis():
                              exp_data[4], exp_data[5]])
             csvfile.close()
             
-    def measure_fit(self, 
-                    time, 
-                    angle,
-                    gamma_range = (0.01, 0.4),
-                    omega_range = (0.8, 1.5),
+    def measure_fit(self, time, angle,
+                    gamma_range = (0.01, 1),
+                    omega_range = (0.9, 1.6),
                     phi_range = (-np.pi, np.pi),
                     amp_range = (0., np.pi),
                     offset_range = (-0.4, 0.4),
@@ -649,7 +647,7 @@ class data_analysis():
                      abs(fft_angle[1:int(len(fft_freq)/2)]),
                      'b-', label = 'angle')
         if(process):
-            peaks, _ = find_peaks(abs(fft_angle[1:int(len(fft_freq)/2)]), height = 0.9)
+            peaks, _ = find_peaks(abs(fft_angle[1:int(len(fft_freq)/2)]), height = 0.8)
             for i,j in zip(peaks, abs(fft_angle[peaks])):
                 txt = axes[1].annotate(str(fft_freq[i])[:5] + "Hz", xy=(fft_freq[i], j))
                 self.txt_list.append(txt)
@@ -659,14 +657,14 @@ class data_analysis():
             axes[0].plot(self.temp_data[0][start_index:end_index],
                          damp_sin(self.temp_data[0][start_index:end_index], *popt),
                          'r--', label = 'best-fit-line')
-            str_eqn_best_fit = 'y = %.1f' % popt[3] + 'exp(-%.2f' % popt[0] + 't)cos(%.3f' \
+            str_eqn_best_fit = 'y = %.1f' % popt[3] + 'exp(-%.2f' % popt[0]/2 + 't)cos(%.3f' \
                 % (2*np.pi*popt[1]) + 't + %.2f' % popt[2] + ')'
             txt_3 = axes[0].text(0.3, 0.9, str_eqn_best_fit, transform = axes[0].transAxes)
             self.txt_list.append(txt_3)
-            txt_4 = axes[0].text(0.6, 0.8, 'gamma = %.3f' % popt[0] + u"\u00B1" + str(np.sqrt(pcov[0, 0]))[:5] + \
+            txt_4 = axes[0].text(0.5, 0.8, 'gamma = %.3f' % popt[0] + u"\u00B1" + str(np.sqrt(pcov[0, 0]))[:5] + \
                 ' rad/s', transform = axes[0].transAxes)
             self.txt_list.append(txt_4)
-            txt_5 = axes[0].text(0.6, 0.7, 'freq = %.3f' % (popt[1]) + u"\u00B1" + \
+            txt_5 = axes[0].text(0.5, 0.7, 'freq = %.3f' % (popt[1]) + u"\u00B1" + \
                 str(np.sqrt(pcov[1, 1]))[:5] + ' Hz', transform = axes[0].transAxes)
             self.txt_list.append(txt_5)
             
@@ -677,9 +675,9 @@ class data_analysis():
         figure.canvas.manager.set_window_title(self.properties['file_name'])
         self.txt_list = []
         res = (1/(self.temp_data[0][-1] - self.temp_data[0][0]))
-        txt_1 = axes[1].text(0.7, 0.9, 'resolution = ' + str(res)[:5] + ' Hz', 
+        txt_1 = axes[1].text(0.75, 0.9, 'resolution = ' + str(res)[:5] + ' Hz', 
                              transform = axes[1].transAxes)
-        txt_2 = axes[1].text(0.7, 0.8, 'sampling_rate = ' + str(1/avg_spacing)[:4] + ' Hz',
+        txt_2 = axes[1].text(0.75, 0.8, 'sampling_rate = ' + str(1/avg_spacing)[:4] + ' Hz',
                              transform = axes[1].transAxes)
         self.txt_list.append(txt_1)
         self.txt_list.append(txt_2)
