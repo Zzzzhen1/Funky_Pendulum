@@ -547,10 +547,14 @@ class data():
         ):
         try:
             dirc = self.path + '\\' + datetime.now().strftime("%d-%m-csv")
+            dirc_fft = self.path + '\\' + datetime.now().strftime("%d-%m-fft-csv")
             os.makedirs(dirc)
+            os.makedirs(dirc_fft)
         except OSError:
             pass
         filename = dirc + '\\' + module_name + \
+            datetime.now().strftime("-%H-%M-%S")
+        filename_fft = dirc_fft + '\\' + module_name + \
             datetime.now().strftime("-%H-%M-%S")
         with open(filename + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
@@ -580,7 +584,8 @@ class data():
                 writer.writerow([self.time[i], self.angle[i], self.position[i],\
                     self.angular_velocity[i], self.position_velocity[i]])
             csvfile.close()
-        with open('fft-' + filename + '.csv', 'w', newline = '') as csvfile:
+            
+        with open(filename_fft + '.csv', 'w', newline = '') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['freq', 'fft_angle', 'fft_position'])
             for i in range(len(self.fft_freq)):
