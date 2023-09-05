@@ -585,7 +585,7 @@ class data():
                 writer.writerow([self.time[i], self.angle[i], self.position[i],\
                     self.angular_velocity[i], self.position_velocity[i]])
             csvfile.close()
-        if(module_name is not "pid"):
+        if(module_name != "pid"):
             with open(filename_fft + '.csv', 'w', newline = '') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow(['freq', 'fft_angle', 'fft_position'])
