@@ -1240,7 +1240,8 @@ class cart_pendulum():
                     temp_datum.init_plot(self.module_name)
                     temp_datum.real_time_plot(self.module_name)
                 else:
-                    writer.join()
+                    if(not NR_scan and manual):
+                        writer.join()
                     self.reconnect(exp = True)
                 
                 if(self.NR_counter >= temp_datum.wait_to_stable):
