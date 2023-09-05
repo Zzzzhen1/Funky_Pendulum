@@ -1414,3 +1414,6 @@ if __name__ == "__main__":
 # TODO: the csv file saved after the scan experiment needs a date and time
 # TODO: decide the amplitude of the NR scan drive stage (secondary)
 # TODO: check Control System Designer in MATLAB and setClock() in Arduino
+# TODO: pid data analysis --> stable time stop time (with threshold)... 
+# then plot stop_time vs. iteration graph
+# TODO: jolt or hold up horizontal 
