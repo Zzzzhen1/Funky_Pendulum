@@ -758,7 +758,7 @@ class live_data(data):
         ):
         super().__init__(fft_length, sampling_div, wait_to_stable)
         
-    def copy(self, data):
+    def copy(self, data, NR = False):
         self.time = data.time
         self.angle = data.angle
         self.angular_velocity = data.angular_velocity
@@ -767,9 +767,14 @@ class live_data(data):
         self.index = data.index
         self.temp_index = data.temp_index
         self.counter = data.counter
-        self.fft_angle = data.fft_angle
-        self.fft_pos = data.fft_pos
-        self.fft_freq = data.fft_freq
+        if(NR):
+            data.fft_angle = self.fft_angle
+            data.fft_pos = self.fft_pos
+            data.fft_freq = self.fft_freq
+        else:
+            self.fft_angle = data.fft_angle
+            self.fft_pos = data.fft_pos
+            self.fft_freq = data.fft_freq
         self.phase = data.phase
         self.omega = data.omega
         self.module_name = data.module_name
