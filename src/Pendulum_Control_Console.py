@@ -1252,7 +1252,7 @@ class cart_pendulum():
                         writer.start()
                     self.flag_list["thread_init"] = False
                 
-                temp_datum.copy(self.data)
+                temp_datum.copy(self.data, True)
                 
                 if(not temp_datum.flag_close_event):
                     temp_datum.init_plot(self.module_name)
