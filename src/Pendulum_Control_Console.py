@@ -593,6 +593,7 @@ class data():
             csvfile.close()
 
         print("\nExported to " + filename + "\n")
+        print("\nExported to " + filename_fft + "\n")
         
     def fft_index_list(self):
         '''return the list and average time spacing'''
