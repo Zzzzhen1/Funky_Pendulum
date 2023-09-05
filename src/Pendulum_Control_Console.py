@@ -18,6 +18,7 @@ port = 'COM6'
 baudrate = 230400 # TODO: extract all constants from a larger project file?
 MAX_COUNT = 5 # Number of points waited to plot a frame
 # TODO: how to achieve higher precision of the accelstepper library??? Using microsteps?
+
 class data():
     
     '''Initialisation of the data class, used to store the data from the arduino
@@ -584,13 +585,13 @@ class data():
                 writer.writerow([self.time[i], self.angle[i], self.position[i],\
                     self.angular_velocity[i], self.position_velocity[i]])
             csvfile.close()
-            
-        with open(filename_fft + '.csv', 'w', newline = '') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(['freq', 'fft_angle', 'fft_position'])
-            for i in range(len(self.fft_freq)):
-                writer.writerow([self.fft_freq[i], self.fft_angle[i], self.fft_pos[i]])
-            csvfile.close()
+        if(module_name is not "pid"):
+            with open(filename_fft + '.csv', 'w', newline = '') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(['freq', 'fft_angle', 'fft_position'])
+                for i in range(len(self.fft_freq)):
+                    writer.writerow([self.fft_freq[i], self.fft_angle[i], self.fft_pos[i]])
+                csvfile.close()
 
         print("\nExported to " + filename + "\n")
         print("\nExported to " + filename_fft + "\n")
@@ -758,7 +759,7 @@ class live_data(data):
         ):
         super().__init__(fft_length, sampling_div, wait_to_stable)
         
-    def copy(self, data):
+    def copy(self, data, NR = False):
         self.time = data.time
         self.angle = data.angle
         self.angular_velocity = data.angular_velocity
@@ -767,9 +768,14 @@ class live_data(data):
         self.index = data.index
         self.temp_index = data.temp_index
         self.counter = data.counter
-        self.fft_angle = data.fft_angle
-        self.fft_pos = data.fft_pos
-        self.fft_freq = data.fft_freq
+        if(NR):
+            data.fft_angle = self.fft_angle
+            data.fft_pos = self.fft_pos
+            data.fft_freq = self.fft_freq
+        else:
+            self.fft_angle = data.fft_angle
+            self.fft_pos = data.fft_pos
+            self.fft_freq = data.fft_freq
         self.phase = data.phase
         self.omega = data.omega
         self.module_name = data.module_name
@@ -1322,7 +1328,6 @@ class cart_pendulum():
                 self.arduino.board.close() # Triggers reset() in the arduino
                 self.reset_flag_list()
                 break
-
 
 if __name__ == "__main__":
     
