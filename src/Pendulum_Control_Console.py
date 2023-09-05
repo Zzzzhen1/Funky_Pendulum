@@ -18,6 +18,7 @@ port = 'COM6'
 baudrate = 230400 # TODO: extract all constants from a larger project file?
 MAX_COUNT = 5 # Number of points waited to plot a frame
 # TODO: how to achieve higher precision of the accelstepper library??? Using microsteps?
+
 class data():
     
     '''Initialisation of the data class, used to store the data from the arduino
@@ -1320,7 +1321,6 @@ class cart_pendulum():
                 self.arduino.board.close() # Triggers reset() in the arduino
                 self.reset_flag_list()
                 break
-
 
 if __name__ == "__main__":
     
