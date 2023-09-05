@@ -1170,7 +1170,7 @@ class cart_pendulum():
     
     def thread_writer(self):
         while(not temp_datum.flag_close_event):
-            msg = input("Send the new amplitude/steps\n") + "\n"
+            msg = input("Send the new amplitude/steps (Press Ctrl+C to exit!!!)\n") + "\n"
             try:
                 a = float(msg.split(',')[0])
                 if(self.data.omega * abs(a) > 2000):
