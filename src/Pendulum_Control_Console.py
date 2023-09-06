@@ -1418,3 +1418,6 @@ if __name__ == "__main__":
 # then plot stop_time vs. iteration graph
 # TODO: jolt or hold up horizontal 
 # TODO: add a selection for the PID of normalised resonance
+# TODO: decrease plotting fps
+# TODO: change the sign of the PID coefficients
+# TOOD: change the sampling time unit in the arduino
