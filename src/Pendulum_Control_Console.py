@@ -691,6 +691,8 @@ class data():
                 else:
                     self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
                         - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                self.phase_list.pop(0)
+                self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
                 return True
             else:
                 if interpolation:
@@ -722,6 +724,8 @@ class data():
                 else:
                     self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
                         - np.angle(self.fft_pos[close_ind]) + np.pi)
+                self.phase_list.pop(0)
+                self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
                 return True
         else:
             return False
@@ -730,8 +734,6 @@ class data():
         '''Needs to be called frequently to update the plot for the phase and amplitude'''
         if(self.omega_list is None):
             if (self.NR_phase_calc(self.omega, scan, interpolation)):
-                self.phase_list.pop(0)
-                self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
                 if scan:
                     return 0., 0.
                 else:
@@ -1319,6 +1321,11 @@ class cart_pendulum():
                         pass
                     self.NR_counter = 0
                 else:
+                    if(self.data.omega_list is None):
+                        temp_datum.NR_phase_calc(self.data.omega, NR_scan, interpolation)
+                    else:
+                        for omega in self.data.omega_list:
+                            temp_datum.NR_phase_calc(omega, interpolation)
                     self.NR_counter += 1
 
     def create_folder(self):
