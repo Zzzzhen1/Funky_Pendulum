@@ -180,7 +180,7 @@ class data():
                 self.ax_list[1, 1].legend(loc = 'upper left')
                 ax1.legend(loc = 'upper right')
                 if(self.omega_list is None):
-                    ax2.legend(loc = 'upper right')
+                    ax2.legend(loc = 'lower left')
                 ax1.grid(False)
                 ax2.grid(False)
                 # Initiate a new dictionary for all the artists objects
@@ -1417,3 +1417,4 @@ if __name__ == "__main__":
 # TODO: pid data analysis --> stable time stop time (with threshold)... 
 # then plot stop_time vs. iteration graph
 # TODO: jolt or hold up horizontal 
+# TODO: add a selection for the PID of normalised resonance
