@@ -791,8 +791,6 @@ class data():
     # TODO: fix plot_length with updated index_list (secondary)
     # TODO: add a sampling rate selection in arduino (secondary)
     # TODO: to make the step function in the NR stage continuous (secondary)
-    # TODO: check the NR_update function, how the phase is related to the original 
-    # oscillation but not the entire position oscillation (!!!) check the delay time first
     # TODO: add a different title for downward and upward control (secondary)
     # TODO: add a different title for scanning for response
     # TODO: label in the csv file of different minimal stage !!! Useful for later analysis
