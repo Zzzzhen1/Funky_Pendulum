@@ -39,7 +39,7 @@ const float speed_lim = 4000.0;  // Maximum speed, also the speed for the run() 
 float run_speed = 1000.0;         // Speed that the stepper normally runs at
 const float accel = 1200000.;       // Pre-set acceleration
 long int safe_steps = 50;         // Safe distance to both switches
-const float safe_speed = 300.0;   // Avoid crushing into the swtich too hard
+const float safe_speed = 500.0;   // Avoid crushing into the swtich too hard
 float steps = 0.;                 // Target position or relative movement, depends on the situation
 
 // NR stage variable
@@ -108,6 +108,7 @@ bool flag_center = 0;         // Center command flag
 bool flag_pid = 0;            // PID Control command flag
 bool flag_measure = 0;        // Angle Measure command flag
 bool flag_NR = 0;             // Normalised resonance command flag
+bool flag_setSpeed = 0;       // Test out the max speed and then set the speed_lim for the stepper motor -- command flag
 bool flag_print_command = 1;  // Print the command once
 bool flag_exit = 0;           // Exit current stage. Go back to function selection menu
 bool flag_init_ang_cul = 1;   // Detect the initial cumulative angle --> used to the zero the angle measurement
@@ -137,14 +138,14 @@ double ang_eq = 0;        // Equilibrium angle
 double ang_integ = 0;     // Integral control bit for angle
 
 // Initialize the stepper
-void init_stepper() {
+void init_stepper(float spd_lim, float accl) {
   pinMode(step_vcc_pin, OUTPUT);
   pinMode(dir_vcc_pin, OUTPUT);
   digitalWrite(step_vcc_pin, HIGH);
   digitalWrite(dir_vcc_pin, HIGH);
-  stepper.setMaxSpeed(speed_lim);
+  stepper.setMaxSpeed(spd_lim);
   stepper.setSpeed(safe_speed);
-  stepper.setAcceleration(accel);
+  stepper.setAcceleration(accl);
   stepper.setCurrentPosition(0);
 }
 
@@ -163,6 +164,7 @@ void menu_print() {
   Serial.println("Enter 2 to begin the PID control of inverted pendulum.");
   Serial.println("Enter 3 to begin the natural frequency and quality factor measuring.");
   Serial.println("Enter 4 to begin the normalised resonance.");
+  Serial.println("Enter 5 to set max running speed and acceleration.");
 }
 
 // Begin execution of command print
@@ -185,6 +187,10 @@ void command_print(int num) {
       case 4:
         Serial.println("Begin the normalised resonance.");
         break;
+      case 5:
+        Serial.println("Begin the speed and acceleration setting.");
+        // TODO: add the current speed and acceleration serial print
+        break
     }
     delay(500);
   }
@@ -192,7 +198,7 @@ void command_print(int num) {
 
 // Make sure there is only one command being executed each loop
 void single_command_check() {
-  int sum = flag_reset + flag_center + flag_pid + flag_measure + flag_NR;
+  int sum = flag_reset + flag_center + flag_pid + flag_measure + flag_NR + flag_setSpeed;
   switch (sum) {
     case 0:
       Serial.println("No command detected.");
@@ -348,6 +354,17 @@ String read_cmd() {
       case 4:
         flag_NR = 1;
         return "NR";
+      case 5:
+        if(center_count >= 1){
+          flag_setSpeed = 1;
+          return "setSpeed";
+        }else{
+          flag_command = 1;
+          delay(500);
+          Serial.println("Hasn't been centered. Please Center the cart first.");
+          delay(500);
+          return "";
+        }
       default:
         flag_command = 1;
         delay(500);
@@ -394,7 +411,7 @@ void setup() {
   // Communication begin routine //
   Wire.begin();
   init_angle_sensor();
-  init_stepper();
+  init_stepper(speed_lim, accel);
   init_button();
 }
 
@@ -436,6 +453,8 @@ void loop() {
       measure();
     } else if (flag_NR) {
       NR();
+    } else if (flag_setSpeed){
+      setSpeed();
     }
     state_Lbtn_prev = state_Lbtn;
     state_Rbtn_prev = state_Rbtn;
@@ -778,6 +797,11 @@ void NR() {
     reset();
     cart_reset();
   }
+}
+
+// Performs the init_stepper function, and then
+void setSpeed(){
+  // init_stepper(speed, acceleration);
 }
 
 // Calculate the cart velocity using the circular buffer

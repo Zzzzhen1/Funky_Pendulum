@@ -1080,7 +1080,8 @@ class cart_pendulum():
             "Resetting...",
             "No command detected.",
             "Unidentified command. Please try again.",
-            "More than one command detected. Resetting the values."
+            "More than one command detected. Resetting the values.",
+            "Hasn't been centered. Please Center the cart first.",
         }
         self.command_dict = {
             "Begin centering.": "center",
@@ -1137,7 +1138,8 @@ class cart_pendulum():
         self.distance = 0
         self.phase = 0.
     
-    def command_flag(self): # command flag controlled by the arduino output
+    def command_flag(self): 
+        # command flag controlled by the arduino output
         if(self.arduino.receive.rstrip() not in self.reset_dict \
             and self.arduino.receive.rstrip() in self.command_dict):
             self.flag_list[self.command_dict[self.arduino.receive.rstrip()]] = True
