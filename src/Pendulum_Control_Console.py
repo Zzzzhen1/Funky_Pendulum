@@ -16,7 +16,8 @@ mpl.use('TkAgg')
 # Initialisation of some constants and variables
 port = 'COM6' 
 baudrate = 230400 # TODO: extract all constants from a larger project file?
-MAX_COUNT = 5 # Number of points waited to plot a frame
+MAX_COUNT = 10 # Number of points waited to plot a frame TODO: change this to reduce the fps
+ANGLE_ROTATION = 55 # Rotation of the label
 # TODO: how to achieve higher precision of the accelstepper library??? Using microsteps?
 
 class data():
@@ -44,7 +45,7 @@ class data():
         self.amp = 100.
         self.amp_0 = 50.0 # This is used for characterised the constant oscillation
         self.phase = 0.
-        self.NR_Kp = -0.4
+        self.NR_Kp = 0.4
         self.NR_Kd = 0.
         self.NR_Ki = 0.
         self.fft_angle = np.zeros(fft_length)
@@ -69,6 +70,7 @@ class data():
         self.omega_list = None
         self.multi_phase_list = None
         self.pos_const = None
+        self.setSpeed_param = None
     
     def append_data(
         self,
@@ -118,6 +120,7 @@ class data():
         self.omega_list = None
         self.multi_phase_list = None
         self.pos_const = None
+        self.setSpeed_param = None
         
     def clear_figure(self):
         plt.close("all")
@@ -239,6 +242,21 @@ class data():
                 self.ax_list[1, 1].set_xlabel('Time/s')
                 self.ax_list[1, 1].set_ylabel('Cart Velocity/steps/s')
                 
+            elif(module_name == "setSpeed"):
+                if(self.flag_subplot_init):
+                    self.figure, self.ax_list = plt.subplots(1, 2, figsize=(8, 5))
+                    self.figure.suptitle('Set Speed')
+                    self.flag_subplot_init = False
+                self.line_pos, = self.ax_list[0].plot([], [], 'r-')
+                self.line_pos_vel, = self.ax_list[1].plot([], [], 'r-')
+                
+                self.ax_new_list = {self.ax_list[0]: self.line_pos,
+                                    self.ax_list[1]: self.line_pos_vel}
+                self.ax_list[0].set_xlabel('Time/s')
+                self.ax_list[0].set_ylabel('Position/steps')
+                self.ax_list[1].set_xlabel('Time/s')
+                self.ax_list[1].set_ylabel('Cart Velocity/steps/s')
+                
             # Configure the events
             self.figure.canvas.mpl_connect('close_event', self.handle_close)
             self.figure.canvas.manager.set_window_title(module_name)
@@ -247,7 +265,7 @@ class data():
             # plt.get_current_fig_manager().window.state('zoomed')
             plt.show(block = False)
 
-    def real_time_plot(self, module_name):
+    def real_time_plot(self, module_name, scan = False):
         self.module_name = module_name
         if(module_name == "measure"):
             self.fft()
@@ -272,7 +290,7 @@ class data():
                         ax.relim()
                         ax.autoscale_view()
                         for label in ax.get_yticklabels():
-                            label.set_rotation(45)
+                            label.set_rotation(ANGLE_ROTATION)
                             
                     self.ax_list[1].set_xlim(0, 2 * self.omega)
                     self.figure.canvas.draw()
@@ -306,7 +324,7 @@ class data():
                         ax.relim()
                         ax.autoscale_view()
                         for label in ax.get_yticklabels():
-                            label.set_rotation(45)
+                            label.set_rotation(ANGLE_ROTATION)
                             
                     self.ax_list[1].set_xlim(0, 2 * self.omega)
                     self.figure.canvas.draw()
@@ -339,7 +357,7 @@ class data():
                                                abs(self.fft_pos))
                     
                     if(self.omega_list is None):
-                        if(self.index > 20):
+                        if(self.index > 20 and scan):
                             delay_time, delay_error = self.delay_fit(low_ind, high_ind)
                         self.line_pos_const.set_data(self.time[low_ind:high_ind], 
                                                      self.pos_const[low_ind:high_ind])
@@ -369,7 +387,7 @@ class data():
                         ax.relim()
                         ax.autoscale_view()
                         for label in ax.get_yticklabels():
-                            label.set_rotation(45)
+                            label.set_rotation(ANGLE_ROTATION)
                         
                     if(self.omega_list is None):
                         self.ax_list[0, 1].set_xlim(0, 2 * self.omega)
@@ -401,7 +419,8 @@ class data():
                                                abs(self.fft_pos))
                     
                     if(self.omega_list is None):
-                        delay_time, delay_error = self.delay_fit(low_ind, high_ind)
+                        if(scan):
+                            delay_time, delay_error = self.delay_fit(low_ind, high_ind)
                         self.line_phase.set_data(*zip(*self.phase_list))
                         self.line_pos_const.set_data(self.time[low_ind:high_ind], 
                                                      self.pos_const[low_ind:high_ind])
@@ -429,7 +448,7 @@ class data():
                         ax.relim()
                         ax.autoscale_view()
                         for label in ax.get_yticklabels():
-                            label.set_rotation(45)
+                            label.set_rotation(ANGLE_ROTATION)
                 
                     if(self.omega_list is None):
                         self.ax_list[0, 1].set_xlim(0, 2 * self.omega)
@@ -475,7 +494,7 @@ class data():
                             ax.relim()
                             ax.autoscale_view()
                             for label in ax.get_yticklabels():
-                                label.set_rotation(45)
+                                label.set_rotation(ANGLE_ROTATION)
                         
                     self.figure.canvas.draw()
                     self.figure.canvas.flush_events()
@@ -515,7 +534,7 @@ class data():
                             ax.relim()
                             ax.autoscale_view()
                             for label in ax.get_yticklabels():
-                                label.set_rotation(45)
+                                label.set_rotation(ANGLE_ROTATION)
                         
                     self.figure.canvas.draw()
                     self.figure.canvas.flush_events()
@@ -525,7 +544,49 @@ class data():
                         pass
                     
                 self.counter += 1            
-    
+        
+        elif(module_name == "setSpeed"):
+            if(self.index < self.plot_length):
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.buffer_length + 1
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                             self.position[low_ind:high_ind])
+                    self.line_pos_vel.set_data(self.time[low_ind:high_ind],
+                                               self.position_velocity[low_ind:high_ind])
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                            
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    
+                self.counter += 1
+            else:
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.temp_index + self.buffer_length + 1 - self.plot_length
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                             self.position[low_ind:high_ind])
+                    self.line_pos_vel.set_data(self.time[low_ind:high_ind],
+                                               self.position_velocity[low_ind:high_ind])
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                            
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    
+                self.counter += 1
+        
     def handle_close(self, _):
         self.flag_close_event = True
         self.flag_subplot_init = True
@@ -586,7 +647,7 @@ class data():
                 writer.writerow([self.time[i], self.angle[i], self.position[i],\
                     self.angular_velocity[i], self.position_velocity[i]])
             csvfile.close()
-        if(module_name != "pid"):
+        if(module_name != "pid" or module_name != "setSpeed"):
             with open(filename_fft + '.csv', 'w', newline = '') as csvfile:
                 writer = csv.writer(csvfile)
                 special_info = input("Any special info to add to the fft-csv file?\n\n")
@@ -844,6 +905,7 @@ class live_data(data):
         data.pos_const = self.pos_const
         self.omega_num = data.omega_num
         self.omega_list = data.omega_list
+        self.setSpeed_param = data.setSpeed_param
     
 class data_frame():
     
@@ -1066,14 +1128,16 @@ class cart_pendulum():
             "swing_request": True, # whether the swing is requested
             "pid_input": True, # whether the pid input is requested
             "thread_init": True, # whether the thread is initiated
-            "flag_scan": True # whether run scanning mode
+            "flag_scan": True, # whether run scanning mode
+            "setSpeed_request": True, # whether the setSpeed is requested
         }
         self.init_true_flag_list = ["command", 
                                     "omega",
                                     "swing_request",
                                     "pid_input",
                                     "thread_init",
-                                    "flag_scan"]
+                                    "flag_scan",
+                                    "setSpeed_request"]
         self.init_false_flag_list = ["reset", 
                                      "center", 
                                      "pid", 
@@ -1166,7 +1230,10 @@ class cart_pendulum():
         self.arduino.read_all()
         self.command_flag()
     
-    def thread_reader(self, appendPos = False, appendVel = False, thread_check = False):
+    def thread_reader(self, 
+                      appendPos = False, 
+                      appendVel = False, 
+                      thread_check = False):
         while(not temp_datum.flag_close_event):
             self.arduino.read_single(prt = False, in_waiting = True)
             if(self.arduino.receive.rstrip() == "Kill switch hit."):
@@ -1240,7 +1307,7 @@ class cart_pendulum():
                 else:
                     if(self.flag_list["thread_init"]):
                         reader = threading.Thread(target = self.thread_reader, 
-                                                args = (True, True))
+                                                args = (True, True, False))
                         reader.start()
                         self.flag_list["thread_init"] = False
                     
@@ -1260,7 +1327,7 @@ class cart_pendulum():
             pass
         if(self.flag_list["thread_init"]):
             reader = threading.Thread(target = self.thread_reader, 
-                                      args = (False, False))
+                                      args = (False, False, False))
             reader.start()
             self.flag_list["thread_init"] = False
         # plot the graph in the main thread
@@ -1304,22 +1371,22 @@ class cart_pendulum():
                 print("Kill switch hit. Resetting the system...\n")
                 self.reconnect(exp = True)
             else:
-                manual = True # turn up manual control of the amplitude
+                manual = False # turn up manual control of the amplitude
                 if(self.flag_list["thread_init"]):
                     reader = threading.Thread(target = self.thread_reader, 
-                                            args = (True, False))
+                                            args = (True, False, True))
                     reader.start()
                     if (not NR_scan and manual):
                         writer = threading.Thread(target = self.thread_writer, args = ())
                         writer.start()
                     self.flag_list["thread_init"] = False
                 
-                temp_datum.copy(self.data, True)
                 
                 if(not temp_datum.flag_close_event):
                     # TODO: Add a plot counter to reduce the fps
+                    temp_datum.copy(self.data, True)
                     temp_datum.init_plot(self.module_name)
-                    temp_datum.real_time_plot(self.module_name)
+                    temp_datum.real_time_plot(self.module_name, NR_scan)
                 else:
                     if(not NR_scan and manual):
                         writer.join()
@@ -1328,7 +1395,7 @@ class cart_pendulum():
                 if(self.NR_counter >= temp_datum.wait_to_stable):
                     amp, self.phase = temp_datum.NR_update(NR_scan, interpolation, manual) 
                     if(not manual):
-                        self.arduino.send_message(str(amp) + "," + str(self.phase) + "\n")
+                        self.arduino.send_message(str(amp) + "," + str(self.phase + np.pi) + "\n")
                     elif(manual and not NR_scan):
                         # print("Amplitude: ", amp, " Phase: ", phase / np.pi, "\n")
                         pass
@@ -1341,6 +1408,39 @@ class cart_pendulum():
                             temp_datum.NR_phase_calc(omega, interpolation)
                     self.NR_counter += 1
 
+    def setSpeed(self):
+        '''Set the speed and acceleration of the cart'''
+        self.module_name = r"setSpeed"
+        try:
+            self.data.path = self.path + r"\setSpeed"
+            os.makedirs(self.data.path)
+        except OSError:
+            pass
+        if(self.flag_list["setSpeed_request"]):
+            self.arduino.read_all()
+            self.arduino.send_input_message(save_to_omega = False)
+            self.arduino.read_all()
+            if(self.arduino.receive.rstrip().startswith("Start sinusoidal motion with")):
+                self.flag_list["setSpeed_request"] = False
+                self.data.setSpeed_param = self.arduino.receive.rstrip()
+            else:
+                if(self.arduino.receive.rstrip() == "Kill switch hit."):
+                    print("Kill switch hit. Resetting the system...\n")
+                    self.reconnect(exp = True)
+                else:
+                    if(self.flag_list["thread_init"]):
+                        reader = threading.Thread(target = self.thread_reader, 
+                                                args = (True, True, False))
+                        reader.start()
+                        self.flag_list["thread_init"] = False
+                        
+                    if(not temp_datum.flag_close_event):
+                        temp_datum.copy(self.data)
+                        temp_datum.init_plot(self.module_name)
+                        temp_datum.real_time_plot(self.module_name)
+                    else:
+                        self.reconnect(exp = True)      
+    
     def create_folder(self):
         self.cwd = os.getcwd()
         self.path = self.cwd + r"\cart_pendulum_data"
@@ -1391,6 +1491,11 @@ class cart_pendulum():
                                 print("\nInvalid input, please try again.")
                             print("")
                         self.NR(NR_scan = NR_scan, interpolation = True)
+                    except KeyboardInterrupt:
+                        self.reconnect(exp = True, send_terminate = True)
+                elif(self.flag_list["setSpeed"]):
+                    try:
+                        self.setSpeed()
                     except KeyboardInterrupt:
                         self.reconnect(exp = True, send_terminate = True)
                     

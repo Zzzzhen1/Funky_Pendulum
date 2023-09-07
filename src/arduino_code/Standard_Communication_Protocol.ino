@@ -598,6 +598,7 @@ void pid() {
         Serial.println("For example: 1000,0,4,-0.05,0.04,-0.01");
         Serial.println("In this order:Kp_ang,Ki_ang,Kd_ang,Kp_pos,Ki_pos,Kd_pos");
         Serial.println("[Scroll up to see previous values]");
+        Serial.println("Before press ENTER, make sure either the pendulum is stable at downright or upright position!");
         message = read_msg();
         if (pid_receive()) {
           pid_print();
@@ -851,7 +852,12 @@ void setSpeed() {
       } else if (isTwoFloat(message)) {
         flag_setSpeed_request = 0;
         init_stepper(temp_speed, temp_accel);
-        Serial.println("Start sinusoidal motion with (,)");
+        Serial.print("Start sinusoidal motion with speed ");
+        Serial.print(temp_speed, 1);
+        Serial.print(" stps/s and acceleration ");
+        Serial.print(temp_accel, 1);
+        Serial.print("stps/s^2");
+        Serial.println("");
         delay(500);
       } else {
         delay(500);
