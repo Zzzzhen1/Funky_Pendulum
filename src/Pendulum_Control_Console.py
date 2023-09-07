@@ -42,11 +42,11 @@ class data():
         self.position_velocity = np.zeros(2 * buffer_length)
         self.omega = 2.
         self.amp = 100.
-        self.amp_0 = 200.0 # This is used for characterised the constant oscillation
+        self.amp_0 = 50.0 # This is used for characterised the constant oscillation
         self.phase = 0.
-        self.NR_Kp = 0.02
-        self.NR_Kd = 0.1
-        self.NR_Ki = 0.002
+        self.NR_Kp = -0.4
+        self.NR_Kd = 0.
+        self.NR_Ki = 0.
         self.fft_angle = np.zeros(fft_length)
         self.fft_pos = np.zeros(fft_length)
         self.fft_freq = np.zeros(fft_length)
@@ -55,7 +55,7 @@ class data():
         self.plot_length = plot_length
         self.index_list = np.zeros(fft_length, dtype = int)
         self.phase_list = [(0., 0.)] * self.plot_length
-        self.amp_list = [(0., 0.)] * self.plot_length
+        self.amp_list = [(0., 0.)] * self.plot_length * (wait_to_stable + 1)
         self.wait_to_stable = wait_to_stable
         self.index = 0
         self.temp_index = 0
@@ -110,7 +110,7 @@ class data():
         self.phase = 0.
         self.omega = 2.
         self.avg_spacing = 0.
-        self.phase_list = [(0., 0.)] * self.plot_length
+        self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1)
         self.amp_list = [(0., 0.)] * self.plot_length
         self.index_list = np.zeros(self.fft_length, dtype = int)
         self.omega_num = 0
@@ -151,10 +151,10 @@ class data():
                     self.flag_subplot_init = False
                     self.figure.suptitle('NR')
                     if(self.omega_list is None):
-                        self.phase_list = [(0., 0.)] * self.plot_length
+                        self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1)
                     else: 
                         self.phase_list = None
-                        self.multi_phase_list = [[(0., 0.)] * self.plot_length] * self.omega_num
+                        self.multi_phase_list = [[(0., 0.)] * self.plot_length * (self.wait_to_stable + 1)] * self.omega_num
                         for i in range(self.omega_num):
                             self.multi_phase_list[i] = [(0., 0.)] * self.plot_length
                     self.amp_list = [(0., 0.)] * self.plot_length
@@ -1049,6 +1049,7 @@ class cart_pendulum():
         self.center_count = 0
         self.distance = 0
         self.NR_counter = 0
+        self.NR_plot_counter = 0
         # A dictionary of flags to control the system
         self.flag_list = {
             "command": True, # whether a command is sent to the arduino
@@ -1137,6 +1138,8 @@ class cart_pendulum():
         self.center_count = 0
         self.distance = 0
         self.phase = 0.
+        self.NR_counter = 0
+        self.NR_plot_counter = 0
     
     def command_flag(self): 
         # command flag controlled by the arduino output
@@ -1292,8 +1295,6 @@ class cart_pendulum():
                 self.reconnect(exp = True)
             else:
                 manual = True # turn up manual control of the amplitude
-                # BUG: Automation currently disabled because the PID coefficients of the 
-                # NR stage has not been fine tuned
                 if(self.flag_list["thread_init"]):
                     reader = threading.Thread(target = self.thread_reader, 
                                             args = (True, False))
@@ -1306,6 +1307,7 @@ class cart_pendulum():
                 temp_datum.copy(self.data, True)
                 
                 if(not temp_datum.flag_close_event):
+                    # TODO: Add a plot counter to reduce the fps
                     temp_datum.init_plot(self.module_name)
                     temp_datum.real_time_plot(self.module_name)
                 else:
@@ -1390,9 +1392,9 @@ class cart_pendulum():
 if __name__ == "__main__":
     
     # Start up routine of the test
-    fft_lengths = 1024 # TODO: add some possible values
+    fft_lengths = 512 # TODO: add some possible values
     sampling_divs = 0.05 # The minimum sampling division set in Arduino is 50 ms
-    wait_to_stables = 5
+    wait_to_stables = 50
     # fft_length = int(input("fft_length: "))
     # sampling_div = float(input("sampling_div: "))
     # wait_to_stable = int(input("wait_to_stable: "))
@@ -1428,4 +1430,4 @@ if __name__ == "__main__":
 # TODO: add a selection for the PID of normalised resonance
 # TODO: decrease plotting fps
 # TODO: change the sign of the PID coefficients
-# TOOD: change the sampling time unit in the arduino
+# TODO: change the sampling time unit in the arduino
