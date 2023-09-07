@@ -779,7 +779,8 @@ class data():
         popt, pcov = curve_fit(delay_func, 
                                self.time[low - 1:high - 1], 
                                self.position[low:high],
-                               p0 = 0.007)
+                               p0 = 0.007,
+                               maxfev = 20000)
         # the idea here is that the proposed position of the cart at this moment 
         # is the position of the cart at the next moment
         delay_time = popt[0]
