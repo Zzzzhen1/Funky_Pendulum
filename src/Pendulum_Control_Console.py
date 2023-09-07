@@ -78,6 +78,7 @@ class data():
     ):  
         if(self.index == 0):
             self.start_time = data_frame.time
+            self.sys_start_time = time.time()
         temp_index = self.index % self.buffer_length
         self.time[temp_index] = data_frame.time - self.start_time
         self.time[temp_index + self.buffer_length] = data_frame.time - self.start_time
@@ -1050,6 +1051,7 @@ class cart_pendulum():
         self.distance = 0
         self.NR_counter = 0
         self.NR_plot_counter = 0
+        self.thread_counter = 0
         # A dictionary of flags to control the system
         self.flag_list = {
             "command": True, # whether a command is sent to the arduino
@@ -1058,6 +1060,7 @@ class cart_pendulum():
             "pid": False, # pid command
             "measure": False, # measure command
             "NR": False, # Normalised Resonance command
+            "setSpeed": False, # set speed and acceleration command
             "multi_freq": False, # whether multiple frequencies are sent
             "omega": True, # Input driven frequency command
             "swing_request": True, # whether the swing is requested
@@ -1076,6 +1079,7 @@ class cart_pendulum():
                                      "pid", 
                                      "measure", 
                                      "NR",
+                                     "setSpeed",
                                      "multi_freq"]
         self.reset_dict = { # To renew the flag_command
             "Resetting...",
@@ -1088,7 +1092,8 @@ class cart_pendulum():
             "Begin centering.": "center",
             "Begin the PID control.": "pid",
             "Begin the natural frequency and quality factor measuring.": "measure",
-            "Begin the normalised resonance.": "NR"
+            "Begin the normalised resonance.": "NR",
+            "Begin the speed and acceleration setting.": "setSpeed",
         }
         
     def reset_flag_list(self, swing_request = False):  
@@ -1140,6 +1145,7 @@ class cart_pendulum():
         self.phase = 0.
         self.NR_counter = 0
         self.NR_plot_counter = 0
+        self.thread_counter = 0
     
     def command_flag(self): 
         # command flag controlled by the arduino output
@@ -1147,7 +1153,6 @@ class cart_pendulum():
             and self.arduino.receive.rstrip() in self.command_dict):
             self.flag_list[self.command_dict[self.arduino.receive.rstrip()]] = True
             self.flag_list["command"] = False
-            # print("Press Ctrl+C to stop the program.\n")
         elif (self.arduino.receive.rstrip() in self.reset_dict):
             self.flag_list["command"] = False
             self.flag_list["reset"] = True
@@ -1157,10 +1162,11 @@ class cart_pendulum():
     def command(self):
         self.arduino.read_all()
         self.arduino.send_command()
-        self.arduino.read_single()
+        # self.arduino.read_single() # previously used
+        self.arduino.read_all()
         self.command_flag()
     
-    def thread_reader(self, appendPos = False, appendVel = False):
+    def thread_reader(self, appendPos = False, appendVel = False, thread_check = False):
         while(not temp_datum.flag_close_event):
             self.arduino.read_single(prt = False, in_waiting = True)
             if(self.arduino.receive.rstrip() == "Kill switch hit."):
@@ -1170,6 +1176,10 @@ class cart_pendulum():
                 df.update_data(self.arduino.receive.rstrip().split(','), \
                     appendPos = appendPos, appendVel = appendVel)
                 self.data.append_data(df, appendPos = appendPos, appendVel = appendVel)
+                if(thread_check):
+                    print("time_sys: %.3f time_read: %.3f thread_counter: %d" % \
+                        ((time.time() - self.data.sys_start_time), df.time, self.thread_counter))
+                    self.thread_counter += 1
             except ValueError:
                 self.arduino.board.reset_input_buffer()
                 pass
