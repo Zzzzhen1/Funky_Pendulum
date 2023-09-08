@@ -696,6 +696,7 @@ class data():
                 temp_amp = self.amp_list[0][1]
                 temp_i = 0
                 for i in range(len(self.phase_list)):
+                    if(self.phase_list[i][0] == 0): continue
                     if(self.phase_list[i][0] < self.amp_list[temp_i][0]):
                         writer.writerow([self.phase_list[i][0], self.phase_list[i][1], temp_amp])
                     else:
