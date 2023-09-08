@@ -1409,7 +1409,7 @@ class cart_pendulum():
                 manual = False # turn up manual control of the amplitude
                 if(self.flag_list["thread_init"]):
                     reader = threading.Thread(target = self.thread_reader, 
-                                            args = (True, False, True))
+                                            args = (True, False, False))
                     reader.start()
                     if (not NR_scan and manual):
                         writer = threading.Thread(target = self.thread_writer, args = ())
