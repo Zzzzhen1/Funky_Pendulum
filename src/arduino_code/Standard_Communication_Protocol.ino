@@ -195,7 +195,7 @@ void command_print(int num) {
         Serial.print("Current speed: ");
         Serial.print(temp_speed, 1);
         Serial.print(" stps/s  Current acceleration: ");
-        Serial.println(temp_accel, 1);
+        Serial.print(temp_accel, 1);
         Serial.println(" stps/s^2");
         Serial.println("Begin the speed and acceleration setting.");
         break;
@@ -316,12 +316,12 @@ bool isTwoFloat(String str){
       comma_count += 1;
       if(isFloat(temp_str)){
         temp_speed = temp_str.toFloat();
-        temp_str = "";
       }else{
         temp_speed = speed_lim;
         temp_accel = accel;
         return false;
       }
+      temp_str = "";
     }else{
       temp_str += str.charAt(i);
     }
@@ -793,7 +793,7 @@ void NR() {
         pos_cart_target = stepper.targetPosition();
 
         if (sample_time - sample_time_prev >= sample_div) {
-          sample_time = sample_time_prev;
+          sample_time_prev = sample_time;
           Serial.print(current_time, 3);
           Serial.print(",");
           Serial.print(ang_cul, 4);
@@ -887,9 +887,10 @@ void setSpeed() {
           Serial.print(vel, 1);
           Serial.println("");
         }
-        steps = 0.25 * distance * sin(2 * M_PI * 0.4 * current_time);
+        steps = 0.2 * distance * sin(2 * M_PI * 0.3 * current_time);
         cart_run_max();
         stepper.moveTo(steps);
+        cart_run_max();
         cart_run_max();
       }else{
         cart_reset();

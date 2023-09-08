@@ -31,7 +31,7 @@ class data():
         sampling_div,
         wait_to_stable,
         buffer_length = 4 * 8192,
-        plot_length = 512,
+        plot_length = 64,
         ):
         self.start_time = 0.
         self.sampling_div = sampling_div
@@ -45,7 +45,7 @@ class data():
         self.amp = 100.
         self.amp_0 = 50.0 # This is used for characterised the constant oscillation
         self.phase = 0.
-        self.NR_Kp = 0.4
+        self.NR_Kp = -0.02
         self.NR_Kd = 0.
         self.NR_Ki = 0.
         self.fft_angle = np.zeros(fft_length)
@@ -55,8 +55,8 @@ class data():
         self.fft_length = fft_length
         self.plot_length = plot_length
         self.index_list = np.zeros(fft_length, dtype = int)
-        self.phase_list = [(0., 0.)] * self.plot_length
-        self.amp_list = [(0., 0.)] * self.plot_length * (wait_to_stable + 1)
+        self.phase_list = [(0., 0.)] * self.plot_length * 10 * (wait_to_stable + 1)
+        self.amp_list = [(0., 0.)] * self.plot_length * 10
         self.wait_to_stable = wait_to_stable
         self.index = 0
         self.temp_index = 0
@@ -113,8 +113,8 @@ class data():
         self.phase = 0.
         self.omega = 2.
         self.avg_spacing = 0.
-        self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1)
-        self.amp_list = [(0., 0.)] * self.plot_length
+        self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
+        self.amp_list = [(0., 0.)] * self.plot_length * 10
         self.index_list = np.zeros(self.fft_length, dtype = int)
         self.omega_num = 0
         self.omega_list = None
@@ -155,10 +155,10 @@ class data():
                     self.flag_subplot_init = False
                     self.figure.suptitle('NR')
                     if(self.omega_list is None):
-                        self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1)
+                        self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
                     else: 
                         self.phase_list = None
-                        self.multi_phase_list = [[(0., 0.)] * self.plot_length * (self.wait_to_stable + 1)] * self.omega_num
+                        self.multi_phase_list = [[(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10] * self.omega_num
                         for i in range(self.omega_num):
                             self.multi_phase_list[i] = [(0., 0.)] * self.plot_length
                     self.amp_list = [(0., 0.)] * self.plot_length
@@ -245,7 +245,7 @@ class data():
             elif(module_name == "setSpeed"):
                 if(self.flag_subplot_init):
                     self.figure, self.ax_list = plt.subplots(1, 2, figsize=(8, 5))
-                    self.figure.suptitle('Set Speed')
+                    self.figure.suptitle('setSpeed')
                     self.flag_subplot_init = False
                 self.line_pos, = self.ax_list[0].plot([], [], 'r-')
                 self.line_pos_vel, = self.ax_list[1].plot([], [], 'r-')
@@ -372,7 +372,7 @@ class data():
                                                 transform = self.ax_list[0, 1].transAxes)
                         txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        if(self.index > 20):
+                        if(self.index > 20 and scan):
                             txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
                                 + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
                     except ZeroDivisionError:
@@ -434,8 +434,9 @@ class data():
                                                 transform = self.ax_list[0, 1].transAxes)
                         txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
-                            + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
+                        if(scan):
+                            txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
+                                + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
                     except ZeroDivisionError:
                         pass
                     
@@ -556,6 +557,9 @@ class data():
                     self.line_pos_vel.set_data(self.time[low_ind:high_ind],
                                                self.position_velocity[low_ind:high_ind])
                     
+                    if(self.setSpeed_param is not None):
+                        self.figure.suptitle(self.setSpeed_param)
+                    
                     for ax in self.ax_new_list:
                         ax.relim()
                         ax.autoscale_view()
@@ -575,6 +579,9 @@ class data():
                                              self.position[low_ind:high_ind])
                     self.line_pos_vel.set_data(self.time[low_ind:high_ind],
                                                self.position_velocity[low_ind:high_ind])
+                    
+                    if(self.setSpeed_param is not None):
+                        self.figure.suptitle(self.setSpeed_param)
                     
                     for ax in self.ax_new_list:
                         ax.relim()
@@ -606,18 +613,24 @@ class data():
     def export_csv(
         self, 
         module_name, 
-        relative_path = r"Normalised_Resonance_Control\NR_csv"
+        relative_path = r"Normalised_Resonance_Control\NR_csv",
+        NR_phase_amp = False
         ):
         try:
             dirc = self.path + '\\' + datetime.now().strftime("%d-%m-csv")
             dirc_fft = self.path + '\\' + datetime.now().strftime("%d-%m-fft-csv")
+            if(NR_phase_amp):
+                dirc_phase_amp = self.path + '\\' + datetime.now().strftime("%d-%m-phase_amp-csv")
+                os.makedirs(dirc_phase_amp)
+                filename_phase_amp = dirc_phase_amp + '\\phase_amp-' + module_name + \
+                    datetime.now().strftime("-%H-%M-%S")
             os.makedirs(dirc)
             os.makedirs(dirc_fft)
         except OSError:
             pass
         filename = dirc + '\\' + module_name + \
             datetime.now().strftime("-%H-%M-%S")
-        filename_fft = dirc_fft + '\\' + module_name + \
+        filename_fft = dirc_fft + '\\' + "fft-" + module_name + \
             datetime.now().strftime("-%H-%M-%S")
         with open(filename + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
@@ -650,7 +663,7 @@ class data():
         if(module_name != "pid" or module_name != "setSpeed"):
             with open(filename_fft + '.csv', 'w', newline = '') as csvfile:
                 writer = csv.writer(csvfile)
-                special_info = input("Any special info to add to the fft-csv file?\n\n")
+                special_info = input("\nAny special info to add to the fft-csv file?\n\n")
                 writer.writerow(["special_info", special_info])
                 writer.writerow(["start_time", str(self.start_time)])
                 if(self.omega_list is None):
@@ -668,6 +681,27 @@ class data():
                 writer.writerow(['freq', 'fft_angle', 'fft_position'])
                 for i in range(len(self.fft_freq)):
                     writer.writerow([self.fft_freq[i], self.fft_angle[i], self.fft_pos[i]])
+                csvfile.close()
+                
+        if(NR_phase_amp):
+            with open(filename_phase_amp + ".csv", 'w', newline = '') as csvfile:
+                writer = csv.writer(csvfile)
+                special_info = input("\nAny special info to add to the phase_amp-csv file?\n\n")
+                writer.writerow(["special_info", special_info])
+                writer.writerow(["start_time", str(self.start_time)])
+                writer.writerow(["omega", str(self.omega)])
+                writer.writerow(["NR_Kp", "NR_Ki", "NR_Kd"])
+                writer.writerow([str(self.NR_Kp), str(self.NR_Ki), str(self.NR_Kd)])
+                writer.writerow(['time', 'phase/pi', 'amplitude/steps'])
+                temp_amp = 0
+                temp_i = 0
+                for i in range(len(self.phase_list)):
+                    if(self.phase_list[i][0] < self.amp_list[temp_i][0]):
+                        writer.writerow([self.phase_list[i][0], self.phase_list[i][1], temp_amp])
+                    else:
+                        temp_i += 1
+                        temp_amp = self.amp_list[temp_i][1]
+                        writer.writerow([self.phase_list[i][0], self.phase_list[i][1], temp_amp])
                 csvfile.close()
 
         print("\nExported to " + filename + "\n")
@@ -1112,7 +1146,6 @@ class cart_pendulum():
         self.center_count = 0
         self.distance = 0
         self.NR_counter = 0
-        self.NR_plot_counter = 0
         self.thread_counter = 0
         # A dictionary of flags to control the system
         self.flag_list = {
@@ -1172,7 +1205,8 @@ class cart_pendulum():
     def reconnect(self, 
                   exp = False, 
                   swing_request = False, 
-                  send_terminate = False
+                  send_terminate = False,
+                  NR_phase_amp = False,
                   ):
         '''This function stops the serial connection and waits for ENTER to reconnect'''
         if(send_terminate):
@@ -1185,7 +1219,9 @@ class cart_pendulum():
             self.arduino.board.close()
             time.sleep(0.1)
             if(exp):
-                temp_datum.export_csv(self.module_name, relative_path = self.path)
+                temp_datum.export_csv(self.module_name, 
+                                      relative_path = self.path, 
+                                      NR_phase_amp = NR_phase_amp)
             input("\nPress ENTER to reconnect.\n\nOr press CTRL+C then ENTER to exit the program.\n")
             self.arduino.initiate()
         except KeyboardInterrupt:
@@ -1208,7 +1244,6 @@ class cart_pendulum():
         self.distance = 0
         self.phase = 0.
         self.NR_counter = 0
-        self.NR_plot_counter = 0
         self.thread_counter = 0
     
     def command_flag(self): 
@@ -1369,7 +1404,7 @@ class cart_pendulum():
         else:
             if(self.arduino.receive.rstrip() == "Kill switch hit."):
                 print("Kill switch hit. Resetting the system...\n")
-                self.reconnect(exp = True)
+                self.reconnect(exp = True, NR_phase_amp = not NR_scan)
             else:
                 manual = False # turn up manual control of the amplitude
                 if(self.flag_list["thread_init"]):
@@ -1383,21 +1418,20 @@ class cart_pendulum():
                 
                 
                 if(not temp_datum.flag_close_event):
-                    # TODO: Add a plot counter to reduce the fps
                     temp_datum.copy(self.data, True)
                     temp_datum.init_plot(self.module_name)
                     temp_datum.real_time_plot(self.module_name, NR_scan)
                 else:
                     if(not NR_scan and manual):
                         writer.join()
-                    self.reconnect(exp = True)
+                    self.reconnect(exp = True, NR_phase_amp = not NR_scan)
                 
                 if(self.NR_counter >= temp_datum.wait_to_stable):
                     amp, self.phase = temp_datum.NR_update(NR_scan, interpolation, manual) 
                     if(not manual):
-                        self.arduino.send_message(str(amp) + "," + str(self.phase + np.pi) + "\n")
+                        # self.arduino.send_message(str(amp) + "," + str(self.phase + np.pi) + "\n")
+                        self.arduino.send_message(str(amp) + "," + str(self.phase) + "\n")
                     elif(manual and not NR_scan):
-                        # print("Amplitude: ", amp, " Phase: ", phase / np.pi, "\n")
                         pass
                     self.NR_counter = 0
                 else:
@@ -1422,7 +1456,7 @@ class cart_pendulum():
             self.arduino.read_all()
             if(self.arduino.receive.rstrip().startswith("Start sinusoidal motion with")):
                 self.flag_list["setSpeed_request"] = False
-                self.data.setSpeed_param = self.arduino.receive.rstrip()
+                self.data.setSpeed_param = self.arduino.receive.rstrip().replace("Start sinusoidal motion with", "")
             else:
                 if(self.arduino.receive.rstrip() == "Kill switch hit."):
                     print("Kill switch hit. Resetting the system...\n")
@@ -1492,7 +1526,7 @@ class cart_pendulum():
                             print("")
                         self.NR(NR_scan = NR_scan, interpolation = True)
                     except KeyboardInterrupt:
-                        self.reconnect(exp = True, send_terminate = True)
+                        self.reconnect(exp = True, send_terminate = True, NR_phase_amp = not NR_scan)
                 elif(self.flag_list["setSpeed"]):
                     try:
                         self.setSpeed()
