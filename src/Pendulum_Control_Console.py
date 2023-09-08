@@ -693,20 +693,22 @@ class data():
                 writer.writerow(["NR_Kp", "NR_Ki", "NR_Kd"])
                 writer.writerow([str(self.NR_Kp), str(self.NR_Ki), str(self.NR_Kd)])
                 writer.writerow(['time', 'phase/pi', 'amplitude/steps'])
-                temp_amp = 0
+                temp_amp = self.amp_list[0][1]
                 temp_i = 0
                 for i in range(len(self.phase_list)):
                     if(self.phase_list[i][0] < self.amp_list[temp_i][0]):
                         writer.writerow([self.phase_list[i][0], self.phase_list[i][1], temp_amp])
                     else:
-                        temp_i += 1
-                        temp_amp = self.amp_list[temp_i][1]
                         writer.writerow([self.phase_list[i][0], self.phase_list[i][1], temp_amp])
+                        temp_amp = self.amp_list[temp_i][1]
+                        temp_i += 1
                 csvfile.close()
 
         print("\nExported to " + filename + "\n")
         if(module_name != 'pid'):
             print("\nExported to " + filename_fft + "\n")
+        if(NR_phase_amp):
+            print("\nExported to " + filename_phase_amp + "\n")
         
     def fft_index_list(self):
         '''return the list and average time spacing'''
@@ -1542,8 +1544,8 @@ if __name__ == "__main__":
     
     # Start up routine of the test
     fft_lengths = 512 # TODO: add some possible values
-    sampling_divs = 0.05 # The minimum sampling division set in Arduino is 50 ms
-    wait_to_stables = 50
+    sampling_divs = 0.04 # The minimum sampling division set in Arduino is 50 ms
+    wait_to_stables = 1
     # fft_length = int(input("fft_length: "))
     # sampling_div = float(input("sampling_div: "))
     # wait_to_stable = int(input("wait_to_stable: "))
