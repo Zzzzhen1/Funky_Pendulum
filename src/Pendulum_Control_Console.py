@@ -622,8 +622,6 @@ class data():
             if(NR_phase_amp):
                 dirc_phase_amp = self.path + '\\' + datetime.now().strftime("%d-%m-phase_amp-csv")
                 os.makedirs(dirc_phase_amp)
-                filename_phase_amp = dirc_phase_amp + '\\phase_amp-' + module_name + \
-                    datetime.now().strftime("-%H-%M-%S")
             os.makedirs(dirc)
             os.makedirs(dirc_fft)
         except OSError:
@@ -631,6 +629,8 @@ class data():
         filename = dirc + '\\' + module_name + \
             datetime.now().strftime("-%H-%M-%S")
         filename_fft = dirc_fft + '\\' + "fft-" + module_name + \
+            datetime.now().strftime("-%H-%M-%S")
+        filename_phase_amp = dirc_phase_amp + '\\phase_amp-' + module_name + \
             datetime.now().strftime("-%H-%M-%S")
         with open(filename + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
