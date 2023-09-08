@@ -158,8 +158,7 @@ class data():
                         self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
                     else: 
                         self.phase_list = None
-                        for i in range(self.omega_num):
-                            self.multi_phase_list[i] = [(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10
+                        self.multi_phase_list = [[(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10] * self.omega_num
                     self.amp_list = [(0., 0.)] * self.plot_length * 10
                     
                 self.line_angle, = self.ax_list[0, 0].plot([], [], 'b-')
