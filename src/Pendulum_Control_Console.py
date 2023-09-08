@@ -694,7 +694,7 @@ class data():
                 writer.writerow([str(self.NR_Kp), str(self.NR_Ki), str(self.NR_Kd)])
                 writer.writerow(['time', 'phase/pi', 'amplitude/steps'])
                 for i in range(len(self.amp_list)):
-                    if(self.amp_list[i][0] >= 0):
+                    if(self.amp_list[i][1] >= 0):
                         temp_amp = self.amp_list[i][1]
                         temp_i = i
                         break
