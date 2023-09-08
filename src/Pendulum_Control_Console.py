@@ -990,7 +990,7 @@ class arduino():
         self,
         port,
         baudrate,
-        timeout = 10,
+        timeout = None,
         dsrdtr = None
     ):
         self.port = port
