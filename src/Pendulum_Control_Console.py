@@ -193,15 +193,15 @@ class data():
                                         self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
                                         self.ax_list[0, 1]: self.line_fft_ang,
                                         ax1: self.line_fft_pos,
-                                        self.ax_list[1, 1]: self.line_phase,
-                                        ax2: self.line_amp}
+                                        ax2: self.line_amp,
+                                        self.ax_list[1, 1]: self.line_phase,}
                 else:
                     self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
                                         self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
                                         self.ax_list[0, 1]: self.line_fft_ang,
                                         ax1: self.line_fft_pos,
+                                        ax2: self.line_amp,
                                         self.ax_list[1, 1]: self.line_phase_list,
-                                        ax2: self.line_amp
                                         }
                     
                 self.ax_list[0, 0].set_xlabel('Time/s')
