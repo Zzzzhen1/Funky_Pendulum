@@ -629,8 +629,11 @@ class data():
             datetime.now().strftime("-%H-%M-%S")
         filename_fft = dirc_fft + '\\' + "fft-" + module_name + \
             datetime.now().strftime("-%H-%M-%S")
-        filename_phase_amp = dirc_phase_amp + '\\phase_amp-' + module_name + \
-            datetime.now().strftime("-%H-%M-%S")
+        try:
+            filename_phase_amp = dirc_phase_amp + '\\phase_amp-' + module_name + \
+                datetime.now().strftime("-%H-%M-%S")
+        except UnboundLocalError:
+            pass
         with open(filename + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             special_info = input("Any special info to add to the csv file?\n\n")
@@ -1464,7 +1467,7 @@ class cart_pendulum():
             self.arduino.read_all()
             if(self.arduino.receive.rstrip().startswith("Start sinusoidal motion with")):
                 self.flag_list["setSpeed_request"] = False
-                self.data.setSpeed_param = self.arduino.receive.rstrip().replace("Start sinusoidal motion with", "")
+                self.data.setSpeed_param = self.arduino.receive.rstrip().replace("Start sinusoidal motion with ", "")
             else:
                 if(self.arduino.receive.rstrip() == "Kill switch hit."):
                     print("Kill switch hit. Resetting the system...\n")
