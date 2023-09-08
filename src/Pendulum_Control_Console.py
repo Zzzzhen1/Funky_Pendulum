@@ -1245,7 +1245,7 @@ class cart_pendulum():
                 self.data.append_data(df, appendPos = appendPos, appendVel = appendVel)
                 if(thread_check):
                     print("time_sys: %.3f time_read: %.3f thread_counter: %d" % \
-                        ((time.time() - self.data.sys_start_time), df.time, self.thread_counter))
+                        ((time.time() - self.data.sys_start_time), (df.time - self.data.start_time), self.thread_counter))
                     self.thread_counter += 1
             except ValueError:
                 self.arduino.board.reset_input_buffer()
