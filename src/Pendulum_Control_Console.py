@@ -693,6 +693,8 @@ class data():
                 writer.writerow(["NR_Kp", "NR_Ki", "NR_Kd"])
                 writer.writerow([str(self.NR_Kp), str(self.NR_Ki), str(self.NR_Kd)])
                 writer.writerow(['time', 'phase/pi', 'amplitude/steps'])
+                temp_i = 0
+                temp_amp = self.amp_list[0][1]
                 for i in range(len(self.amp_list)):
                     if(self.amp_list[i][1] >= 0):
                         temp_amp = self.amp_list[i][1]
@@ -939,6 +941,7 @@ class live_data(data):
         except AttributeError:
             pass
         # Important, update the amp and phase in the data class
+        data.amp_list = self.amp_list
         data.amp = self.amp
         data.phase = self.phase
         data.multi_phase_list = self.multi_phase_list
