@@ -661,7 +661,7 @@ class data():
                 writer.writerow([self.time[i], self.angle[i], self.position[i],\
                     self.angular_velocity[i], self.position_velocity[i]])
             csvfile.close()
-        if(module_name != "pid" or module_name != "setSpeed"):
+        if(module_name != "pid" and module_name != "setSpeed"):
             with open(filename_fft + '.csv', 'w', newline = '') as csvfile:
                 writer = csv.writer(csvfile)
                 special_info = input("\nAny special info to add to the fft-csv file?\n\n")
