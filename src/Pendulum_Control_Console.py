@@ -322,6 +322,7 @@ class data():
             self.fft()
             self.pos_const = self.amp_0 * np.sin(2 * np.pi * \
                 self.omega * (self.time + self.start_time))
+            self.pos_active = self.position - self.pos_const
             delay_time, delay_error = 0., 0.
             if(self.index < self.plot_length):
                 if(self.counter % MAX_COUNT == 0):
@@ -643,12 +644,14 @@ class data():
             fft_pos = fft(self.position[index_list])
             if(self.pos_const is not None):
                 fft_pos_const = fft(self.pos_const[index_list])
+                fft_pos_active = fft(self.pos_active[index_list])
             fft_freq = fftfreq(len(index_list), avg_spacing)
             
             self.fft_angle = fft_ang[1:int(len(fft_freq) / 2)]
             self.fft_pos = fft_pos[1:int(len(fft_freq) / 2)]
             if(self.pos_const is not None):
-                self.fft_pos_const = fft_pos_const[1:int(len(fft_freq) / 2)]  
+                self.fft_pos_const = fft_pos_const[1:int(len(fft_freq) / 2)]
+                self.fft_pos_active = fft_pos_active[1:int(len(fft_freq) / 2)]
             self.fft_freq = fft_freq[1:int(len(fft_freq) / 2)]
             return True
         else:
