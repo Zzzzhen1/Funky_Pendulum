@@ -16,9 +16,9 @@ mpl.use('TkAgg')
 # Initialisation of some constants and variables
 port = 'COM6' 
 baudrate = 230400 # TODO: extract all constants from a larger project file?
-MAX_COUNT = 10 # Number of points waited to plot a frame TODO: change this to reduce the fps
+MAX_COUNT = 10 # Number of points waited to plot a frame TODO: change this to manipulate the fps
 ANGLE_ROTATION = 55 # Rotation of the label
-# TODO: how to achieve higher precision of the accelstepper library??? Using microsteps?
+# TODO: how to achieve higher precision of the accelstepper library? Using microsteps? (Seconadary)
 
 class data():
     
@@ -43,7 +43,7 @@ class data():
         self.position_velocity = np.zeros(2 * buffer_length)
         self.omega = 2.
         self.amp = 100.
-        self.amp_0 = 50.0 # This is used for characterised the constant oscillation
+        self.amp_0 = 50.0 # This is used to characterise the constant oscillation
         self.phase = 0.
         self.NR_Kp = -0.02
         self.NR_Kd = 0.
@@ -71,6 +71,7 @@ class data():
         self.multi_phase_list = None
         self.pos_const = None
         self.setSpeed_param = None
+        self.phase_list_active = None
     
     def append_data(
         self,
@@ -121,6 +122,7 @@ class data():
         self.multi_phase_list = None
         self.pos_const = None
         self.setSpeed_param = None
+        self.phase_list_active = None
         
     def clear_figure(self):
         plt.close("all")
@@ -128,7 +130,7 @@ class data():
         self.flag_subplot_init = True
         self.flag_close_event = False
     
-    def init_plot(self, module_name):
+    def init_plot(self, module_name, NR_scan = True):
         if(self.flag_fig_init):
             self.flag_fig_init = False
             plt.ion()
@@ -160,7 +162,8 @@ class data():
                         self.phase_list = None
                         self.multi_phase_list = [[(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10] * self.omega_num
                     self.amp_list = [(0., 0.)] * self.plot_length * 10
-                    
+                    if(not NR_scan):
+                        self.phase_list_active = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
                 self.line_angle, = self.ax_list[0, 0].plot([], [], 'b-')
                 self.line_pos, = self.ax_list[1, 0].plot([], [], 'r-')
                 self.line_pos_const, = self.ax_list[1, 0].plot([], [], 'g--')
@@ -175,6 +178,8 @@ class data():
                         _line, = self.ax_list[1, 1].plot([], [], color = colors[i], 
                                                                       label = '%.3f Hz'%(self.omega_list[i]))
                         self.line_phase_list.append(_line)
+                if(not NR_scan):
+                    self.line_phase_active, = self.ax_list[1, 1].plot([], [], 'r-', label = 'phase_active')
                 ax2 = self.ax_list[1, 1].twinx()
                 self.line_amp, = ax2.plot([], [], 'k-', label = 'amplitude')
                 
@@ -201,7 +206,10 @@ class data():
                                         ax2: self.line_amp,
                                         self.ax_list[1, 1]: self.line_phase_list,
                                         }
-                    
+                
+                if(not NR_scan):
+                    self.ax_new_list.update({self.ax_list[1, 1]: (self.line_phase, self.line_phase_active)})
+                
                 self.ax_list[0, 0].set_xlabel('Time/s')
                 self.ax_list[0, 0].set_ylabel('Angle/rad')
                 self.ax_list[1, 0].set_xlabel('Time/s')
@@ -260,14 +268,13 @@ class data():
             self.figure.canvas.manager.set_window_title(module_name)
             self.figure.canvas.draw_idle()
             plt.tight_layout()
-            # plt.get_current_fig_manager().window.state('zoomed')
             plt.show(block = False)
 
     def real_time_plot(self, module_name, scan = False):
         self.module_name = module_name
         if(module_name == "measure"):
             self.fft()
-            if(self.index < self.plot_length):
+            if(self.index < self.plot_length * 8):
                 if(self.counter % MAX_COUNT == 0):
                     low_ind = self.buffer_length + 1
                     high_ind = self.temp_index + self.buffer_length + 1
@@ -303,7 +310,7 @@ class data():
                 
             else:
                 if(self.counter % MAX_COUNT == 0):
-                    low_ind = self.temp_index + 1 + self.buffer_length - self.plot_length
+                    low_ind = self.temp_index + 1 + self.buffer_length - self.plot_length * 8
                     high_ind = self.temp_index + self.buffer_length + 1
                     
                     self.line_angle.set_data(self.time[low_ind:high_ind], 
@@ -366,6 +373,9 @@ class data():
                             line.set_data(*zip(*self.multi_phase_list[index]))
                     self.line_amp.set_data(*zip(*self.amp_list))
                     
+                    if(not scan):
+                        self.line_phase_active.set_data(*zip(*self.phase_list_active))
+                    
                     try:
                         txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
@@ -427,6 +437,9 @@ class data():
                         for index, line in enumerate(self.line_phase_list):
                             line.set_data(*zip(*self.multi_phase_list[index]))
                     self.line_amp.set_data(*zip(*self.amp_list))
+                    
+                    if(not scan):
+                        self.line_phase_active.set_data(*zip(*self.phase_list_active))
                     
                     try:
                         txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
@@ -694,7 +707,7 @@ class data():
                 writer.writerow(["omega", str(self.omega)])
                 writer.writerow(["NR_Kp", "NR_Ki", "NR_Kd"])
                 writer.writerow([str(self.NR_Kp), str(self.NR_Ki), str(self.NR_Kd)])
-                writer.writerow(['time', 'phase/pi', 'amplitude/steps'])
+                writer.writerow(['time', 'phase/pi', 'amplitude/steps', 'phase_active/pi'])
                 temp_i = 0
                 temp_amp = self.amp_list[0][1]
                 for i in range(len(self.amp_list)):
@@ -773,10 +786,20 @@ class data():
                         delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
                             - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                         
+                        delta_phase_3 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind\
+                            + 1]) - np.angle(self.fft_pos_const[close_ind + 1]))
+                        delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]))
+                        
                         self.phase = delta_phase_0 + (omega - \
                             self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
                                 + 1] - self.fft_freq[close_ind]) * \
                                     (delta_phase_1 - delta_phase_0)
+                                    
+                        self.phase_active = delta_phase_2 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                            + 1] - self.fft_freq[close_ind]) * \
+                            (delta_phase_3 - delta_phase_2)
 
                     elif self.fft_freq[close_ind] > omega:
                         delta_phase_1 =  self.phase_rectify(np.angle(self.fft_angle[close_ind\
@@ -784,19 +807,35 @@ class data():
                         delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
                             - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                         
+                        delta_phase_3 =  self.phase_rectify(np.angle(self.fft_pos_active[close_ind\
+                            - 1]) - np.angle(self.fft_pos_const[close_ind - 1]))
+                        delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]))
+                        
                         self.phase = delta_phase_0 + (omega - \
                             self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
                                 - 1] - self.fft_freq[close_ind]) * \
                                     (delta_phase_1 - delta_phase_0)
+                                    
+                        self.phase_active = delta_phase_2 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                            - 1] - self.fft_freq[close_ind]) * \
+                            (delta_phase_3 - delta_phase_2)
 
                     else:
                         self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
                             - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                        self.phase_active = self.phase_rectify(np.angle(self.fft_pos_active[close_ind]) \
+                            - np.angle(self.fft_pos_const[close_ind]))
                 else:
                     self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
                         - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                    self.phase_active = self.phase_rectify(np.angle(self.fft_pos_active[close_ind]) \
+                        - np.angle(self.fft_pos_const[close_ind]))
                 self.phase_list.pop(0)
                 self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
+                self.phase_list_active.pop(0)
+                self.phase_list_active.append((self.time[self.temp_index], self.phase_active / np.pi))
                 return True
             else:
                 if interpolation:
@@ -1428,7 +1467,7 @@ class cart_pendulum():
                 
                 if(not temp_datum.flag_close_event):
                     temp_datum.copy(self.data, True)
-                    temp_datum.init_plot(self.module_name)
+                    temp_datum.init_plot(self.module_name, NR_scan)
                     temp_datum.real_time_plot(self.module_name, NR_scan)
                 else:
                     if(not NR_scan and manual):
