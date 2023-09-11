@@ -849,7 +849,8 @@ void setSpeed() {
         flag_setSpeed_request = 0;
         init_stepper(temp_speed, temp_accel);
         Serial.print(message); //TODO: used to check the input from the serial
-        Serial.print("||Start sinusoidal motion with speed ");
+        Serial.print("||");
+        Serial.print("Start sinusoidal motion with speed ");
         Serial.print(temp_speed, 1);
         Serial.print(" step/s and acceleration ");
         Serial.print(temp_accel, 1);
