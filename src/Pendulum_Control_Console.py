@@ -655,10 +655,6 @@ class data():
             return False
     
     def NR_phase_calc(self, omega, scan, interpolation = True):
-        # BUG: TODO: IMPORTANT: How to convey the original oscillation phase!!! 
-        # TODO: Once determined the delay time between the two waves 
-        # need to double check whether there is such a relationship delta t * omega = delta phi???
-        # Because this would simply be the issue of pos_cart_target vs. pos_cart! which is not fancy at all
         if (self.fft()):
             close_ind = np.argmin(np.abs(self.fft_freq - omega))
             if(not scan):
