@@ -717,13 +717,17 @@ class data():
                         temp_i = i
                         break
                 for i in range(len(self.phase_list)):
-                    if(self.phase_list[i][0] == 0): continue
-                    if(self.phase_list[i][0] < self.amp_list[temp_i][0]):
-                        writer.writerow([self.phase_list[i][0], self.phase_list[i][1], temp_amp])
-                    else:
-                        writer.writerow([self.phase_list[i][0], self.phase_list[i][1], temp_amp])
-                        temp_amp = self.amp_list[temp_i][1]
-                        temp_i += 1
+                        if(temp_i == len(self.amp_list) - 1):
+                            writer.writerow([self.time[i], self.phase_list[i][1],\
+                                self.amp_list[temp_i][1], self.phase_list_active[i][1]])
+                        elif(self.time[i] < self.amp_list[temp_i + 1][0]):
+                            writer.writerow([self.time[i], self.phase_list[i][1],\
+                                temp_amp, self.phase_list_active[i][1]])
+                        else:
+                            temp_i += 1
+                            temp_amp = self.amp_list[temp_i][1]
+                            writer.writerow([self.time[i], self.phase_list[i][1],\
+                                self.amp_list[temp_i][1], self.phase_list_active[i][1]])
                 csvfile.close()
 
         print("\nExported to " + filename + "\n")
