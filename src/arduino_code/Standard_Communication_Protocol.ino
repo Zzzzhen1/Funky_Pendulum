@@ -192,11 +192,6 @@ void command_print(int num) {
         Serial.println("Begin the normalised resonance.");
         break;
       case 5:
-        Serial.print("Current speed: ");
-        Serial.print(temp_speed, 1);
-        Serial.print(" stps/s  Current acceleration: ");
-        Serial.print(temp_accel, 1);
-        Serial.println(" stps/s^2");
         Serial.println("Begin the speed and acceleration setting.");
         break;
     }
@@ -234,6 +229,7 @@ void reset(bool center = true) {
   temp_ind = 0;
   temp_speed = speed_lim;
   temp_accel = accel;
+  init_stepper(speed_lim, accel);
   memset(circ_buffer_angle, 0., sizeof(circ_buffer_angle));
   memset(circ_buffer_time, 0., sizeof(circ_buffer_time));
   memset(circ_buffer_position, 0., sizeof(circ_buffer_position));
@@ -639,9 +635,8 @@ void pid() {
 // PID stage stepper control, print through serial: time, angle and position (all with velocity)
 void pid_control_run(bool flag) {
   if (state_L && state_R) {
-
     current_ind = buf_ind % buf_len;
-    current_time = micros() / 1000000.;
+    current_time = millis() / 1000.;
     sample_time = millis();
     ang_cul = get_cumulative_angle();
     ang_eq = rectify_angle();
@@ -841,8 +836,9 @@ void setSpeed() {
     if (flag_setSpeed_request) {
       Serial.print("Current speed: ");
       Serial.print(temp_speed, 1);
-      Serial.print(" Current acceleration: ");
-      Serial.println(temp_accel, 1);
+      Serial.print(" step/s Current acceleration: ");
+      Serial.print(temp_accel, 1);
+      Serial.println(" step/s^2");
       Serial.println("Type in the values for speed and acceleration separated by a comma without spaces:");
       message = read_msg();
       if (message == "Terminate") {
@@ -852,11 +848,12 @@ void setSpeed() {
       } else if (isTwoFloat(message)) {
         flag_setSpeed_request = 0;
         init_stepper(temp_speed, temp_accel);
-        Serial.print("Start sinusoidal motion with speed ");
+        Serial.print(message); //TODO: used to check the input from the serial
+        Serial.print("||Start sinusoidal motion with speed ");
         Serial.print(temp_speed, 1);
-        Serial.print(" stps/s and acceleration ");
+        Serial.print(" step/s and acceleration ");
         Serial.print(temp_accel, 1);
-        Serial.print("stps/s^2");
+        Serial.print("step/s^2");
         Serial.println("");
         delay(500);
       } else {
@@ -1193,4 +1190,3 @@ void pid_print() {
 }
 
 // TODO: add a jolt
-// TODO: add a sawtooth motion
