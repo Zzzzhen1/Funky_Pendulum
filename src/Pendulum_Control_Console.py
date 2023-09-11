@@ -708,6 +708,7 @@ class data():
                 writer.writerow(["NR_Kp", "NR_Ki", "NR_Kd"])
                 writer.writerow([str(self.NR_Kp), str(self.NR_Ki), str(self.NR_Kd)])
                 writer.writerow(['time', 'phase/pi', 'amplitude/steps', 'phase_active/pi'])
+                # BUG: error in the phase, amplitude export
                 temp_i = 0
                 temp_amp = self.amp_list[0][1]
                 for i in range(len(self.amp_list)):
