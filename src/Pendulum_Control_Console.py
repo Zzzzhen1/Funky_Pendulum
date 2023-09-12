@@ -1510,26 +1510,26 @@ class cart_pendulum():
         if(self.flag_list["setSpeed_request"]):
             self.arduino.read_all()
             self.arduino.send_input_message(save_to_omega = False)
-            self.arduino.read_all()
+            self.arduino.read_single()
             if(self.arduino.receive.rstrip().startswith("Start sinusoidal motion with")):
                 self.flag_list["setSpeed_request"] = False
                 self.data.setSpeed_param = self.arduino.receive.rstrip().replace("Start sinusoidal motion with ", "")
+        else:
+            if(self.arduino.receive.rstrip() == "Kill switch hit."):
+                print("Kill switch hit. Resetting the system...\n")
+                self.reconnect(exp = True)
             else:
-                if(self.arduino.receive.rstrip() == "Kill switch hit."):
-                    print("Kill switch hit. Resetting the system...\n")
-                    self.reconnect(exp = True)
+                if(self.flag_list["thread_init"]):
+                    reader = threading.Thread(target = self.thread_reader, 
+                                            args = (True, True, False))
+                    reader.start()
+                    self.flag_list["thread_init"] = False
+                    
+                if(not temp_datum.flag_close_event):
+                    temp_datum.copy(self.data)
+                    temp_datum.init_plot(self.module_name)
+                    temp_datum.real_time_plot(self.module_name)
                 else:
-                    if(self.flag_list["thread_init"]):
-                        reader = threading.Thread(target = self.thread_reader, 
-                                                args = (True, True, False))
-                        reader.start()
-                        self.flag_list["thread_init"] = False
-                        
-                    if(not temp_datum.flag_close_event):
-                        temp_datum.copy(self.data)
-                        temp_datum.init_plot(self.module_name)
-                        temp_datum.real_time_plot(self.module_name)
-                    else:
                         self.reconnect(exp = True)      
     
     def create_folder(self):

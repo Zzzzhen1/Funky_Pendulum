@@ -869,6 +869,12 @@ void setSpeed() {
         pos_cart = stepper.currentPosition();
         pos_cart_target = stepper.targetPosition();
         vel = get_velocity();
+        
+        circ_buffer_position[current_ind] = pos_cart;
+        circ_buffer_time[current_ind] = current_time;
+        circ_buffer_position[current_ind + buf_len] = pos_cart;
+        circ_buffer_time[current_ind + buf_len] = current_time;
+        
         cart_run_max();
         if(sample_time - sample_time_prev >= sample_div){
           sample_time_prev = sample_time;
