@@ -1637,3 +1637,4 @@ if __name__ == "__main__":
 # TODO: decrease plotting fps
 # TODO: change the sign of the PID coefficients
 # TODO: change the sampling time unit in the arduino
+# TODO: setSpeed stage ask for amplitude and frequency and have a comparison plot and the sinusoidal starts at zero
