@@ -708,20 +708,19 @@ class data():
                 writer.writerow(["NR_Kp", "NR_Ki", "NR_Kd"])
                 writer.writerow([str(self.NR_Kp), str(self.NR_Ki), str(self.NR_Kd)])
                 writer.writerow(['time', 'phase/pi', 'amplitude/steps', 'phase_active/pi'])
-                # BUG: error in the phase, amplitude export
                 temp_i = 0
                 temp_amp = self.amp_list[0][1]
-                for i in range(len(self.phase_list)):
+                for i in range(len(self.phase_list[:][0])):
                         if(temp_i == len(self.amp_list) - 1):
-                            writer.writerow([self.time[i], self.phase_list[i][1],\
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
                                 self.amp_list[temp_i][1], self.phase_list_active[i][1]])
                         elif(self.time[i] < self.amp_list[temp_i + 1][0]):
-                            writer.writerow([self.time[i], self.phase_list[i][1],\
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
                                 temp_amp, self.phase_list_active[i][1]])
                         else:
                             temp_i += 1
                             temp_amp = self.amp_list[temp_i][1]
-                            writer.writerow([self.time[i], self.phase_list[i][1],\
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
                                 self.amp_list[temp_i][1], self.phase_list_active[i][1]])
                 csvfile.close()
 
@@ -1487,8 +1486,7 @@ class cart_pendulum():
                     if(self.data.omega_list is None):
                         temp_datum.NR_phase_calc(self.data.omega, NR_scan, interpolation)
                     else:
-                        for omega in self.data.omega_list:
-                            temp_datum.NR_phase_calc(omega, interpolation)
+                        pass
                     self.NR_counter += 1
 
     def setSpeed(self):
