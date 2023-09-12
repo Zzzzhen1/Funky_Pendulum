@@ -852,7 +852,7 @@ void setSpeed() {
         Serial.print(temp_speed, 1);
         Serial.print(" step/s and acceleration ");
         Serial.print(temp_accel, 1);
-        Serial.print("step/s^2");
+        Serial.print(" step/s^2");
         Serial.println("");
         delay(500);
       } else {
