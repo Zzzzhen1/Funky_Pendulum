@@ -302,7 +302,7 @@ bool isFloat(String str, bool neg = false) {
 bool isTwoFloat(String str){
   String temp_str = "";
   int comma_count = 0;
-  for(int i = 1; i < str.length(); i++){
+  for(int i = 0; i < str.length(); i++){
     if(comma_count > 1){
       temp_speed = speed_lim;
       temp_accel = accel;
@@ -782,8 +782,8 @@ void NR() {
       } else {
         ang_cul = get_cumulative_angle();
         previous_time = current_time;
-        current_time = millis() / 1000.; // TODO: affect the plotting??
         sample_time = millis();
+        current_time = sample_time / 1000.;
         pos_cart = stepper.currentPosition();
         pos_cart_target = stepper.targetPosition();
 
@@ -848,8 +848,6 @@ void setSpeed() {
       } else if (isTwoFloat(message)) {
         flag_setSpeed_request = 0;
         init_stepper(temp_speed, temp_accel);
-        Serial.print(message); //TODO: used to check the input from the serial
-        Serial.print("||");
         Serial.print("Start sinusoidal motion with speed ");
         Serial.print(temp_speed, 1);
         Serial.print(" step/s and acceleration ");
@@ -885,7 +883,7 @@ void setSpeed() {
           Serial.print(vel, 1);
           Serial.println("");
         }
-        steps = 0.2 * distance * sin(2 * M_PI * 0.3 * current_time);
+        steps = 0.25 * distance * sin(2 * M_PI * 0.4 * current_time);
         cart_run_max();
         stepper.moveTo(steps);
         cart_run_max();
