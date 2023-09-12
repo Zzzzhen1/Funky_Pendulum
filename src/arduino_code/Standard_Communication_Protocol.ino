@@ -864,6 +864,7 @@ void setSpeed() {
       // Do the sinusoidal motion based on the distance value!!
       // Read out the position and the velocity of the cart.
       if(state_L && state_R){
+        current_ind = buf_ind % buf_len;
         current_time = millis() / 1000.;
         sample_time = millis();
         pos_cart = stepper.currentPosition();
@@ -874,7 +875,7 @@ void setSpeed() {
         circ_buffer_time[current_ind] = current_time;
         circ_buffer_position[current_ind + buf_len] = pos_cart;
         circ_buffer_time[current_ind + buf_len] = current_time;
-        
+
         cart_run_max();
         if(sample_time - sample_time_prev >= sample_div){
           sample_time_prev = sample_time;
@@ -894,6 +895,7 @@ void setSpeed() {
         stepper.moveTo(steps);
         cart_run_max();
         cart_run_max();
+        buf_ind += 1;
       }else{
         cart_reset();
         reset();
