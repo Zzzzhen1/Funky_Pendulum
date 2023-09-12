@@ -45,7 +45,7 @@ class data():
         self.amp = 100.
         self.amp_0 = 50.0 # This is used to characterise the constant oscillation
         self.phase = 0.
-        self.NR_Kp = -0.02
+        self.NR_Kp = -0.05
         self.NR_Kd = 0.
         self.NR_Ki = 0.
         self.fft_angle = np.zeros(fft_length)
