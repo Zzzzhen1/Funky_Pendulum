@@ -1638,3 +1638,5 @@ if __name__ == "__main__":
 # TODO: change the sign of the PID coefficients
 # TODO: change the sampling time unit in the arduino
 # TODO: setSpeed stage ask for amplitude and frequency and have a comparison plot and the sinusoidal starts at zero
+# TODO: change the default acceleration!!
+# TODO: add phase_rectify() to the self.phase and self.phase_active
