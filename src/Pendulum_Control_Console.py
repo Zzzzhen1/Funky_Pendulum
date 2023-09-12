@@ -711,11 +711,6 @@ class data():
                 # BUG: error in the phase, amplitude export
                 temp_i = 0
                 temp_amp = self.amp_list[0][1]
-                for i in range(len(self.amp_list)):
-                    if(self.amp_list[i][1] >= 0):
-                        temp_amp = self.amp_list[i][1]
-                        temp_i = i
-                        break
                 for i in range(len(self.phase_list)):
                         if(temp_i == len(self.amp_list) - 1):
                             writer.writerow([self.time[i], self.phase_list[i][1],\
