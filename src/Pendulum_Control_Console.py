@@ -867,8 +867,9 @@ class data():
                 else:
                     self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
                         - np.angle(self.fft_pos[close_ind]) + np.pi)
-                self.phase_list.pop(0)
-                self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
+                if(self.omega_list is None):
+                    self.phase_list.pop(0)
+                    self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
                 return True
         else:
             return False
