@@ -710,18 +710,28 @@ class data():
                 writer.writerow(['time', 'phase/pi', 'amplitude/steps', 'phase_active/pi'])
                 temp_i = 0
                 temp_amp = self.amp_list[0][1]
-                for i in range(len(self.phase_list[:][0])):
-                        if(temp_i == len(self.amp_list) - 1):
-                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
-                                self.amp_list[temp_i][1], self.phase_list_active[i][1]])
-                        elif(self.time[i] < self.amp_list[temp_i + 1][0]):
-                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
-                                temp_amp, self.phase_list_active[i][1]])
-                        else:
-                            temp_i += 1
-                            temp_amp = self.amp_list[temp_i][1]
-                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
-                                self.amp_list[temp_i][1], self.phase_list_active[i][1]])
+                for i in range(len(self.amp_list) - 1):
+                    if(self.amp_list[i + 1][0]):
+                        temp_i = i
+                        temp_amp = self.amp_list[i][1]
+                        break
+                for i in range(len(self.phase_list)):
+                    if(i == len(self.phase_list) - 1):
+                        pass
+                    else:
+                        if(self.phase_list[i + 1][0] == 0):
+                            continue
+                    if(temp_i == len(self.amp_list) - 1):
+                        writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
+                            temp_amp, self.phase_list_active[i][1]])
+                    elif(self.phase_list[i][0] < self.amp_list[temp_i + 1][0]):
+                        writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
+                            temp_amp, self.phase_list_active[i][1]])
+                    else:
+                        temp_i += 1
+                        temp_amp = self.amp_list[temp_i][1]
+                        writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
+                            temp_amp, self.phase_list_active[i][1]])
                 csvfile.close()
 
         print("\nExported to " + filename + "\n")
