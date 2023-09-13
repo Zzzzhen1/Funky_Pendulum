@@ -42,10 +42,10 @@ class data():
         self.position = np.zeros(2 * buffer_length)
         self.position_velocity = np.zeros(2 * buffer_length)
         self.omega = 2.
-        self.amp = 100.
-        self.amp_0 = 50.0 # This is used to characterise the constant oscillation
+        self.amp = 3.  # initial value of the active
+        self.amp_0 = 3.0 # This is used to characterise the constant oscillation
         self.phase = 0.
-        self.NR_Kp = -0.05
+        self.NR_Kp = +0.45
         self.NR_Kd = 0.
         self.NR_Ki = 0.
         self.fft_angle = np.zeros(fft_length)
@@ -921,7 +921,7 @@ class data():
         phase = phase - 2 * np.pi * int(phase / (2 * np.pi))
         if phase > 0.5 * np.pi:
             return phase - 2 * np.pi
-        elif phase <= -1.5 * np.pi:
+        elif phase <= - -1.5 * np.pi:
             return phase + 2 * np.pi
         else:
             return phase
@@ -934,8 +934,8 @@ class data():
             return self.amp_0 * np.sin(2 * np.pi * self.omega * (time + self.start_time + delay))
         
         popt, pcov = curve_fit(delay_func, 
-                               self.time[low : high], 
-                               self.position[low : high],
+                               self.time[low - 1:high - 1], 
+                               self.position[low:high],
                                p0 = 0.007,
                                maxfev = 20000)
         # the idea here is that the proposed position of the cart at this moment 
@@ -1489,8 +1489,10 @@ class cart_pendulum():
                 if(self.NR_counter >= temp_datum.wait_to_stable):
                     amp, self.phase = temp_datum.NR_update(NR_scan, interpolation, manual) 
                     if(not manual):
-                        # self.arduino.send_message(str(amp) + "," + str(self.phase + np.pi) + "\n")
-                        self.arduino.send_message(str(amp) + "," + str(self.phase) + "\n")
+                        self.arduino.send_message(str(amp) + "," + str(self.phase + np.pi) + "\n")
+                        #self.arduino.send_message(str(amp) + "," + str(self.phase) + "\n")
+                        #self.arduino.send_message(str(amp) + "," + str(self.phase + 0.05*np.pi) + "\n")
+                        #self.arduino.send_message(str(0) + "," + str(self.phase + 0*np.pi) + "\n")
                     elif(manual and not NR_scan):
                         pass
                     self.NR_counter = 0
@@ -1512,26 +1514,26 @@ class cart_pendulum():
         if(self.flag_list["setSpeed_request"]):
             self.arduino.read_all()
             self.arduino.send_input_message(save_to_omega = False)
-            self.arduino.read_single()
+            self.arduino.read_all()
             if(self.arduino.receive.rstrip().startswith("Start sinusoidal motion with")):
                 self.flag_list["setSpeed_request"] = False
                 self.data.setSpeed_param = self.arduino.receive.rstrip().replace("Start sinusoidal motion with ", "")
-        else:
-            if(self.arduino.receive.rstrip() == "Kill switch hit."):
-                print("Kill switch hit. Resetting the system...\n")
-                self.reconnect(exp = True)
             else:
-                if(self.flag_list["thread_init"]):
-                    reader = threading.Thread(target = self.thread_reader, 
-                                            args = (True, True, False))
-                    reader.start()
-                    self.flag_list["thread_init"] = False
-                    
-                if(not temp_datum.flag_close_event):
-                    temp_datum.copy(self.data)
-                    temp_datum.init_plot(self.module_name)
-                    temp_datum.real_time_plot(self.module_name)
+                if(self.arduino.receive.rstrip() == "Kill switch hit."):
+                    print("Kill switch hit. Resetting the system...\n")
+                    self.reconnect(exp = True)
                 else:
+                    if(self.flag_list["thread_init"]):
+                        reader = threading.Thread(target = self.thread_reader, 
+                                                args = (True, True, False))
+                        reader.start()
+                        self.flag_list["thread_init"] = False
+                        
+                    if(not temp_datum.flag_close_event):
+                        temp_datum.copy(self.data)
+                        temp_datum.init_plot(self.module_name)
+                        temp_datum.real_time_plot(self.module_name)
+                    else:
                         self.reconnect(exp = True)      
     
     def create_folder(self):
@@ -1639,6 +1641,3 @@ if __name__ == "__main__":
 # TODO: decrease plotting fps
 # TODO: change the sign of the PID coefficients
 # TODO: change the sampling time unit in the arduino
-# TODO: setSpeed stage ask for amplitude and frequency and have a comparison plot and the sinusoidal starts at zero
-# TODO: change the default acceleration!!
-# TODO: add phase_rectify() to the self.phase and self.phase_active
