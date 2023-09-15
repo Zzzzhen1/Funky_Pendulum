@@ -172,7 +172,7 @@ void menu_print() {
   Serial.println("Enter 0 to reset the arduino board.");
   Serial.println("Enter 1 to begin the cart position centering.");
   Serial.println("Enter 2 to begin the natural frequency and quality factor measuring.");
-  Serial.println("Enter 3 to test max running speed and max acceleration.");
+  Serial.println("Enter 3 to set max running speed and max acceleration.");
   Serial.println("Enter 4 to begin the frequency scan.");
   Serial.println("Enter 5 to begin the PID control of inverted pendulum.");
   Serial.println("Enter 6 to begin the normalised resonance.");
@@ -439,7 +439,7 @@ String read_cmd() {
         } else {
           flag_command = 1;
           delay(500);
-          Serial.println("Hasn't been centered. Please Center the cart first.");
+          Serial.println("Hasn't been centered. Please center the cart first.");
           delay(500);
           return "";
         }

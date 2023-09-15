@@ -1451,7 +1451,7 @@ class cart_pendulum():
             "No command detected.",
             "Unidentified command. Please try again.",
             "More than one command detected. Resetting the values.",
-            "Hasn't been centered. Please Center the cart first.",
+            "Hasn't been centered. Please center the cart first.",
         }
         self.command_dict = {
             "Begin centering.": "center",
