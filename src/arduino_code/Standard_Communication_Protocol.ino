@@ -255,7 +255,7 @@ void reset(bool center = true) {
 
 // Make sure there is only one command being executed each loop
 void single_command_check() {
-  int sum = flag_reset + flag_center + flag_pid + flag_measure + flag_NR + flag_setSpeed;
+  int sum = flag_reset + flag_center + flag_pid + flag_measure + flag_NR + flag_setSpeed + flag_freq_scan;
   switch (sum) {
     case 0:
       Serial.println("No command detected.");
