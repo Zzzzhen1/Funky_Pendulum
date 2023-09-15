@@ -114,7 +114,8 @@ bool flag_measure = 0;        // Angle Measure command flag
 bool flag_setSpeed = 0;       // Test out the max speed and then set the speed_lim for the stepper motor -- command flag
 bool flag_freq_scan = 0;      // Frequency Scan command flag
 bool flag_pid = 0;            // PID Control command flag
-bool flag_NR = 0;             // Normalised resonance command flagbool flag_print_command = 1;  // Print the command once
+bool flag_NR = 0;             // Normalised resonance command flag
+bool flag_print_command = 1;  // Print the command once
 bool flag_exit = 0;           // Exit current stage. Go back to function selection menu
 bool flag_init_ang_cul = 1;   // Detect the initial cumulative angle --> used to the zero the angle measurement
 // Center stage
