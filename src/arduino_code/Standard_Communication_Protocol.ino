@@ -12,17 +12,20 @@
 // Initialization of Arduino Board
 const int baudrate = 230400;
 
+// General intialization parameters
+#define MAX_SIZE 20  // Maximum size of the input array
+
 // This motor model (NEMA 17) is a typical bipolar 1.8deg (200steps/rev) motor.
 // Therefore the corresponding microstep is 200 / STEPS, which needs to be taken into account
 // Also, there's a maximum amount of steps each loop can take to avoid jittering! Will be tested later
-#define STEPS 400
+#define STEPS 400 // Number of steps per revolution [Currently microsteps have not been implemented, so the position would be integer steps]
 const int step_fac = int(STEPS / 200);  // Think of the configuration as 200 steps per revolution, but with 200/STEPS as minimum division.
 const int max_steps = 200;              // Maximum number of steps per loop, which also determines the precision of cart position per loop.
 
 // Define the stepper using accelstep
-#define step_pin 8
+#define step_pin 8      // Connect to the PUL pin on the driver
 #define step_vcc_pin 9  // Connect to constant 5V output PIN
-#define dir_pin 10
+#define dir_pin 10      // Connect to the DIR pin on the driver
 #define dir_vcc_pin 11  // Connect to constant 5V output PIN
 AccelStepper stepper(AccelStepper::DRIVER, step_pin, dir_pin);
 
@@ -35,36 +38,36 @@ float pos_cart_prev = 0;         // Previous position of the cart. Used to updat
 float pos_cart_target = 0;       // Target position of the cart. Won't change until the target has been reached.
 float pos_integ = 0;             // Integral control bit for position
 float vel = 0;                   // Cart velocity calculated using buffer arrays.
-const float speed_lim = 4000.0;  // Maximum speed, also the speed for the run() method
+const float speed_lim = 5000.0;  // Maximum speed, also the speed for the run() method
 float run_speed = 1000.0;        // Speed that the stepper normally runs at
-const float accel = 1200000.;    // Pre-set acceleration
+const float accel = 120000.;    // Pre-set acceleration
 long int safe_steps = 50;        // Safe distance to both switches
 const float safe_speed = 500.0;  // Avoid crushing into the swtich too hard
 float steps = 0.;                // Target position or relative movement, depends on the situation
-float temp_speed = 4000.;        // Temporal speed limit
-float temp_accel = 1200000.;     // Temporal acceleration
+float temp_speed = 5000.;        // Temporal speed limit
+float temp_accel = 120000.;     // Temporal acceleration
 
 // NR stage variable
 double omega = 0.;             // Driven frequency of the cart
 const int freq_size = 10;      // Maximum number of frequencies this cart can run at
 double omega_list[freq_size];  // Multiple driven frequencies of the cart
-float amp = 0.;                // Initial sinosuidal amplitude (steps)
-float amp_0 = 50.;             // Constant initial sinosuidal amplitude (steps)
-const float amp_swing = 220.;  // Constant swing up amplitude (steps)
+float amp = 0.;                // Initial sinosuidal amplitude (steps) used for NR amplitude scan
+float amp_0 = 50.;             // Initial sinosuidal amplitude (steps) used for constant oscillation
+const float amp_swing = 100.;  // Constant swing up amplitude (steps) [Currently disabled]
 float phase = 0.;              // Initial angle phase (in terms of the cart position)
 
 // Buffer related variables and arrays
 int buf_ind = 0;                                 // Buffer index of the loop. Keeps increasing over the time
 int current_ind = 0;                             // Current index of the buffer array. current_ind = buf_ind % buf_len
 int temp_ind = 0;                                // Temporary index variable
-const int buf_len = 200;                         // Length of the buffer arrays
+const int buf_len = 100;                         // Length of the buffer arrays
 const int circ_buf_len = 2 * buf_len;            // Length of the circular buffer arrays
-const int pos_vel_len = 2;                       // Number of points to calculate velocity (in terms of steps)
+const int pos_vel_len = 2;                       // Number of points to calculate velocity (see get_velocity())
 double circ_buffer_time[circ_buf_len] = { 0 };   // Circular buffer of the time to recover the sample history.
 double circ_buffer_angle[circ_buf_len] = { 0 };  // Circular buffer of the angle to recover angular history
 int circ_buffer_position[circ_buf_len] = { 0 };  // Circular buffer of the cart position to recover the position history.
 
-// PID parameters
+// PID parameters [Needs another fine tuning because the setup for the motor has changed]
 float Kp = 1000;       //Reasonable: 300-2000
 float Ki = 0;          //Reasonable: 300-1700
 float Kd = 4;          //Reasonable: 2-10
@@ -78,7 +81,7 @@ float Kd_pos = -0.01;  //Reasonable: 0.0001-0.005
 ezButton Lbtn(Lbtn_pin);  // Left switch initiation
 ezButton Rbtn(Rbtn_pin);  // Right switch initiation
 
-//Equilibrium measuring and time-related variables [CURRENTLY NOT USED]
+//Equilibrium measuring and time-related variables
 double current_time = 0.;            // Current time in seconds
 double previous_time = 0.;           // Previous time in seconds
 const long sample_div = 50;          // Sampling division. Default: 50 ms --> sampling rate ~= 20 Hz
@@ -107,11 +110,11 @@ bool flag_command = 1;  // Receiving command from PC
 int int_cmd;
 bool flag_reset = 0;          // Reset command flag
 bool flag_center = 0;         // Center command flag
-bool flag_pid = 0;            // PID Control command flag
 bool flag_measure = 0;        // Angle Measure command flag
-bool flag_NR = 0;             // Normalised resonance command flag
 bool flag_setSpeed = 0;       // Test out the max speed and then set the speed_lim for the stepper motor -- command flag
-bool flag_print_command = 1;  // Print the command once
+bool flag_freq_scan = 0;      // Frequency Scan command flag
+bool flag_pid = 0;            // PID Control command flag
+bool flag_NR = 0;             // Normalised resonance command flagbool flag_print_command = 1;  // Print the command once
 bool flag_exit = 0;           // Exit current stage. Go back to function selection menu
 bool flag_init_ang_cul = 1;   // Detect the initial cumulative angle --> used to the zero the angle measurement
 // Center stage
@@ -119,6 +122,8 @@ bool flag_L = 1;  // Center stage flag for left switch
 bool flag_R = 1;  // Center stage flag for right switch
 // NR stage
 bool flag_omega = 1;  // Receive a input command
+bool flag_amp = 1;    // Receive a input command
+
 // PID stage
 bool flag_swing_request = 1;  // Default: ask for swing up and ask for parameter?
 bool flag_swing = 0;          // Whether execute swing up strategy. Default: no swing up strategy
@@ -165,10 +170,11 @@ void menu_print() {
   Serial.println("Cart pendulum functions: ");
   Serial.println("Enter 0 to reset the arduino board.");
   Serial.println("Enter 1 to begin the cart position centering.");
-  Serial.println("Enter 2 to begin the PID control of inverted pendulum.");
-  Serial.println("Enter 3 to begin the natural frequency and quality factor measuring.");
-  Serial.println("Enter 4 to begin the normalised resonance.");
-  Serial.println("Enter 5 to set max running speed and acceleration.");
+  Serial.println("Enter 2 to begin the natural frequency and quality factor measuring.");
+  Serial.println("Enter 3 to test max running speed and max acceleration.");
+  Serial.println("Enter 4 to begin the frequency scan.");
+  Serial.println("Enter 5 to begin the PID control of inverted pendulum.");
+  Serial.println("Enter 6 to begin the normalised resonance.");
 }
 
 // Begin execution of command print
@@ -183,16 +189,19 @@ void command_print(int num) {
         Serial.println("Begin centering.");
         break;
       case 2:
-        Serial.println("Begin the PID control.");
-        break;
-      case 3:
         Serial.println("Begin the natural frequency and quality factor measuring.");
         break;
+      case 3:
+        Serial.println("Begin the speed and acceleration setting.");
+        break;
       case 4:
-        Serial.println("Begin the normalised resonance.");
+        Serial.println("Begin the frequency scan.");
         break;
       case 5:
-        Serial.println("Begin the speed and acceleration setting.");
+        Serial.println("Begin the PID control.");
+        break;
+      case 6:
+        Serial.println("Begin the normalised resonance.");
         break;
     }
     delay(500);
@@ -204,16 +213,18 @@ void reset(bool center = true) {
   flag_command = 1;
   flag_reset = 0;
   flag_center = 0;
-  flag_pid = 0;
   flag_measure = 0;
-  flag_NR = 0;
   flag_setSpeed = 0;
+  flag_freq_scan = 0;
+  flag_pid = 0;
+  flag_NR = 0;
   flag_print_command = 1;
   flag_exit = 0;
   flag_init_ang_cul = 1;
   flag_L = 1;
   flag_R = 1;
   flag_omega = 1;
+  flag_amp = 1;
   flag_swing_request = 1;
   flag_swing = 0;
   flag_pid_input = 1;
@@ -229,7 +240,7 @@ void reset(bool center = true) {
   temp_ind = 0;
   temp_speed = speed_lim;
   temp_accel = accel;
-  init_stepper(speed_lim, accel);
+  // init_stepper(speed_lim, accel); // TODO: check if this is necessary
   memset(circ_buffer_angle, 0., sizeof(circ_buffer_angle));
   memset(circ_buffer_time, 0., sizeof(circ_buffer_time));
   memset(circ_buffer_position, 0., sizeof(circ_buffer_position));
@@ -263,6 +274,7 @@ void single_command_check() {
 // Reset the cart. This is a safety measure.
 void cart_reset(bool kill = true) {
   stepper.stop();
+  delay(500);
   stepper.setSpeed(safe_speed);
   stepper.runToNewPosition(0);
   // Final moment print to trigger stage changes in laptop
@@ -356,8 +368,33 @@ bool isMultiFreq(String str) {
   }
   // Final conversion
   omega_list[count] = 2 * M_PI * temp_str.toDouble();
-  amp_0 = 2 * amp_0 / (count + 1);
   return true;
+}
+
+// Receive the input made up of multiple float numbers. Return the pointer to the float array
+// [First time using the pointer in C++. It would make the code much clearer if other part 
+// of the code can be converted to pointer as well.]
+float* isMultiFloat(String str){
+  String temp_str = "";
+  static float temp_float[MAX_SIZE] = {0};
+  int count = 0;
+  for(int i = 0; i < str.length(); i++){
+    if(str.charAt(i) == ','){
+      if(count >= MAX_SIZE){
+        return nullptr;
+      }
+      if(isFloat(temp_str)){
+        temp_float[count] = temp_str.toFloat();
+        count += 1;
+      }else{
+        return nullptr;
+      }
+      temp_str = "";
+    }else{
+      temp_str += str.charAt(i);
+    }
+  }
+  return temp_float;
 }
 
 // Read message from Serial port, wait infinitely
@@ -392,15 +429,9 @@ String read_cmd() {
         flag_center = 1;
         return "Center";
       case 2:
-        flag_pid = 1;
-        return "PID";
-      case 3:
         flag_measure = 1;
         return "Measure";
-      case 4:
-        flag_NR = 1;
-        return "NR";
-      case 5:
+      case 3:
         if (center_count >= 1) {
           flag_setSpeed = 1;
           return "setSpeed";
@@ -411,6 +442,15 @@ String read_cmd() {
           delay(500);
           return "";
         }
+      case 4:
+        flag_freq_scan = 1;
+        return "freqScan";
+      case 5:
+        flag_pid = 1;
+        return "PID";
+      case 6:
+        flag_NR = 1;
+        return "NR";
       default:
         flag_command = 1;
         delay(500);
@@ -500,6 +540,8 @@ void loop() {
       NR();
     } else if (flag_setSpeed) {
       setSpeed();
+    } else if (flag_freq_scan){
+      freq_scan();
     }
     state_Lbtn_prev = state_Lbtn;
     state_Rbtn_prev = state_Rbtn;
@@ -606,8 +648,7 @@ void pid() {
           reset();
         } else {
           delay(500);
-          Serial.println("Invalid input.");
-          Serial.println("Please Try Again");
+          Serial.println("Invalid input, please Try Again");
           delay(500);
         }
       } else {
@@ -626,7 +667,6 @@ void pid() {
       }
     }
   } else {
-    last_moment_print();
     cart_reset();
     reset();
   }
@@ -739,8 +779,211 @@ void measure() {
       Serial.println(ang_cul, 4);
     }
   } else {
-    last_moment_print();
     reset();
+  }
+}
+
+// Performs the init_stepper function, and then do the sinusoidal motion
+void setSpeed() {
+  if (Serial) {
+    if (flag_setSpeed_request) {
+      Serial.print("Current speed: ");
+      Serial.print(temp_speed, 1);
+      Serial.print(" step/s Current acceleration: ");
+      Serial.print(temp_accel, 1);
+      Serial.println(" step/s^2");
+      Serial.println("Type in the values for speed and acceleration separated by a comma without spaces:");
+      Serial.println("[Note: in this stage, the cart will be driven at 1 Hz.]");
+      message = read_msg();
+      if (message == "Terminate") {
+        Serial.println("Terminating...");
+        cart_reset();
+        reset();
+      } else if (isTwoFloat(message)) {
+        flag_setSpeed_request = 0;
+        init_stepper(temp_speed, temp_accel);
+        Serial.print("Start sinusoidal motion with speed ");
+        Serial.print(temp_speed, 1);
+        Serial.print(" step/s and acceleration ");
+        Serial.print(temp_accel, 1);
+        Serial.print(" step/s^2");
+        Serial.println("");
+        delay(500);
+      } else {
+        delay(500);
+        Serial.println("Invalid input, please try again");
+        delay(500);
+      }
+    } else {
+      if(flag_amp){
+        Serial.print("Current amplitude: ");
+        Serial.print(amp_0, 1);
+        Serial.println(" steps.");
+        Serial.println("Type in the amplitude for the following sinusoidal oscillation in steps:");
+        message = read_msg();
+        if(isFloat(message)){
+          amp_0 = message.toFloat();
+          Serial.print("Start with amplitude: ");
+          Serial.print(amp_0, 1);
+          Serial.println(" steps.");
+          flag_amp = 0;
+          }else if(message == "Terminate"){
+            Serial.println("Terminate the process.");
+            cart_reset();
+            reset();
+          }else{
+            Serial.println("Invalid input, please try again.");
+          }
+      }else{
+        // Do the sinusoidal motion based on the distance value!!
+        // Read out the position and the velocity of the cart.
+        if(state_L && state_R){
+          current_ind = buf_ind % buf_len;
+          current_time = millis() / 1000.;
+          sample_time = millis();
+          pos_cart = stepper.currentPosition();
+          pos_cart_target = stepper.targetPosition();
+          vel = get_velocity();
+          
+          circ_buffer_position[current_ind] = pos_cart;
+          circ_buffer_time[current_ind] = current_time;
+          circ_buffer_position[current_ind + buf_len] = pos_cart;
+          circ_buffer_time[current_ind + buf_len] = current_time;
+
+          cart_run_max();
+          if(sample_time - sample_time_prev >= sample_div){
+            sample_time_prev = sample_time;
+            Serial.print(current_time, 3);
+            Serial.print(",");
+            Serial.print("0.0");
+            Serial.print(",");
+            Serial.print(pos_cart, 1);
+            Serial.print(",");
+            Serial.print("0.0");
+            Serial.print(",");
+            Serial.print(vel, 1);
+            Serial.println("");
+          }
+          steps = amp_0 * sin(2 * M_PI * current_time);
+          cart_run_max();
+          stepper.moveTo(steps);
+          cart_run_max();
+          cart_run_max();
+          buf_ind += 1;
+        }else{
+          cart_reset();
+          reset();
+        }
+      }
+    }
+  } else {
+    cart_reset();
+    reset(false);
+  }
+}
+
+// Runs the scanning for response stage, pretty much the duplicate of the NR stage
+void freq_scan() {
+  if (Serial) {
+    if (state_L && state_R) {
+      if (flag_omega) {
+        // receive a frequency value
+        Serial.println("Input a frequency value for driving the cart: (Hz)");
+        message = read_msg();
+        if (isFloat(message)) {
+          omega = message.toFloat() * 2 * M_PI;
+          memset(omega_list, 0., sizeof(omega_list));
+          omega_list[0] = omega;
+          Serial.print("Start with driven frequency: ");
+          Serial.print(message);
+          Serial.println(" Hz");
+          flag_omega = 0;
+        } else if (message == "Terminate") {
+          Serial.println("Terminate the process.");
+          cart_reset();
+          reset();
+        } else if (isMultiFreq(message)) {
+          Serial.print("Starting with these frequencies (in Hz): ");
+          for (int i = 0; i < freq_size; i++) {
+            if (omega_list[i] == 0) {
+              break;
+            } else {
+              Serial.print(omega_list[i] / 2 / M_PI, 4);
+              Serial.print(" ");
+            }
+          }
+          Serial.println("");
+          flag_omega = 0;
+        } else {
+          Serial.println("Invalid input, please try again.");
+        }
+      } else {
+        if(flag_amp){
+          Serial.print("Current amplitude: ");
+          Serial.print(amp_0, 1);
+          Serial.println(" steps.");
+          Serial.println("Type in the amplitude for the following sinusoidal oscillation in steps:");
+          message = read_msg();
+          if(isFloat(message)){
+            amp_0 = message.toFloat();
+            Serial.print("Start with amplitude: ");
+            Serial.print(amp_0, 1);
+            Serial.println(" steps.");
+            flag_amp = 0;
+            }else if(message == "Terminate"){
+              Serial.println("Terminate the process.");
+              cart_reset();
+              reset();
+            }else{
+              Serial.println("Invalid input, please try again.");
+            }
+        } else {
+          ang_cul = get_cumulative_angle();
+          previous_time = current_time;
+          sample_time = millis();
+          current_time = sample_time / 1000.;
+          pos_cart = stepper.currentPosition();
+          pos_cart_target = stepper.targetPosition();
+
+          if (sample_time - sample_time_prev >= sample_div) {
+            sample_time_prev = sample_time;
+            Serial.print(current_time, 3);
+            Serial.print(",");
+            Serial.print(ang_cul, 4);
+            Serial.print(",");
+            Serial.print(pos_cart);
+            Serial.println("");
+          }
+
+          if (Serial.available() == 0) {
+            // do the running
+            // steps = (amp * sin(omega * current_time + phase) + amp_0 * sin(omega * current_time));
+            steps = 0;
+            for (int i = 0; i < freq_size; i++) {
+              if (omega_list[i] != 0) {
+                steps += amp_0 * sin(omega_list[i] * current_time);
+              }
+            }
+            steps += amp * sin(omega * current_time + phase);
+            cart_run_max();
+            stepper.moveTo(steps);
+            cart_run_max();
+          } else {
+            // receive data from laptop
+            message = read_ready_msg();
+            cart_run_max();
+            NR_receive();
+            cart_run_max();
+          }
+        }
+      }
+    } else {
+      cart_reset();
+      reset();
+    }
+  } else {
+    reset();
+    cart_reset();
   }
 }
 
@@ -780,42 +1023,63 @@ void NR() {
           Serial.println("Invalid input, please try again.");
         }
       } else {
-        ang_cul = get_cumulative_angle();
-        previous_time = current_time;
-        sample_time = millis();
-        current_time = sample_time / 1000.;
-        pos_cart = stepper.currentPosition();
-        pos_cart_target = stepper.targetPosition();
-
-        if (sample_time - sample_time_prev >= sample_div) {
-          sample_time_prev = sample_time;
-          Serial.print(current_time, 3);
-          Serial.print(",");
-          Serial.print(ang_cul, 4);
-          Serial.print(",");
-          Serial.print(pos_cart);
-          Serial.println("");
-        }
-
-        if (Serial.available() == 0) {
-          // do the running
-          // steps = (amp * sin(omega * current_time + phase) + amp_0 * sin(omega * current_time));
-          steps = 0;
-          for (int i = 0; i < freq_size; i++) {
-            if (omega_list[i] != 0) {
-              steps += amp_0 * sin(omega_list[i] * current_time);
+        if(flag_amp){
+          Serial.print("Current amplitude: ");
+          Serial.print(amp_0, 1);
+          Serial.println(" steps.");
+          Serial.println("Type in the amplitude for the following sinusoidal oscillation in steps:");
+          message = read_msg();
+          if(isFloat(message)){
+            amp_0 = message.toFloat();
+            Serial.print("Start with amplitude: ");
+            Serial.print(amp_0, 1);
+            Serial.println(" steps.");
+            flag_amp = 0;
+            }else if(message == "Terminate"){
+              Serial.println("Terminate the process.");
+              cart_reset();
+              reset();
+            }else{
+              Serial.println("Invalid input, please try again.");
             }
-          }
-          steps += amp * sin(omega * current_time + phase);
-          cart_run_max();
-          stepper.moveTo(steps);
-          cart_run_max();
         } else {
-          // receive data from laptop
-          message = read_ready_msg();
-          cart_run_max();
-          NR_receive();
-          cart_run_max();
+          ang_cul = get_cumulative_angle();
+          previous_time = current_time;
+          sample_time = millis();
+          current_time = sample_time / 1000.;
+          pos_cart = stepper.currentPosition();
+          pos_cart_target = stepper.targetPosition();
+
+          if (sample_time - sample_time_prev >= sample_div) {
+            sample_time_prev = sample_time;
+            Serial.print(current_time, 3);
+            Serial.print(",");
+            Serial.print(ang_cul, 4);
+            Serial.print(",");
+            Serial.print(pos_cart);
+            Serial.println("");
+          }
+
+          if (Serial.available() == 0) {
+            // do the running
+            // steps = (amp * sin(omega * current_time + phase) + amp_0 * sin(omega * current_time));
+            steps = 0;
+            for (int i = 0; i < freq_size; i++) {
+              if (omega_list[i] != 0) {
+                steps += amp_0 * sin(omega_list[i] * current_time);
+              }
+            }
+            steps += amp * sin(omega * current_time + phase);
+            cart_run_max();
+            stepper.moveTo(steps);
+            cart_run_max();
+          } else {
+            // receive data from laptop
+            message = read_ready_msg();
+            cart_run_max();
+            NR_receive();
+            cart_run_max();
+          }
         }
       }
     } else {
@@ -823,87 +1087,8 @@ void NR() {
       reset();
     }
   } else {
-    last_moment_print();
     reset();
     cart_reset();
-  }
-}
-
-// Performs the init_stepper function, and then do the sinusoidal
-// motion
-void setSpeed() {
-  if (Serial) {
-    if (flag_setSpeed_request) {
-      Serial.print("Current speed: ");
-      Serial.print(temp_speed, 1);
-      Serial.print(" step/s Current acceleration: ");
-      Serial.print(temp_accel, 1);
-      Serial.println(" step/s^2");
-      Serial.println("Type in the values for speed and acceleration separated by a comma without spaces:");
-      message = read_msg();
-      if (message == "Terminate") {
-        Serial.println("Terminating...");
-        cart_reset();
-        reset();
-      } else if (isTwoFloat(message)) {
-        flag_setSpeed_request = 0;
-        init_stepper(temp_speed, temp_accel);
-        Serial.print("Start sinusoidal motion with speed ");
-        Serial.print(temp_speed, 1);
-        Serial.print(" step/s and acceleration ");
-        Serial.print(temp_accel, 1);
-        Serial.print(" step/s^2");
-        Serial.println("");
-        delay(500);
-      } else {
-        delay(500);
-        Serial.println("Invalid input, please try again");
-        delay(500);
-      }
-    } else {
-      // Do the sinusoidal motion based on the distance value!!
-      // Read out the position and the velocity of the cart.
-      if(state_L && state_R){
-        current_ind = buf_ind % buf_len;
-        current_time = millis() / 1000.;
-        sample_time = millis();
-        pos_cart = stepper.currentPosition();
-        pos_cart_target = stepper.targetPosition();
-        vel = get_velocity();
-        
-        circ_buffer_position[current_ind] = pos_cart;
-        circ_buffer_time[current_ind] = current_time;
-        circ_buffer_position[current_ind + buf_len] = pos_cart;
-        circ_buffer_time[current_ind + buf_len] = current_time;
-
-        cart_run_max();
-        if(sample_time - sample_time_prev >= sample_div){
-          sample_time_prev = sample_time;
-          Serial.print(current_time, 3);
-          Serial.print(",");
-          Serial.print("0.0");
-          Serial.print(",");
-          Serial.print(pos_cart, 1);
-          Serial.print(",");
-          Serial.print("0.0");
-          Serial.print(",");
-          Serial.print(vel, 1);
-          Serial.println("");
-        }
-        steps = 0.25 * distance * sin(2 * M_PI * 0.4 * current_time);
-        cart_run_max();
-        stepper.moveTo(steps);
-        cart_run_max();
-        cart_run_max();
-        buf_ind += 1;
-      }else{
-        cart_reset();
-        reset();
-      }
-    }
-  } else {
-    cart_reset();
-    reset();
   }
 }
 
@@ -1167,14 +1352,6 @@ bool pid_receive() {
   }
 
   return 1;
-}
-
-// Print some data before reset. Can only print one line to fit the Python protocol.
-void last_moment_print() {
-  Serial.print(cmd);
-  Serial.print(" current time: ");
-  Serial.print(current_time);
-  Serial.println("");
 }
 
 // Print current PID parameters

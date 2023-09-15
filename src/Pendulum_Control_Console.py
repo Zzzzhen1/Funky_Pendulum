@@ -224,6 +224,79 @@ class data():
                 self.ax_list[1, 1].set_ylabel('Phase/pi')
                 ax2.set_ylabel('Amplitude/steps')
             
+            elif(module_name == "freq_scan"):
+                if(self.flag_subplot_init):
+                    self.figure, self.ax_list = plt.subplots(2, 2, figsize=(8, 5))
+                    self.flag_subplot_init = False
+                    self.figure.suptitle('NR')
+                    if(self.omega_list is None):
+                        self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
+                    else: 
+                        self.phase_list = None
+                        self.multi_phase_list = [[(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10] * self.omega_num
+                    self.amp_list = [(0., 0.)] * self.plot_length * 10
+                    if(not NR_scan):
+                        self.phase_list_active = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
+                self.line_angle, = self.ax_list[0, 0].plot([], [], 'b-')
+                self.line_pos, = self.ax_list[1, 0].plot([], [], 'r-')
+                self.line_pos_const, = self.ax_list[1, 0].plot([], [], 'g--')
+                self.line_fft_ang, = self.ax_list[0, 1].plot([], [], 'b-', label = 'angle')
+                ax1 = self.ax_list[0, 1].twinx()
+                self.line_fft_pos, = ax1.plot([], [], 'r-', label = 'position')
+                if(self.omega_list is None):
+                    self.line_phase, = self.ax_list[1, 1].plot([], [], 'b-', label = 'phase')
+                else:
+                    self.line_phase_list = []
+                    for i in range(self.omega_num):
+                        _line, = self.ax_list[1, 1].plot([], [], color = colors[i], 
+                                                                      label = '%.3f Hz'%(self.omega_list[i]))
+                        self.line_phase_list.append(_line)
+                if(not NR_scan):
+                    self.line_phase_active, = self.ax_list[1, 1].plot([], [], 'r-', label = 'phase_active')
+                ax2 = self.ax_list[1, 1].twinx()
+                self.line_amp, = ax2.plot([], [], 'k-', label = 'amplitude')
+                
+                self.ax_list[0, 1].legend(loc = 'upper left')
+                self.ax_list[1, 1].legend(loc = 'upper left')
+                ax1.legend(loc = 'upper right')
+                if(self.omega_list is None):
+                    ax2.legend(loc = 'lower left')
+                ax1.grid(False)
+                ax2.grid(False)
+                # Initiate a new dictionary for all the artists objects
+                if(self.omega_list is None):
+                    self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
+                                        self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
+                                        self.ax_list[0, 1]: self.line_fft_ang,
+                                        ax1: self.line_fft_pos,
+                                        ax2: self.line_amp,
+                                        self.ax_list[1, 1]: self.line_phase,}
+                else:
+                    self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
+                                        self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
+                                        self.ax_list[0, 1]: self.line_fft_ang,
+                                        ax1: self.line_fft_pos,
+                                        ax2: self.line_amp,
+                                        self.ax_list[1, 1]: self.line_phase_list,
+                                        }
+                
+                if(not NR_scan):
+                    self.ax_new_list.update({self.ax_list[1, 1]: (self.line_phase, self.line_phase_active)})
+                
+                self.ax_list[0, 0].set_xlabel('Time/s')
+                self.ax_list[0, 0].set_ylabel('Angle/rad')
+                self.ax_list[1, 0].set_xlabel('Time/s')
+                self.ax_list[1, 0].set_ylabel('Position/steps')
+                self.ax_list[0, 1].set_xlabel('Frequency/Hz')
+                if(self.omega_list is None):
+                    self.ax_list[0, 1].set_xlim(0, self.omega)
+                else:
+                    self.ax_list[0, 1].set_xlim(0, self.omega_list[-1])
+                self.ax_list[0, 1].set_ylabel('Arbitrary Unit')
+                self.ax_list[1, 1].set_xlabel('Time/s')
+                self.ax_list[1, 1].set_ylabel('Phase/pi')
+                ax2.set_ylabel('Amplitude/steps')
+            
             elif(module_name == "pid"):
                 if(self.flag_subplot_init):
                     self.figure, self.ax_list = plt.subplots(2, 2, figsize=(8, 5))
@@ -337,6 +410,141 @@ class data():
                     try:
                         txt1.remove()
                         txt2.remove()
+                    except UnboundLocalError:
+                        pass
+                    
+                self.counter += 1
+        
+        elif(module_name == "freq_scan"):
+            self.fft()
+            self.pos_const = self.amp_0 * np.sin(2 * np.pi * \
+                self.omega * (self.time + self.start_time))
+            delay_time, delay_error = 0., 0.
+            if(self.index < self.plot_length):
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.buffer_length + 1
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_angle.set_data(self.time[low_ind:high_ind],
+                                        self.angle[low_ind:high_ind])
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                           self.position[low_ind:high_ind])
+                    self.line_fft_ang.set_data(self.fft_freq, 
+                                                abs(self.fft_angle))
+                    self.line_fft_pos.set_data(self.fft_freq,
+                                               abs(self.fft_pos))
+                    
+                    if(self.omega_list is None):
+                        if(self.index > 20 and scan):
+                            delay_time, delay_error = self.delay_fit(low_ind, high_ind)
+                        self.line_pos_const.set_data(self.time[low_ind:high_ind], 
+                                                     self.pos_const[low_ind:high_ind])
+                        self.line_phase.set_data(*zip(*self.phase_list))
+                    else:
+                        for index, line in enumerate(self.line_phase_list):
+                            line.set_data(*zip(*self.multi_phase_list[index]))
+                    self.line_amp.set_data(*zip(*self.amp_list))
+                    
+                    if(not scan):
+                        self.line_phase_active.set_data(*zip(*self.phase_list_active))
+                    
+                    try:
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        if(self.index > 20 and scan):
+                            txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
+                                + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
+                    except ZeroDivisionError:
+                        pass
+                    
+                    if(self.omega_list is None):
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                    else:
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join("%.3f" % i for i in self.omega_list) + 'Hz')
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                        
+                    if(self.omega_list is None):
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega)
+                    else:
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega_list[-1])
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    try:
+                        txt1.remove()
+                        txt2.remove()
+                        txt3.remove()
+                    except UnboundLocalError:
+                        pass
+                    
+                self.counter += 1
+                
+            else:
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.temp_index + 1 + self.buffer_length - self.plot_length
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_angle.set_data(self.time[low_ind:high_ind],
+                                        self.angle[low_ind:high_ind])
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                           self.position[low_ind:high_ind])
+                    self.line_fft_ang.set_data(self.fft_freq, 
+                                                abs(self.fft_angle))
+                    self.line_fft_pos.set_data(self.fft_freq,
+                                               abs(self.fft_pos))
+                    
+                    if(self.omega_list is None):
+                        if(scan):
+                            delay_time, delay_error = self.delay_fit(low_ind, high_ind)
+                        self.line_phase.set_data(*zip(*self.phase_list))
+                        self.line_pos_const.set_data(self.time[low_ind:high_ind], 
+                                                     self.pos_const[low_ind:high_ind])
+                    else:
+                        for index, line in enumerate(self.line_phase_list):
+                            line.set_data(*zip(*self.multi_phase_list[index]))
+                    self.line_amp.set_data(*zip(*self.amp_list))
+                    
+                    if(not scan):
+                        self.line_phase_active.set_data(*zip(*self.phase_list_active))
+                    
+                    try:
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        if(scan):
+                            txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
+                                + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
+                    except ZeroDivisionError:
+                        pass
+                    
+                    if(self.omega_list is None):
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                    else:
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join("%.3f" % i for i in self.omega_list) + 'Hz')
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                
+                    if(self.omega_list is None):
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega)
+                    else:
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega_list[-1])
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    try:
+                        txt1.remove()
+                        txt2.remove()
+                        txt3.remove()
                     except UnboundLocalError:
                         pass
                     
@@ -624,8 +832,7 @@ class data():
 
     def export_csv(
         self, 
-        module_name, 
-        relative_path = r"Normalised_Resonance_Control\NR_csv",
+        module_name,
         NR_phase_amp = False
         ):
         try:
@@ -972,14 +1179,9 @@ class live_data(data):
         self.index = data.index
         self.temp_index = data.temp_index
         self.counter = data.counter
-        if(NR):
-            data.fft_angle = self.fft_angle
-            data.fft_pos = self.fft_pos
-            data.fft_freq = self.fft_freq
-        else:
-            self.fft_angle = data.fft_angle
-            self.fft_pos = data.fft_pos
-            self.fft_freq = data.fft_freq
+        data.fft_angle = self.fft_angle
+        data.fft_pos = self.fft_pos
+        data.fft_freq = self.fft_freq
         self.phase = data.phase
         self.omega = data.omega
         self.module_name = data.module_name
@@ -1216,8 +1418,11 @@ class cart_pendulum():
             "measure": False, # measure command
             "NR": False, # Normalised Resonance command
             "setSpeed": False, # set speed and acceleration command
+            "freq_scan": False, # frequency scan command
             "multi_freq": False, # whether multiple frequencies are sent
             "omega": True, # Input driven frequency command
+            "amp": True, # Input varying amplitude command
+            "amp_0": True, # Input constant amplitude command
             "swing_request": True, # whether the swing is requested
             "pid_input": True, # whether the pid input is requested
             "thread_init": True, # whether the thread is initiated
@@ -1226,6 +1431,8 @@ class cart_pendulum():
         }
         self.init_true_flag_list = ["command", 
                                     "omega",
+                                    "amp",
+                                    "amp_0",
                                     "swing_request",
                                     "pid_input",
                                     "thread_init",
@@ -1237,7 +1444,8 @@ class cart_pendulum():
                                      "measure", 
                                      "NR",
                                      "setSpeed",
-                                     "multi_freq"]
+                                     "freq_scan",
+                                     "multi_freq",]
         self.reset_dict = { # To renew the flag_command
             "Resetting...",
             "No command detected.",
@@ -1251,6 +1459,7 @@ class cart_pendulum():
             "Begin the natural frequency and quality factor measuring.": "measure",
             "Begin the normalised resonance.": "NR",
             "Begin the speed and acceleration setting.": "setSpeed",
+            "Begin the frequency scan.": "freq_scan",
         }
         
     def reset_flag_list(self, swing_request = False):  
@@ -1280,7 +1489,6 @@ class cart_pendulum():
             time.sleep(0.1)
             if(exp):
                 temp_datum.export_csv(self.module_name, 
-                                      relative_path = self.path, 
                                       NR_phase_amp = NR_phase_amp)
             input("\nPress ENTER to reconnect.\n\nOr press CTRL+C then ENTER to exit the program.\n")
             self.arduino.initiate()
@@ -1361,7 +1569,7 @@ class cart_pendulum():
                     print("sent amp, phase: " + msg)
                     # BUG: not sending the phase at the same time!
             except ValueError:
-                print("Invalid input. Please try again.\n")
+                print("Invalid input, please try again.\n")
             time.sleep(2) # wait 2 seconds for the transient behaviour to fade away a bit
     
     def center(self):
@@ -1433,8 +1641,64 @@ class cart_pendulum():
         else:
             self.reconnect(exp = True)
     
+    def freq_scan(self):
+        self.module_name = r"freq_scan"
+        try:
+            self.data.path = self.path + r"\freq_scan"
+            os.makedirs(self.data.path)
+        except OSError:
+            pass
+        if(self.flag_list["omega"]):
+            self.flag_list["omega"] = False
+            self.arduino.read_single(prt = False)
+            if (self.arduino.send_list_omega()):
+                self.flag_list["multi_freq"] = True
+                self.data.omega_num = len(self.arduino.omega_list)
+            else:
+                self.data.omega_num = 1
+            self.arduino.read_single()
+            if(self.arduino.receive.rstrip() == "Invalid input, please try again."):
+                self.flag_list["omega"] = True
+            if(self.flag_list["omega"] == False and self.flag_list["multi_freq"] == False):
+                self.data.omega = float(self.arduino.omega.rstrip())
+            elif(self.flag_list["omega"] == False and self.flag_list["multi_freq"] == True):
+                self.data.omega_list = self.arduino.omega_list
+                self.data.omega = self.arduino.omega_list[-1] # default to take the largest value in the list
+        else:
+            if(self.flag_list["amp_0"]):
+                self.arduino.read_all()
+                self.arduino.send_input_message(save_to_omega = False)
+                msg_amp = self.arduino.message.rstrip()
+                self.arduino.read_single()
+                if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
+                    self.flag_list["amp_0"] = False
+                    self.data.amp_0 = float(msg_amp)
+                    temp_datum.amp_0 = float(msg_amp)
+            else:
+                if(self.arduino.receive.rstrip() == "Kill switch hit."):
+                    print("Kill switch hit. Resetting the system...\n")
+                    self.reconnect(exp = True, NR_phase_amp = False)
+                else:
+                    if(self.flag_list["thread_init"]):
+                        reader = threading.Thread(target = self.thread_reader, 
+                                                args = (True, False, False))
+                        reader.start()
+                        self.flag_list["thread_init"] = False
+                    
+                    if(not temp_datum.flag_close_event):
+                        temp_datum.copy(self.data, True)
+                        temp_datum.init_plot(self.module_name)
+                        temp_datum.real_time_plot(self.module_name, scan = True)
+                    else:
+                        self.reconnect(exp = True)
+                    
+                    if(self.data.omega_list is None):
+                        temp_datum.NR_phase_calc(self.data.omega, NR_scan = True, interpolation = True)
+                    else:
+                        temp_datum.NR_update(NR_scan = True, interpolation = True)
+                    self.NR_counter += 1
+    
     def NR(self, NR_scan = False, interpolation = True):
-        '''Be careful of the step function -- pi phase difference'''
         self.module_name = r"NR"
         try:
             self.data.path = self.path + r"\NR"
@@ -1462,44 +1726,63 @@ class cart_pendulum():
                 self.data.omega_list = self.arduino.omega_list
                 self.data.omega = self.arduino.omega_list[-1] # default to take the largest value in the list
         else:
-            if(self.arduino.receive.rstrip() == "Kill switch hit."):
-                print("Kill switch hit. Resetting the system...\n")
-                self.reconnect(exp = True, NR_phase_amp = not NR_scan)
+            while(self.flag_list["amp"]):
+                print("\nCurrent initial active amplitude is %.2f\n"%(self.data.amp))
+                temp_active_amp = input("Please enter the initial active amplitude in steps: ")
+                try:
+                    temp_active_amp = float(temp_active_amp)
+                    self.data.amp = temp_active_amp
+                    temp_datum.amp = temp_active_amp
+                    self.flag_list["amp"] = False
+                except ValueError:
+                    print("\nPlease enter a valid number.")
+            if(self.flag_list["amp_0"]):
+                self.arduino.read_all()
+                self.arduino.send_input_message(save_to_omega = False)
+                msg_amp = self.arduino.message.rstrip()
+                self.arduino.read_single()
+                if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
+                    self.flag_list["amp_0"] = False
+                    self.data.amp_0 = float(msg_amp)
+                    temp_datum.amp_0 = float(msg_amp)
             else:
-                manual = False # turn up manual control of the amplitude
-                if(self.flag_list["thread_init"]):
-                    reader = threading.Thread(target = self.thread_reader, 
-                                            args = (True, False, False))
-                    reader.start()
-                    if (not NR_scan and manual):
-                        writer = threading.Thread(target = self.thread_writer, args = ())
-                        writer.start()
-                    self.flag_list["thread_init"] = False
-                
-                
-                if(not temp_datum.flag_close_event):
-                    temp_datum.copy(self.data, True)
-                    temp_datum.init_plot(self.module_name, NR_scan)
-                    temp_datum.real_time_plot(self.module_name, NR_scan)
-                else:
-                    if(not NR_scan and manual):
-                        writer.join()
+                if(self.arduino.receive.rstrip() == "Kill switch hit."):
+                    print("Kill switch hit. Resetting the system...\n")
                     self.reconnect(exp = True, NR_phase_amp = not NR_scan)
-                
-                if(self.NR_counter >= temp_datum.wait_to_stable):
-                    amp, self.phase = temp_datum.NR_update(NR_scan, interpolation, manual) 
-                    if(not manual):
-                        # self.arduino.send_message(str(amp) + "," + str(self.phase + np.pi) + "\n")
-                        self.arduino.send_message(str(amp) + "," + str(self.phase) + "\n")
-                    elif(manual and not NR_scan):
-                        pass
-                    self.NR_counter = 0
                 else:
-                    if(self.data.omega_list is None):
-                        temp_datum.NR_phase_calc(self.data.omega, NR_scan, interpolation)
+                    manual = False # turn up manual control of the amplitude
+                    if(self.flag_list["thread_init"]):
+                        reader = threading.Thread(target = self.thread_reader, 
+                                                args = (True, False, False))
+                        reader.start()
+                        if (not NR_scan and manual):
+                            writer = threading.Thread(target = self.thread_writer, args = ())
+                            writer.start()
+                        self.flag_list["thread_init"] = False
+                    
+                    if(not temp_datum.flag_close_event):
+                        temp_datum.copy(self.data, True)
+                        temp_datum.init_plot(self.module_name, NR_scan)
+                        temp_datum.real_time_plot(self.module_name, NR_scan)
                     else:
-                        pass
-                    self.NR_counter += 1
+                        if(not NR_scan and manual):
+                            writer.join()
+                        self.reconnect(exp = True, NR_phase_amp = not NR_scan)
+                    
+                    if(self.NR_counter >= temp_datum.wait_to_stable):
+                        amp, self.phase = temp_datum.NR_update(NR_scan, interpolation, manual) 
+                        if(not manual):
+                            # self.arduino.send_message(str(amp) + "," + str(self.phase + np.pi) + "\n")
+                            self.arduino.send_message(str(amp) + "," + str(self.phase) + "\n")
+                        elif(manual and not NR_scan):
+                            pass
+                        self.NR_counter = 0
+                    else:
+                        if(self.data.omega_list is None):
+                            temp_datum.NR_phase_calc(self.data.omega, NR_scan, interpolation)
+                        else:
+                            pass
+                        self.NR_counter += 1
 
     def setSpeed(self):
         '''Set the speed and acceleration of the cart'''
@@ -1572,26 +1855,19 @@ class cart_pendulum():
                         self.reconnect(exp = True)
                 elif(self.flag_list["NR"]):
                     try:
-                        while(self.flag_list["flag_scan"]):
-                            msg = input("Scan for response? (y/n): ")
-                            if(msg.rstrip() == 'y'):
-                                self.flag_list["flag_scan"] = False
-                                NR_scan = True
-                            elif(msg.rstrip() == 'n'):
-                                self.flag_list["flag_scan"] = False
-                                NR_scan = False
-                            else:
-                                print("\nInvalid input, please try again.")
-                            print("")
-                        self.NR(NR_scan = NR_scan, interpolation = True)
+                        self.NR(NR_scan = False, interpolation = True)
                     except KeyboardInterrupt:
-                        self.reconnect(exp = True, send_terminate = True, NR_phase_amp = not NR_scan)
+                        self.reconnect(exp = True, send_terminate = True, NR_phase_amp = False)
                 elif(self.flag_list["setSpeed"]):
                     try:
                         self.setSpeed()
                     except KeyboardInterrupt:
                         self.reconnect(exp = True, send_terminate = True)
-                    
+                elif(self.flag_list["freq_scan"]):
+                    try:
+                        self.freq_scan()
+                    except KeyboardInterrupt:
+                        self.reconnect(exp = True, send_terminate = True)
             except KeyboardInterrupt:
                 self.arduino.board.close() # Triggers reset() in the arduino
                 self.reset_flag_list()
@@ -1621,10 +1897,11 @@ if __name__ == "__main__":
     cartER.main()
     print("\nProgram ends.")
 
-# TODO: ask whether to enter data analysis mode
+# TODO: ask whether to enter data analysis mode (secondary)
 # TODO: check whether the platformio can do the arduino code upload 
 # because the Arduino IDE would be inefficient and faulty (secondary)
-# TODO: what to do if there are two peaks in the measure FFT? Worth mentioning in the handout
+# TODO: what to do if there are two peaks in the measure FFT? Worth mentioning in the handout 
+# (Non_linear behaviour)
 # TODO: all the parameters in the code should have a reasonable range
 # TODO: separate the different classes in different python files (secondary)
 # TODO: find delay time (a day of investigation) and make a plot
