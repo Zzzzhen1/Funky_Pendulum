@@ -69,7 +69,213 @@ class data_phy():
             self.pos_active = None
             self.setSpeed_param = None
             self.phase_list_active = None
+  
+    def fft_index_list(self):
+        '''return the list and average time spacing'''
+        current_time = self.time[self.temp_index + self.buffer_length]
+        time_stamp = current_time
+        index = self.fft_length - 2
+        index_list = np.zeros(self.fft_length, dtype = int)
+        index_list[self.fft_length - 1] = current_time
+        
+        for i in range(self.temp_index + self.buffer_length, self.temp_index + 1, -1):
+            if index < 0: 
+                self.index_list = index_list
+                avg_spacing = (current_time - time_stamp) / (self.fft_length - index - 2)
+                return self.index_list, avg_spacing
+            if(time_stamp - self.time[i] >= self.sampling_div):
+                index_list[index] = i
+                time_stamp = self.time[i]
+                index -= 1
+        if index >= 0:
+            avg_spacing = (current_time - time_stamp) / (self.fft_length - index - 2)
+            self.index_list = index_list[index + 1 : self.fft_length]
+            return self.index_list, avg_spacing
+    
+    def fft(self):
+        if(self.time[self.temp_index] > 5 * self.sampling_div):
+            index_list, avg_spacing = self.fft_index_list()
+            self.avg_spacing = avg_spacing
+            
+            fft_ang = fft(self.angle[index_list])
+            fft_pos = fft(self.position[index_list])
+            if(self.pos_const is not None):
+                fft_pos_const = fft(self.pos_const[index_list])
+            if(self.pos_active is not None):
+                fft_pos_active = fft(self.pos_active[index_list])
+            fft_freq = fftfreq(len(index_list), avg_spacing)
+            
+            self.fft_angle = fft_ang[1:int(len(fft_freq) / 2)]
+            self.fft_pos = fft_pos[1:int(len(fft_freq) / 2)]
+            if(self.pos_const is not None):
+                self.fft_pos_const = fft_pos_const[1:int(len(fft_freq) / 2)]
+            if(self.pos_active is not None):
+                self.fft_pos_active = fft_pos_active[1:int(len(fft_freq) / 2)]
+            self.fft_freq = fft_freq[1:int(len(fft_freq) / 2)]
+            return True
+        else:
+            return False
+    
+    def NR_phase_calc(self, omega, scan, interpolation = True):
+        if (self.fft()):
+            close_ind = np.argmin(np.abs(self.fft_freq - omega))
+            if(not scan):
+                if interpolation:
+                    if self.fft_freq[close_ind] < omega:
+                        delta_phase_1 = self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            + 1]) - np.angle(self.fft_pos_const[close_ind + 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                        
+                        delta_phase_3 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind\
+                            + 1]) - np.angle(self.fft_pos_const[close_ind + 1]))
+                        delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]))
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                + 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+                                    
+                        self.phase_active = delta_phase_2 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                            + 1] - self.fft_freq[close_ind]) * \
+                            (delta_phase_3 - delta_phase_2)
 
+                    elif self.fft_freq[close_ind] > omega:
+                        delta_phase_1 =  self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            - 1]) - np.angle(self.fft_pos_const[close_ind - 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                        
+                        delta_phase_3 =  self.phase_rectify(np.angle(self.fft_pos_active[close_ind\
+                            - 1]) - np.angle(self.fft_pos_const[close_ind - 1]))
+                        delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]))
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                - 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+                                    
+                        self.phase_active = delta_phase_2 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                            - 1] - self.fft_freq[close_ind]) * \
+                            (delta_phase_3 - delta_phase_2)
+
+                    else:
+                        self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                        self.phase_active = self.phase_rectify(np.angle(self.fft_pos_active[close_ind]) \
+                            - np.angle(self.fft_pos_const[close_ind]))
+                else:
+                    self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                        - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                    self.phase_active = self.phase_rectify(np.angle(self.fft_pos_active[close_ind]) \
+                        - np.angle(self.fft_pos_const[close_ind]))
+                self.phase_list.pop(0)
+                self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
+                self.phase_list_active.pop(0)
+                self.phase_list_active.append((self.time[self.temp_index], self.phase_active / np.pi))
+                return True
+            else:
+                if interpolation:
+                    if self.fft_freq[close_ind] < omega:
+                        delta_phase_1 = self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            + 1]) - np.angle(self.fft_pos[close_ind + 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos[close_ind]) + np.pi)
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                + 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+
+                    elif self.fft_freq[close_ind] > omega:
+                        delta_phase_1 =  self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            - 1]) - np.angle(self.fft_pos[close_ind - 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos[close_ind]) + np.pi)
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                - 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+
+                    else:
+                        self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                            - np.angle(self.fft_pos[close_ind]) + np.pi)
+                else:
+                    self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                        - np.angle(self.fft_pos[close_ind]) + np.pi)
+                if(self.omega_list is None):
+                    self.phase_list.pop(0)
+                    self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
+                return True
+        else:
+            return False
+        
+    def NR_update(self, scan = False, interpolation = True, manual = True):
+        '''Needs to be called frequently to update the plot for the phase and amplitude'''
+        if(self.omega_list is None):
+            if (self.NR_phase_calc(self.omega, scan, interpolation)):
+                if scan:
+                    return 0., 0.
+                else:
+                    if(manual):
+                        self.amp_list.pop(0)
+                        self.amp_list.append((self.time[self.temp_index], self.amp))
+                        return self.amp, self.phase
+                    else:
+                        # This is for the automatic finding of normalised resonance
+                        delta_amp_Kp = self.NR_Kp * ((self.phase + np.pi / 2))/ (2 * np.pi)
+                        try:
+                            delta_amp_Kd = self.NR_Kd * (self.phase_list[-1][1] - self.phase_list[-2][1]) / \
+                                (self.phase_list[-1][0] - self.phase_list[-2][0])
+                        except RuntimeError:
+                            pass
+                        self.amp *= (1 - delta_amp_Kp) * (1 - delta_amp_Kd)
+                        # Need a way to transmit this to a thread...
+                        self.amp_list.pop(0)
+                        self.amp_list.append((self.time[self.temp_index], self.amp))
+                        return self.amp, self.phase
+            else:
+                return 0, 0
+        else:
+            for index, omega in enumerate(self.omega_list):
+                if(self.NR_phase_calc(omega, interpolation)):
+                    self.multi_phase_list[index].pop(0)
+                    self.multi_phase_list[index].append((self.time[self.temp_index], self.phase / np.pi))
+            return 0., 0.
+    
+    def phase_rectify(self, phase):
+        '''Shifts the phase to be between 0.5 * pi and -1.5*pi, which is symmetric abour -0.5*pi'''
+        phase = phase - 2 * np.pi * int(phase / (2 * np.pi))
+        if phase > 0.5 * np.pi:
+            return phase - 2 * np.pi
+        elif phase <= -1.5 * np.pi:
+            return phase + 2 * np.pi
+        else:
+            return phase
+    
+    def delay_fit(self, low, high):
+        '''Find the delay time between the two waves'''
+        delay_time = 0.
+        
+        def delay_func(time, delay):
+            return self.amp_0 * np.sin(2 * np.pi * self.omega * (time + self.start_time + delay))
+        
+        popt, pcov = curve_fit(delay_func, 
+                               self.time[low : high], 
+                               self.position[low : high],
+                               p0 = 0.007,
+                               maxfev = 20000)
+        # the idea here is that the proposed position of the cart at this moment 
+        # is the position of the cart at the next moment
+        delay_time = popt[0]
+        delay_error = np.sqrt(np.diag(pcov))[0]
+        return delay_time, delay_error
+    
 
 class data(data_phy):
     
