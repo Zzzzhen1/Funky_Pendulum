@@ -1374,4 +1374,5 @@ void pid_print() {
   Serial.println("");
 }
 
-// TODO: add a jolt
+// TODO: fix the stop() function (secondary) -- calling out to stops will cause the cart to gently 
+// touch the switch and then determines its own position
