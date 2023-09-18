@@ -70,6 +70,7 @@ class data():
         self.omega_list = None
         self.multi_phase_list = None
         self.pos_const = None
+        self.pos_active = None
         self.setSpeed_param = None
         self.phase_list_active = None
     
@@ -121,6 +122,7 @@ class data():
         self.omega_list = None
         self.multi_phase_list = None
         self.pos_const = None
+        self.pos_active = None
         self.setSpeed_param = None
         self.phase_list_active = None
         
@@ -978,6 +980,7 @@ class data():
             fft_pos = fft(self.position[index_list])
             if(self.pos_const is not None):
                 fft_pos_const = fft(self.pos_const[index_list])
+            if(self.pos_active is not None):
                 fft_pos_active = fft(self.pos_active[index_list])
             fft_freq = fftfreq(len(index_list), avg_spacing)
             
@@ -985,6 +988,7 @@ class data():
             self.fft_pos = fft_pos[1:int(len(fft_freq) / 2)]
             if(self.pos_const is not None):
                 self.fft_pos_const = fft_pos_const[1:int(len(fft_freq) / 2)]
+            if(self.pos_active is not None):
                 self.fft_pos_active = fft_pos_active[1:int(len(fft_freq) / 2)]
             self.fft_freq = fft_freq[1:int(len(fft_freq) / 2)]
             return True
@@ -1197,6 +1201,7 @@ class live_data(data):
         data.phase = self.phase
         data.multi_phase_list = self.multi_phase_list
         data.pos_const = self.pos_const
+        data.pos_active = self.pos_active
         self.omega_num = data.omega_num
         self.omega_list = data.omega_list
         self.setSpeed_param = data.setSpeed_param
