@@ -276,7 +276,6 @@ class data_phy():
         delay_error = np.sqrt(np.diag(pcov))[0]
         return delay_time, delay_error
     
-
 class data(data_phy):
     
     '''Initialisation of the data class, used to store the data from the arduino
@@ -286,7 +285,7 @@ class data(data_phy):
         self,
         fft_length,
         sampling_div,
-        wait_to_stable,
+        wait_to_stable = 1,
         buffer_length = 4 * 8192,
         plot_length = 64,
         ):
@@ -419,7 +418,9 @@ class data(data_phy):
                         self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
                     else: 
                         self.phase_list = None
-                        self.multi_phase_list = [[(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10] * self.omega_num
+                        self.multi_phase_list = []
+                        for i in range(self.omega_num):
+                            self.multi_phase_list.append([(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10)
                     self.amp_list = [(0., 0.)] * self.plot_length * 10
                     if(not scan):
                         self.phase_list_active = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
@@ -1379,7 +1380,7 @@ class data(data_phy):
                 return 0, 0
         else:
             for index, omega in enumerate(self.omega_list):
-                if(self.NR_phase_calc(omega, interpolation)):
+                if(self.NR_phase_calc(omega, scan, interpolation)):
                     self.multi_phase_list[index].pop(0)
                     self.multi_phase_list[index].append((self.time[self.temp_index], self.phase / np.pi))
             return 0., 0.
