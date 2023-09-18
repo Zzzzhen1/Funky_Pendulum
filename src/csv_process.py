@@ -150,6 +150,7 @@ class data_analysis():
             'measure': False,
             'scan': False,
             'pid': False,
+            
         }
         self.properties = {} # A dictionary of numbers read from the header
         self.header = [
@@ -199,7 +200,7 @@ class data_analysis():
                 self.csv_list.append(file)
             if file.startswith('measure'):
                 self.data_flag_dict['measure'] = True
-            if file.startswith('NR'):
+            if file.startswith('freq_scan'):
                 self.data_flag_dict['scan'] = True
             if file.startswith('pid'):
                 self.data_flag_dict['pid'] = True
