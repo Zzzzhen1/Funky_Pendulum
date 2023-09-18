@@ -484,7 +484,7 @@ class data(data_phy):
                 self.ax_list[1, 1].set_ylabel('Phase/pi')
                 ax2.set_ylabel('Amplitude/steps')
             
-            elif(module_name == "freq_scan"):
+            elif(module_name == "freq_scan" or module_name == "auto_freq_scan"):
                 if(self.flag_subplot_init):
                     self.figure, self.ax_list = plt.subplots(2, 2, figsize=(8, 5))
                     self.flag_subplot_init = False
@@ -677,7 +677,7 @@ class data(data_phy):
                     
                 self.counter += 1
         
-        elif(module_name == "freq_scan"):
+        elif(module_name == "freq_scan" or module_name == "auto_freq_scan"):
             self.fft()
             self.pos_const = self.amp_0 * np.sin(2 * np.pi * \
                 self.omega * (self.time + self.start_time))
@@ -1095,7 +1095,8 @@ class data(data_phy):
     def export_csv(
         self, 
         module_name,
-        NR_phase_amp = False
+        NR_phase_amp = False,
+        input_spec_info = True,
         ):
         try:
             dirc = self.path + '\\' + datetime.now().strftime("%d-%m-csv")
@@ -1118,7 +1119,8 @@ class data(data_phy):
             pass
         with open(filename + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            special_info = input("Any special info to add to the csv file?\n\n")
+            if(input_spec_info):
+                special_info = input("Any special info to add to the csv file?\n\n")
             writer.writerow(["special_info", special_info])
             if(module_name == "pid"):
                 try:
@@ -1147,7 +1149,8 @@ class data(data_phy):
         if(module_name != "pid" and module_name != "setSpeed"):
             with open(filename_fft + '.csv', 'w', newline = '') as csvfile:
                 writer = csv.writer(csvfile)
-                special_info = input("\nAny special info to add to the fft-csv file?\n\n")
+                if(input_spec_info):
+                    special_info = input("\nAny special info to add to the fft-csv file?\n\n")
                 writer.writerow(["special_info", special_info])
                 writer.writerow(["start_time", str(self.start_time)])
                 if(self.omega_list is None):
@@ -1170,7 +1173,8 @@ class data(data_phy):
         if(NR_phase_amp):
             with open(filename_phase_amp + ".csv", 'w', newline = '') as csvfile:
                 writer = csv.writer(csvfile)
-                special_info = input("\nAny special info to add to the phase_amp-csv file?\n\n")
+                if(input_spec_info):
+                    special_info = input("\nAny special info to add to the phase_amp-csv file?\n\n")
                 writer.writerow(["special_info", special_info])
                 writer.writerow(["start_time", str(self.start_time)])
                 writer.writerow(["omega", str(self.omega)])
@@ -1204,7 +1208,7 @@ class data(data_phy):
                 csvfile.close()
 
         print("\nExported to " + filename + "\n")
-        if(module_name != 'pid'):
+        if(module_name != 'pid' and module_name != 'setSpeed'):
             print("\nExported to " + filename_fft + "\n")
         if(NR_phase_amp):
             print("\nExported to " + filename_phase_amp + "\n")
@@ -1739,6 +1743,8 @@ class cart_pendulum():
                   swing_request = False, 
                   send_terminate = False,
                   NR_phase_amp = False,
+                  manual_continue = True,
+                  input_spec_info = True,
                   ):
         '''This function stops the serial connection and waits for ENTER to reconnect'''
         if(send_terminate):
@@ -1752,9 +1758,11 @@ class cart_pendulum():
             time.sleep(0.1)
             if(exp):
                 temp_datum.export_csv(self.module_name, 
-                                      NR_phase_amp = NR_phase_amp)
-            input("\nPress ENTER to reconnect.\n\nOr press CTRL+C then ENTER to exit the program.\n")
-            self.arduino.initiate()
+                                      NR_phase_amp = NR_phase_amp,
+                                      input_spec_info = input_spec_info,)
+            if(manual_continue):
+                input("\nPress ENTER to reconnect.\n\nOr press CTRL+C then ENTER to exit the program.\n")
+                self.arduino.initiate()
         except KeyboardInterrupt:
             self.arduino.board.close()
 
@@ -2091,15 +2099,78 @@ class cart_pendulum():
                             pass
                         self.NR_counter += 1
 
-    def main_auto_freq_scan(self):
+    def main_auto_freq_scan(self,
+                            auto_freq,
+                            auto_amp,
+                            duration,
+                            ):
         self.module_name = r"auto_freq_scan"
         # TODO: extract the list of data from a csv file, which is generated 
-        # using another python code, then run the freq_scan module automatically
+        # using another python code, then run the freq_scan module automatically. 
+        # This csv file will also be the reference parameters backup.
         try:
-            self.data.path = self.path + r"\freq_scan"
+            self.data.path = self.path + r"\auto_freq_scan"
             os.makedirs(self.data.path)
         except OSError:
             pass
+        self.arduino.initiate()
+        self.arduino.read_all()
+        self.arduino.send_message("0\n") # to reset the arduino board
+        time.sleep(1)
+        self.arduino.read_all()
+        self.arduino.send_message("1\n") # to center the cart as a routine
+        self.arduino.read_single()
+        self.arduino.read_all()
+        self.arduino.send_message("4\n") # to turn on the frequency scan mode
+        time.sleep(1)
+        self.arduino.read_single()
+        self.arduino.send_message(str(auto_freq) + "\n") # to send the automated frequency
+        time.sleep(1)
+        self.arduino.read_all()
+        self.arduino.send_message(str(auto_amp) + "\n") # to send the automated amplitude
+        self.data.amp_0 = auto_amp
+        temp_datum.amp_0 = auto_amp
+        self.arduino.read_single()
+        self.auto_start_time = time.time()
+        while(not temp_datum.flag_close_event):
+            if(self.arduino.receive.rstrip() == "Kill switch hit."):
+                print("Kill switch hit. Resetting the system...\n")
+                self.reconnect(exp = True, 
+                               send_terminate = True, 
+                               NR_phase_amp = True,
+                               manual_continue = False,
+                               input_spec_info = False,
+                               )
+            else:
+                
+                if(time.time() - self.auto_start_time > duration):
+                    self.reconnect(exp = True, 
+                                   send_terminate = True, 
+                                   NR_phase_amp = True,
+                                   manual_continue = False,
+                                   input_spec_info = False,
+                                  )
+                
+                if(self.flag_list["thread_init"]):
+                    reader = threading.Thread(target = self.thread_reader, 
+                                            args = (True, False, False))
+                    reader.start()
+                    self.flag_list["thread_init"] = False
+                
+                if(not temp_datum.flag_close_event):
+                    temp_datum.copy(self.data, True)
+                    temp_datum.init_plot(self.module_name)
+                    temp_datum.real_time_plot(self.module_name, scan = True)
+                else:
+                    self.reconnect(exp = True, 
+                                   send_terminate = True, 
+                                   NR_phase_amp = True, 
+                                   manual_continue = False,
+                                   input_spec_info = False,
+                                   )
+                
+                if(self.data.omega_list is None):
+                    temp_datum.NR_phase_calc(self.data.omega, scan = True, interpolation = True)
     
     def create_folder(self):
         self.cwd = os.getcwd()
@@ -2157,7 +2228,7 @@ class cart_pendulum():
                 self.reset_flag_list()
                 break
 
-if __name__ == "__main__":
+if(__name__ == "__main__"):
     
     # Start up routine of the test
     fft_lengths = 512 # TODO: add some possible values
@@ -2189,11 +2260,11 @@ if __name__ == "__main__":
 # TODO: all the parameters in the code should have a reasonable range
 # TODO: separate the different classes in different python files (secondary)
 # TODO: find delay time (a day of investigation) and make a plot (secondary)
-# TODO: the csv file saved after the scan experiment needs a date and time
+# TODO: the csv file saved after the scan experiment needs a date and time (secondary)
 # TODO: decide the amplitude of the NR scan drive stage (secondary)
 # TODO: pid data analysis --> stable time stop time (with threshold)... 
-# then plot stop_time vs. iteration graph
+# then plot stop_time vs. iteration graph (secondary)
 # TODO: jolt or hold up horizontal (secondary)
-# TODO: add a selection for the PID of normalised resonance
+# TODO: add a selection for the PID of normalised resonance (secondary)
 # TODO: decrease plotting fps (secondary)
-# TODO: change the sign of the PID coefficients
+# TODO: change the sign of the NR_PID coefficients !!!

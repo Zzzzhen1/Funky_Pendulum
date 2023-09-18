@@ -44,7 +44,7 @@ const float accel = 120000.;    // Pre-set acceleration
 long int safe_steps = 50;        // Safe distance to both switches
 const float safe_speed = 500.0;  // Avoid crushing into the swtich too hard
 float steps = 0.;                // Target position or relative movement, depends on the situation
-float temp_speed = 5000.;        // Temporal speed limit
+float temp_speed = 4000.;        // Temporal speed limit
 float temp_accel = 120000.;     // Temporal acceleration
 
 // NR stage variable
@@ -239,9 +239,6 @@ void reset(bool center = true) {
   amp_0 = 50.;
   buf_ind = 0;
   temp_ind = 0;
-  temp_speed = speed_lim;
-  temp_accel = accel;
-  // init_stepper(speed_lim, accel); // TODO: check if this is necessary
   memset(circ_buffer_angle, 0., sizeof(circ_buffer_angle));
   memset(circ_buffer_time, 0., sizeof(circ_buffer_time));
   memset(circ_buffer_position, 0., sizeof(circ_buffer_position));
