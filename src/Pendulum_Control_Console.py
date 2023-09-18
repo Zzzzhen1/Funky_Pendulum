@@ -493,7 +493,9 @@ class data(data_phy):
                         self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
                     else: 
                         self.phase_list = None
-                        self.multi_phase_list = [[(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10] * self.omega_num
+                        self.multi_phase_list = []
+                        for i in range(self.omega_num):
+                            self.multi_phase_list.append([(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10)
                     self.amp_list = [(0., 0.)] * self.plot_length * 10
                     if(not scan):
                         self.phase_list_active = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
