@@ -130,7 +130,7 @@ class data():
         self.flag_subplot_init = True
         self.flag_close_event = False
     
-    def init_plot(self, module_name, NR_scan = True):
+    def init_plot(self, module_name, scan = True):
         if(self.flag_fig_init):
             self.flag_fig_init = False
             plt.ion()
@@ -162,7 +162,7 @@ class data():
                         self.phase_list = None
                         self.multi_phase_list = [[(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10] * self.omega_num
                     self.amp_list = [(0., 0.)] * self.plot_length * 10
-                    if(not NR_scan):
+                    if(not scan):
                         self.phase_list_active = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
                 self.line_angle, = self.ax_list[0, 0].plot([], [], 'b-')
                 self.line_pos, = self.ax_list[1, 0].plot([], [], 'r-')
@@ -178,7 +178,7 @@ class data():
                         _line, = self.ax_list[1, 1].plot([], [], color = colors[i], 
                                                                       label = '%.3f Hz'%(self.omega_list[i]))
                         self.line_phase_list.append(_line)
-                if(not NR_scan):
+                if(not scan):
                     self.line_phase_active, = self.ax_list[1, 1].plot([], [], 'r-', label = 'phase_active')
                 ax2 = self.ax_list[1, 1].twinx()
                 self.line_amp, = ax2.plot([], [], 'k-', label = 'amplitude')
@@ -207,7 +207,7 @@ class data():
                                         self.ax_list[1, 1]: self.line_phase_list,
                                         }
                 
-                if(not NR_scan):
+                if(not scan):
                     self.ax_new_list.update({self.ax_list[1, 1]: (self.line_phase, self.line_phase_active)})
                 
                 self.ax_list[0, 0].set_xlabel('Time/s')
@@ -235,7 +235,7 @@ class data():
                         self.phase_list = None
                         self.multi_phase_list = [[(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10] * self.omega_num
                     self.amp_list = [(0., 0.)] * self.plot_length * 10
-                    if(not NR_scan):
+                    if(not scan):
                         self.phase_list_active = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
                 self.line_angle, = self.ax_list[0, 0].plot([], [], 'b-')
                 self.line_pos, = self.ax_list[1, 0].plot([], [], 'r-')
@@ -251,7 +251,7 @@ class data():
                         _line, = self.ax_list[1, 1].plot([], [], color = colors[i], 
                                                                       label = '%.3f Hz'%(self.omega_list[i]))
                         self.line_phase_list.append(_line)
-                if(not NR_scan):
+                if(not scan):
                     self.line_phase_active, = self.ax_list[1, 1].plot([], [], 'r-', label = 'phase_active')
                 ax2 = self.ax_list[1, 1].twinx()
                 self.line_amp, = ax2.plot([], [], 'k-', label = 'amplitude')
@@ -280,7 +280,7 @@ class data():
                                         self.ax_list[1, 1]: self.line_phase_list,
                                         }
                 
-                if(not NR_scan):
+                if(not scan):
                     self.ax_new_list.update({self.ax_list[1, 1]: (self.line_phase, self.line_phase_active)})
                 
                 self.ax_list[0, 0].set_xlabel('Time/s')
@@ -870,7 +870,7 @@ class data():
             else:
                 writer.writerow(["multiple_omega", *(str(i) for i in self.omega_list)])
             try:
-                writer.writerow(["amplitude", str(self.amp_list[-1][1])])
+                writer.writerow(["amplitude", str(self.amp_list[-1][1]), "amp_0", str(self.amp_0)])
                 if(self.omega_list is None):
                     writer.writerow(["phase/pi", str(self.phase_list[-1][1])])
                 else:
@@ -1155,8 +1155,6 @@ class data():
     # TODO: add a sampling rate selection in arduino (secondary)
     # TODO: to make the step function in the NR stage continuous (secondary)
     # TODO: add a different title for downward and upward control (secondary)
-    # TODO: add a different title for scanning for response
-    # TODO: label in the csv file of different minimal stage !!! Useful for later analysis
     
 class live_data(data):
     
@@ -1693,9 +1691,9 @@ class cart_pendulum():
                         self.reconnect(exp = True)
                     
                     if(self.data.omega_list is None):
-                        temp_datum.NR_phase_calc(self.data.omega, NR_scan = True, interpolation = True)
+                        temp_datum.NR_phase_calc(self.data.omega, scan = True, interpolation = True)
                     else:
-                        temp_datum.NR_update(NR_scan = True, interpolation = True)
+                        temp_datum.NR_update(scan = True, interpolation = True)
                     self.NR_counter += 1
     
     def NR(self, NR_scan = False, interpolation = True):
@@ -1800,22 +1798,32 @@ class cart_pendulum():
                 self.flag_list["setSpeed_request"] = False
                 self.data.setSpeed_param = self.arduino.receive.rstrip().replace("Start sinusoidal motion with ", "")
         else:
-            if(self.arduino.receive.rstrip() == "Kill switch hit."):
-                print("Kill switch hit. Resetting the system...\n")
-                self.reconnect(exp = True)
+            if(self.flag_list["amp_0"]):
+                self.arduino.read_all()
+                self.arduino.send_input_message(save_to_omega = False)
+                msg_amp = self.arduino.message.rstrip()
+                self.arduino.read_single()
+                if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
+                    self.flag_list["amp_0"] = False
+                    self.data.amp_0 = float(msg_amp)
+                    temp_datum.amp_0 = float(msg_amp)
             else:
-                if(self.flag_list["thread_init"]):
-                    reader = threading.Thread(target = self.thread_reader, 
-                                            args = (True, True, False))
-                    reader.start()
-                    self.flag_list["thread_init"] = False
-                    
-                if(not temp_datum.flag_close_event):
-                    temp_datum.copy(self.data)
-                    temp_datum.init_plot(self.module_name)
-                    temp_datum.real_time_plot(self.module_name)
+                if(self.arduino.receive.rstrip() == "Kill switch hit."):
+                    print("Kill switch hit. Resetting the system...\n")
+                    self.reconnect(exp = True)
                 else:
-                        self.reconnect(exp = True)      
+                    if(self.flag_list["thread_init"]):
+                        reader = threading.Thread(target = self.thread_reader, 
+                                                args = (True, True, False))
+                        reader.start()
+                        self.flag_list["thread_init"] = False
+                        
+                    if(not temp_datum.flag_close_event):
+                        temp_datum.copy(self.data)
+                        temp_datum.init_plot(self.module_name)
+                        temp_datum.real_time_plot(self.module_name)
+                    else:
+                            self.reconnect(exp = True)      
     
     def create_folder(self):
         self.cwd = os.getcwd()
@@ -1904,18 +1912,12 @@ if __name__ == "__main__":
 # (Non_linear behaviour)
 # TODO: all the parameters in the code should have a reasonable range
 # TODO: separate the different classes in different python files (secondary)
-# TODO: find delay time (a day of investigation) and make a plot
-# TODO: change the total maximum amplitude for multiple frequencies ! in the arduino code
+# TODO: find delay time (a day of investigation) and make a plot (secondary)
 # TODO: the csv file saved after the scan experiment needs a date and time
 # TODO: decide the amplitude of the NR scan drive stage (secondary)
-# TODO: check Control System Designer in MATLAB and setClock() in Arduino
 # TODO: pid data analysis --> stable time stop time (with threshold)... 
 # then plot stop_time vs. iteration graph
-# TODO: jolt or hold up horizontal 
+# TODO: jolt or hold up horizontal (secondary)
 # TODO: add a selection for the PID of normalised resonance
-# TODO: decrease plotting fps
+# TODO: decrease plotting fps (secondary)
 # TODO: change the sign of the PID coefficients
-# TODO: change the sampling time unit in the arduino
-# TODO: setSpeed stage ask for amplitude and frequency and have a comparison plot and the sinusoidal starts at zero
-# TODO: change the default acceleration!!
-# TODO: add phase_rectify() to the self.phase and self.phase_active
