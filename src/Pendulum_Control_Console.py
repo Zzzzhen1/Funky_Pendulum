@@ -1842,48 +1842,7 @@ class cart_pendulum():
             int(self.arduino.receive.rstrip().split(',')[1])
         print("Centering done: ", self.center_count, "\tRail Distance: ", self.distance, "\n")
         self.reset_flag_list()
-        
-    def pid(self):
-        self.module_name = r"pid"
-        try:
-            self.data.path = self.path + r"\pid"
-            os.makedirs(self.data.path)
-        except OSError:
-            pass
-        if(self.flag_list["swing_request"]):
-            self.arduino.read_single()
-            # self.arduino.send_input_message(save_to_omega = False)
-            self.arduino.send_message('n' + '\n')
-            self.arduino.read_single()
-            if(self.arduino.receive.rstrip() == "Continue with swing up strategy." or \
-                self.arduino.receive.rstrip() == "Continue without swing up strategy."):
-                self.flag_list["swing_request"] = False
-        else: 
-            if(self.flag_list["pid_input"]):
-                self.arduino.read_all()
-                self.arduino.send_input_message(save_to_omega = False)
-                self.arduino.read_all()
-                if(self.arduino.receive.rstrip() == "Start inversion control."):
-                    self.data.pid_param = self.arduino.message.rstrip()
-                    self.flag_list["pid_input"] = False
-            else:
-                if(self.arduino.receive.rstrip() == "Kill switch hit."):
-                    print("Kill switch hit. Resetting the system...\n")
-                    self.reconnect(exp = True)
-                else:
-                    if(self.flag_list["thread_init"]):
-                        reader = threading.Thread(target = self.thread_reader, 
-                                                args = (True, True, False))
-                        reader.start()
-                        self.flag_list["thread_init"] = False
-                    
-                    if(not temp_datum.flag_close_event):
-                        temp_datum.copy(self.data)
-                        temp_datum.init_plot(self.module_name)
-                        temp_datum.real_time_plot(self.module_name)
-                    else:
-                        self.reconnect(exp = True)
-                        
+                  
     def measure(self):
         self.module_name = r"measure"
         try:
@@ -1903,7 +1862,50 @@ class cart_pendulum():
             temp_datum.real_time_plot(self.module_name)
         else:
             self.reconnect(exp = True)
-    
+
+    def setSpeed(self):
+        '''Set the speed and acceleration of the cart'''
+        self.module_name = r"setSpeed"
+        try:
+            self.data.path = self.path + r"\setSpeed"
+            os.makedirs(self.data.path)
+        except OSError:
+            pass
+        if(self.flag_list["setSpeed_request"]):
+            self.arduino.read_all()
+            self.arduino.send_input_message(save_to_omega = False)
+            self.arduino.read_single()
+            if(self.arduino.receive.rstrip().startswith("Start sinusoidal motion with")):
+                self.flag_list["setSpeed_request"] = False
+                self.data.setSpeed_param = self.arduino.receive.rstrip().replace("Start sinusoidal motion with ", "")
+        else:
+            if(self.flag_list["amp_0"]):
+                self.arduino.read_all()
+                self.arduino.send_input_message(save_to_omega = False)
+                msg_amp = self.arduino.message.rstrip()
+                self.arduino.read_single()
+                if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
+                    self.flag_list["amp_0"] = False
+                    self.data.amp_0 = float(msg_amp)
+                    temp_datum.amp_0 = float(msg_amp)
+            else:
+                if(self.arduino.receive.rstrip() == "Kill switch hit."):
+                    print("Kill switch hit. Resetting the system...\n")
+                    self.reconnect(exp = True)
+                else:
+                    if(self.flag_list["thread_init"]):
+                        reader = threading.Thread(target = self.thread_reader, 
+                                                args = (True, True, False))
+                        reader.start()
+                        self.flag_list["thread_init"] = False
+                        
+                    if(not temp_datum.flag_close_event):
+                        temp_datum.copy(self.data)
+                        temp_datum.init_plot(self.module_name)
+                        temp_datum.real_time_plot(self.module_name)
+                    else:
+                            self.reconnect(exp = True)      
+        
     def freq_scan(self):
         self.module_name = r"freq_scan"
         try:
@@ -1960,7 +1962,48 @@ class cart_pendulum():
                     else:
                         temp_datum.NR_update(scan = True, interpolation = True)
                     self.NR_counter += 1
-    
+        
+    def pid(self):
+        self.module_name = r"pid"
+        try:
+            self.data.path = self.path + r"\pid"
+            os.makedirs(self.data.path)
+        except OSError:
+            pass
+        if(self.flag_list["swing_request"]):
+            self.arduino.read_single()
+            # self.arduino.send_input_message(save_to_omega = False)
+            self.arduino.send_message('n' + '\n')
+            self.arduino.read_single()
+            if(self.arduino.receive.rstrip() == "Continue with swing up strategy." or \
+                self.arduino.receive.rstrip() == "Continue without swing up strategy."):
+                self.flag_list["swing_request"] = False
+        else: 
+            if(self.flag_list["pid_input"]):
+                self.arduino.read_all()
+                self.arduino.send_input_message(save_to_omega = False)
+                self.arduino.read_all()
+                if(self.arduino.receive.rstrip() == "Start inversion control."):
+                    self.data.pid_param = self.arduino.message.rstrip()
+                    self.flag_list["pid_input"] = False
+            else:
+                if(self.arduino.receive.rstrip() == "Kill switch hit."):
+                    print("Kill switch hit. Resetting the system...\n")
+                    self.reconnect(exp = True)
+                else:
+                    if(self.flag_list["thread_init"]):
+                        reader = threading.Thread(target = self.thread_reader, 
+                                                args = (True, True, False))
+                        reader.start()
+                        self.flag_list["thread_init"] = False
+                    
+                    if(not temp_datum.flag_close_event):
+                        temp_datum.copy(self.data)
+                        temp_datum.init_plot(self.module_name)
+                        temp_datum.real_time_plot(self.module_name)
+                    else:
+                        self.reconnect(exp = True)
+          
     def NR(self, NR_scan = False, interpolation = True):
         self.module_name = r"NR"
         try:
@@ -2048,48 +2091,15 @@ class cart_pendulum():
                             pass
                         self.NR_counter += 1
 
-    def setSpeed(self):
-        '''Set the speed and acceleration of the cart'''
-        self.module_name = r"setSpeed"
+    def main_auto_freq_scan(self):
+        self.module_name = r"auto_freq_scan"
+        # TODO: extract the list of data from a csv file, which is generated 
+        # using another python code, then run the freq_scan module automatically
         try:
-            self.data.path = self.path + r"\setSpeed"
+            self.data.path = self.path + r"\freq_scan"
             os.makedirs(self.data.path)
         except OSError:
             pass
-        if(self.flag_list["setSpeed_request"]):
-            self.arduino.read_all()
-            self.arduino.send_input_message(save_to_omega = False)
-            self.arduino.read_single()
-            if(self.arduino.receive.rstrip().startswith("Start sinusoidal motion with")):
-                self.flag_list["setSpeed_request"] = False
-                self.data.setSpeed_param = self.arduino.receive.rstrip().replace("Start sinusoidal motion with ", "")
-        else:
-            if(self.flag_list["amp_0"]):
-                self.arduino.read_all()
-                self.arduino.send_input_message(save_to_omega = False)
-                msg_amp = self.arduino.message.rstrip()
-                self.arduino.read_single()
-                if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
-                    self.flag_list["amp_0"] = False
-                    self.data.amp_0 = float(msg_amp)
-                    temp_datum.amp_0 = float(msg_amp)
-            else:
-                if(self.arduino.receive.rstrip() == "Kill switch hit."):
-                    print("Kill switch hit. Resetting the system...\n")
-                    self.reconnect(exp = True)
-                else:
-                    if(self.flag_list["thread_init"]):
-                        reader = threading.Thread(target = self.thread_reader, 
-                                                args = (True, True, False))
-                        reader.start()
-                        self.flag_list["thread_init"] = False
-                        
-                    if(not temp_datum.flag_close_event):
-                        temp_datum.copy(self.data)
-                        temp_datum.init_plot(self.module_name)
-                        temp_datum.real_time_plot(self.module_name)
-                    else:
-                            self.reconnect(exp = True)      
     
     def create_folder(self):
         self.cwd = os.getcwd()
