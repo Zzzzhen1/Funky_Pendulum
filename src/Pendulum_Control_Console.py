@@ -1730,8 +1730,9 @@ class cart_pendulum():
                 self.data.omega = self.arduino.omega_list[-1] # default to take the largest value in the list
         else:
             while(self.flag_list["amp"]):
-                print("\nCurrent initial active amplitude is %.2f\n"%(self.data.amp))
+                print("\n\nCurrent initial active amplitude is %.2f\n"%(self.data.amp))
                 temp_active_amp = input("Please enter the initial active amplitude in steps: ")
+                print("")
                 try:
                     temp_active_amp = float(temp_active_amp)
                     self.data.amp = temp_active_amp
