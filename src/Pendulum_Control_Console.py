@@ -17,10 +17,61 @@ mpl.use('TkAgg')
 port = 'COM6' 
 baudrate = 230400 # TODO: extract all constants from a larger project file?
 MAX_COUNT = 10 # Number of points waited to plot a frame TODO: change this to manipulate the fps
-ANGLE_ROTATION = 55 # Rotation of the label
-# TODO: how to achieve higher precision of the accelstepper library? Using microsteps? (Seconadary)
+ANGLE_ROTATION = 55 # Rotation of the y-label
 
-class data():
+class data_phy():
+    '''Put all the physics in this class such that people can look at the fft'''
+    def __init__(
+        self,
+        fft_length,
+        sampling_div,
+        wait_to_stable,
+        buffer_length = 4 * 8192,
+        plot_length = 64,
+        ):
+            self.start_time = 0.
+            self.sampling_div = sampling_div
+            self.avg_spacing = 0.
+            self.time = np.zeros(2 * buffer_length)
+            self.angle = np.zeros(2 * buffer_length)
+            self.angular_velocity = np.zeros(2 * buffer_length)
+            self.position = np.zeros(2 * buffer_length)
+            self.position_velocity = np.zeros(2 * buffer_length)
+            self.omega = 2.
+            self.amp = 100.
+            self.amp_0 = 50.0 # This is used to characterise the constant oscillation
+            self.phase = 0.
+            self.NR_Kp = -0.05
+            self.NR_Kd = 0.
+            self.NR_Ki = 0.
+            self.fft_angle = np.zeros(fft_length)
+            self.fft_pos = np.zeros(fft_length)
+            self.fft_freq = np.zeros(fft_length)
+            self.buffer_length = buffer_length
+            self.fft_length = fft_length
+            self.plot_length = plot_length
+            self.index_list = np.zeros(fft_length, dtype = int)
+            self.phase_list = [(0., 0.)] * self.plot_length * 10 * (wait_to_stable + 1)
+            self.amp_list = [(0., 0.)] * self.plot_length * 10
+            self.wait_to_stable = wait_to_stable
+            self.index = 0
+            self.temp_index = 0
+            self.counter = 0
+            self.flag_fig_init = True
+            self.flag_subplot_init = True
+            self.flag_close_event = False
+            self.module_name = ""
+            self.path = ""
+            self.omega_num = 0
+            self.omega_list = None
+            self.multi_phase_list = None
+            self.pos_const = None
+            self.pos_active = None
+            self.setSpeed_param = None
+            self.phase_list_active = None
+
+
+class data(data_phy):
     
     '''Initialisation of the data class, used to store the data from the arduino
     and plot the graph with blocking'''
