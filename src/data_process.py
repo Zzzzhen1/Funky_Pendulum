@@ -1182,7 +1182,7 @@ class data(data_phy):
                 if(self.phase_list_active is not None):
                     writer.writerow(['time/s', 'phase/pi', 'amplitude/steps', 'phase_active/pi'])
                 else:
-                    writer.writerow(['time/s', 'phase/pi', 'amplitude/steps'])
+                    writer.writerow(['time/s', 'phase/pi'])
                 temp_i = 0
                 temp_amp = self.amp_list[0][1]
                 for i in range(len(self.amp_list) - 1):
@@ -1210,16 +1210,13 @@ class data(data_phy):
                                 temp_amp, self.phase_list_active[i][1]])
                     else:
                         if(temp_i == len(self.amp_list) - 1):
-                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
-                                temp_amp])
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1]])
                         elif(self.phase_list[i][0] < self.amp_list[temp_i + 1][0]):
-                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
-                                temp_amp])
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1]])
                         else:
                             temp_i += 1
                             temp_amp = self.amp_list[temp_i][1]
-                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
-                                temp_amp])
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1]])
                 csvfile.close()
 
         print("\nExported to " + filename + "\n")
