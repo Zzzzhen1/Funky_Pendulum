@@ -30,7 +30,7 @@ if(__name__ == "__main__"):
     temp_datum = live_data(fft_length = fft_lengths, 
                 sampling_div = sampling_divs, 
                 wait_to_stable = wait_to_stables) # variable for thread plotting
-    cartER = cart_pendulum(arduino_board, datum)
+    cartER = cart_pendulum(arduino_board, datum, temp_datum)
     
     cartER.path = os.getcwd()
     
@@ -50,6 +50,6 @@ if(__name__ == "__main__"):
     # end_amp = 200
     # num_amp = 20
     # amp_array = np.linspace(start_amp, end_amp, num_amp)
-    # duration = 2 * fft_lengths * sampling_divs
+    # duration = 1.5 * fft_lengths * sampling_divs
     
     # TODO: read reference parameters from a csv file and then implement cartER.main_auto_freq_scan()

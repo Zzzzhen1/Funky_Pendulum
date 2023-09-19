@@ -23,9 +23,11 @@ class cart_pendulum():
     def __init__(
         self,
         arduino,
-        data):
+        data,
+        temp_data,):
         self.arduino = arduino
         self.data = data
+        self.temp_datum = temp_data
         self.module_name = r"\Defaut_Cart_Pendulum"
         self.center_count = 0
         self.distance = 0
@@ -112,7 +114,7 @@ class cart_pendulum():
             self.arduino.board.close()
             time.sleep(0.1)
             if(exp):
-                temp_datum.export_csv(self.module_name, 
+                self.temp_datum.export_csv(self.module_name, 
                                       NR_phase_amp = NR_phase_amp,
                                       input_spec_info = input_spec_info,)
             if(manual_continue):
@@ -128,8 +130,8 @@ class cart_pendulum():
         self.reset_flag_list(swing_request = swing_request)
         self.data.clear_data()
         self.data.clear_figure()
-        temp_datum.clear_data()
-        temp_datum.clear_figure()
+        self.temp_datum.clear_data()
+        self.temp_datum.clear_figure()
         if(reset_data):
             self.clear_data()
     
@@ -163,10 +165,10 @@ class cart_pendulum():
                       appendPos = False, 
                       appendVel = False, 
                       thread_check = False):
-        while(not temp_datum.flag_close_event):
+        while(not self.temp_datum.flag_close_event):
             self.arduino.read_single(prt = False, in_waiting = True)
             if(self.arduino.receive.rstrip() == "Kill switch hit."):
-                temp_datum.flag_close_event = True
+                self.temp_datum.flag_close_event = True
                 break
             try:
                 df.update_data(self.arduino.receive.rstrip().split(','), \
@@ -181,7 +183,7 @@ class cart_pendulum():
                 pass
     
     def thread_writer(self):
-        while(not temp_datum.flag_close_event):
+        while(not self.temp_datum.flag_close_event):
             msg = input("Send the new amplitude/steps (Press Ctrl+C to exit!!!)\n") + "\n"
             try:
                 a = float(msg.split(',')[0])
@@ -190,7 +192,7 @@ class cart_pendulum():
                 else:
                     msg = str(abs(a)) + "," + str(self.phase) + "\n"
                     self.arduino.send_message(msg)
-                    temp_datum.amp = abs(a)
+                    self.temp_datum.amp = abs(a)
                     self.data.amp = abs(a)
                     print("sent amp, phase: " + msg)
                     # BUG: not sending the phase at the same time!
@@ -219,10 +221,10 @@ class cart_pendulum():
             reader.start()
             self.flag_list["thread_init"] = False
         # plot the graph in the main thread
-        if(not temp_datum.flag_close_event):
-            temp_datum.copy(self.data)
-            temp_datum.init_plot(self.module_name)
-            temp_datum.real_time_plot(self.module_name)
+        if(not self.temp_datum.flag_close_event):
+            self.temp_datum.copy(self.data)
+            self.temp_datum.init_plot(self.module_name)
+            self.temp_datum.real_time_plot(self.module_name)
         else:
             self.reconnect(exp = True)
 
@@ -250,7 +252,7 @@ class cart_pendulum():
                 if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
                     self.flag_list["amp_0"] = False
                     self.data.amp_0 = float(msg_amp)
-                    temp_datum.amp_0 = float(msg_amp)
+                    self.temp_datum.amp_0 = float(msg_amp)
             else:
                 if(self.arduino.receive.rstrip() == "Kill switch hit."):
                     print("Kill switch hit. Resetting the system...\n")
@@ -262,10 +264,10 @@ class cart_pendulum():
                         reader.start()
                         self.flag_list["thread_init"] = False
                         
-                    if(not temp_datum.flag_close_event):
-                        temp_datum.copy(self.data)
-                        temp_datum.init_plot(self.module_name)
-                        temp_datum.real_time_plot(self.module_name)
+                    if(not self.temp_datum.flag_close_event):
+                        self.temp_datum.copy(self.data)
+                        self.temp_datum.init_plot(self.module_name)
+                        self.temp_datum.real_time_plot(self.module_name)
                     else:
                             self.reconnect(exp = True)      
         
@@ -301,7 +303,7 @@ class cart_pendulum():
                 if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
                     self.flag_list["amp_0"] = False
                     self.data.amp_0 = float(msg_amp)
-                    temp_datum.amp_0 = float(msg_amp)
+                    self.temp_datum.amp_0 = float(msg_amp)
             else:
                 if(self.arduino.receive.rstrip() == "Kill switch hit."):
                     print("Kill switch hit. Resetting the system...\n")
@@ -313,17 +315,17 @@ class cart_pendulum():
                         reader.start()
                         self.flag_list["thread_init"] = False
                     
-                    if(not temp_datum.flag_close_event):
-                        temp_datum.copy(self.data, True)
-                        temp_datum.init_plot(self.module_name)
-                        temp_datum.real_time_plot(self.module_name, scan = True)
+                    if(not self.temp_datum.flag_close_event):
+                        self.temp_datum.copy(self.data, True)
+                        self.temp_datum.init_plot(self.module_name)
+                        self.temp_datum.real_time_plot(self.module_name, scan = True)
                     else:
                         self.reconnect(exp = True)
                     
                     if(self.data.omega_list is None):
-                        temp_datum.NR_phase_calc(self.data.omega, scan = True, interpolation = True)
+                        self.temp_datum.NR_phase_calc(self.data.omega, scan = True, interpolation = True)
                     else:
-                        temp_datum.NR_update(scan = True, interpolation = True)
+                        self.temp_datum.NR_update(scan = True, interpolation = True)
                     self.NR_counter += 1
         
     def pid(self):
@@ -360,10 +362,10 @@ class cart_pendulum():
                         reader.start()
                         self.flag_list["thread_init"] = False
                     
-                    if(not temp_datum.flag_close_event):
-                        temp_datum.copy(self.data)
-                        temp_datum.init_plot(self.module_name)
-                        temp_datum.real_time_plot(self.module_name)
+                    if(not self.temp_datum.flag_close_event):
+                        self.temp_datum.copy(self.data)
+                        self.temp_datum.init_plot(self.module_name)
+                        self.temp_datum.real_time_plot(self.module_name)
                     else:
                         self.reconnect(exp = True)
           
@@ -402,7 +404,7 @@ class cart_pendulum():
                 try:
                     temp_active_amp = float(temp_active_amp)
                     self.data.amp = temp_active_amp
-                    temp_datum.amp = temp_active_amp
+                    self.temp_datum.amp = temp_active_amp
                     self.flag_list["amp"] = False
                 except ValueError:
                     print("\nPlease enter a valid number.")
@@ -414,7 +416,7 @@ class cart_pendulum():
                 if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
                     self.flag_list["amp_0"] = False
                     self.data.amp_0 = float(msg_amp)
-                    temp_datum.amp_0 = float(msg_amp)
+                    self.temp_datum.amp_0 = float(msg_amp)
             else:
                 if(self.arduino.receive.rstrip() == "Kill switch hit."):
                     print("Kill switch hit. Resetting the system...\n")
@@ -430,17 +432,17 @@ class cart_pendulum():
                             writer.start()
                         self.flag_list["thread_init"] = False
                     
-                    if(not temp_datum.flag_close_event):
-                        temp_datum.copy(self.data, True)
-                        temp_datum.init_plot(self.module_name, NR_scan)
-                        temp_datum.real_time_plot(self.module_name, NR_scan)
+                    if(not self.temp_datum.flag_close_event):
+                        self.temp_datum.copy(self.data, True)
+                        self.temp_datum.init_plot(self.module_name, NR_scan)
+                        self.temp_datum.real_time_plot(self.module_name, NR_scan)
                     else:
                         if(not NR_scan and manual):
                             writer.join()
                         self.reconnect(exp = True, NR_phase_amp = not NR_scan)
                     
-                    if(self.NR_counter >= temp_datum.wait_to_stable):
-                        amp, self.phase = temp_datum.NR_update(NR_scan, interpolation, manual) 
+                    if(self.NR_counter >= self.temp_datum.wait_to_stable):
+                        amp, self.phase = self.temp_datum.NR_update(NR_scan, interpolation, manual) 
                         if(not manual):
                             # self.arduino.send_message(str(amp) + "," + str(self.phase + np.pi) + "\n")
                             self.arduino.send_message(str(amp) + "," + str(self.phase) + "\n")
@@ -449,7 +451,7 @@ class cart_pendulum():
                         self.NR_counter = 0
                     else:
                         if(self.data.omega_list is None):
-                            temp_datum.NR_phase_calc(self.data.omega, NR_scan, interpolation)
+                            self.temp_datum.NR_phase_calc(self.data.omega, NR_scan, interpolation)
                         else:
                             pass
                         self.NR_counter += 1
@@ -472,6 +474,7 @@ class cart_pendulum():
             pass
         self.arduino.initiate()
         self.arduino.read_all()
+        time.sleep(1)
         self.arduino.send_message("0\n") # to reset the arduino board
         time.sleep(1)
         self.arduino.read_all()
@@ -483,14 +486,16 @@ class cart_pendulum():
         time.sleep(1)
         self.arduino.read_single()
         self.arduino.send_message(str(auto_freq) + "\n") # to send the automated frequency
+        self.data.omega = auto_freq
+        self.temp_datum.omega = auto_freq
         time.sleep(1)
         self.arduino.read_all()
         self.arduino.send_message(str(auto_amp) + "\n") # to send the automated amplitude
         self.data.amp_0 = auto_amp
-        temp_datum.amp_0 = auto_amp
+        self.temp_datum.amp_0 = auto_amp
         self.arduino.read_single()
         self.auto_start_time = time.time()
-        while(not temp_datum.flag_close_event):
+        while(not self.temp_datum.flag_close_event):
             if(self.arduino.receive.rstrip() == "Kill switch hit."):
                 print("Kill switch hit. Resetting the system...\n")
                 self.reconnect(exp = True, 
@@ -508,6 +513,8 @@ class cart_pendulum():
                                    manual_continue = False,
                                    input_spec_info = False,
                                   )
+                    reader.join()
+                    break
                 
                 if(self.flag_list["thread_init"]):
                     reader = threading.Thread(target = self.thread_reader, 
@@ -515,10 +522,10 @@ class cart_pendulum():
                     reader.start()
                     self.flag_list["thread_init"] = False
                 
-                if(not temp_datum.flag_close_event):
-                    temp_datum.copy(self.data, True)
-                    temp_datum.init_plot(self.module_name)
-                    temp_datum.real_time_plot(self.module_name, scan = True)
+                if(not self.temp_datum.flag_close_event):
+                    self.temp_datum.copy(self.data, True)
+                    self.temp_datum.init_plot(self.module_name)
+                    self.temp_datum.real_time_plot(self.module_name, scan = True)
                 else:
                     self.reconnect(exp = True, 
                                    send_terminate = True, 
@@ -526,9 +533,10 @@ class cart_pendulum():
                                    manual_continue = False,
                                    input_spec_info = False,
                                    )
+                    reader.join()
+                    break
                 
-                if(self.data.omega_list is None):
-                    temp_datum.NR_phase_calc(self.data.omega, scan = True, interpolation = True)
+                self.temp_datum.NR_phase_calc(self.data.omega, scan = True, interpolation = True)
     
     def create_folder(self):
         self.cwd = os.getcwd()
@@ -605,7 +613,7 @@ if(__name__ == "__main__"):
     temp_datum = live_data(fft_length = fft_lengths, 
                 sampling_div = sampling_divs, 
                 wait_to_stable = wait_to_stables) # variable for thread plotting
-    cartER = cart_pendulum(arduino_board, datum)
+    cartER = cart_pendulum(arduino_board, datum, temp_datum)
 
     cartER.main()
     print("\nProgram ends.")
