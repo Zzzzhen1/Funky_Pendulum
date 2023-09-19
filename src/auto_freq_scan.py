@@ -67,7 +67,7 @@ if(__name__ == "__main__"):
     for freq in freq_array:
         for amp in amp_array:
             index += 1
-            with open(ref_csv_dir, 'a') as f:
+            with open(ref_csv_dir, 'a', newline = '') as f:
                 writer = csv.writer(f)
                 writer.writerow([index, datetime.now().strftime("%d-%m-%Y %H:%M:%S"), freq, amp])
                 f.close()
