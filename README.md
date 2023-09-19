@@ -17,7 +17,7 @@ TODO: attach the pictures in the images folders here
 
 ## Upward Balancing Video
 
-[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/tree/image_branch(protected)/image/CartER_1.jpg)](https://youtu.be/zVNbTGS4LvY  "Upward Balancing Video")
+[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg)](https://youtu.be/zVNbTGS4LvY  "Upward Balancing Video")
 
-[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/tree/image_branch(protected)/image/CartER_2.jpg)](https://youtu.be/lTp6GOYrFtM)
+[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg)](https://youtu.be/lTp6GOYrFtM)
 
