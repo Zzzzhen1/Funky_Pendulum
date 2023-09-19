@@ -18,7 +18,7 @@ data['amp_ratio'] = data['response_amp'] / data['driving_amp']
 
 # Create a list of unique parent_dir values for coloring
 parent_dirs = data['parent_dir'].unique()
-
+# TODO: sorted by the driving amplitude
 data.sort_values(by='driving_freq', inplace=True)
 
 # Plot the ratio against driving frequency with different colors

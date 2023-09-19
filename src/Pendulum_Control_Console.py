@@ -446,8 +446,9 @@ class cart_pendulum():
                     if(self.NR_counter >= self.temp_datum.wait_to_stable):
                         amp, self.phase = self.temp_datum.NR_update(NR_scan, interpolation, manual) 
                         if(not manual):
-                            # self.arduino.send_message(str(amp) + "," + str(self.phase + np.pi) + "\n")
-                            self.arduino.send_message(str(amp) + "," + str(self.phase) + "\n")
+                            # After attempting many times, this is the correct way to update the phase
+                            self.arduino.send_message(str(amp) + "," + str(self.phase + np.pi) + "\n")
+                            # self.arduino.send_message(str(amp) + "," + str(self.phase) + "\n")
                         elif(manual and not NR_scan):
                             pass
                         self.NR_counter = 0

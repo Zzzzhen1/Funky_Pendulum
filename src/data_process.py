@@ -27,7 +27,7 @@ class data_phy():
         buffer_length = 4 * 8192,
         plot_length = 64,
         ):
-            self.start_time = 0.
+            self.start_time = 0. # Arduino internal time might not start at zero
             self.sampling_div = sampling_div
             self.avg_spacing = 0.
             self.time = np.zeros(2 * buffer_length)
@@ -35,13 +35,13 @@ class data_phy():
             self.angular_velocity = np.zeros(2 * buffer_length)
             self.position = np.zeros(2 * buffer_length)
             self.position_velocity = np.zeros(2 * buffer_length)
-            self.omega = 2.
-            self.amp = 100.
+            self.omega = 2. # driven frequency in Hz
+            self.amp = 100. # amplitude of the active driven force
             self.amp_0 = 50.0 # This is used to characterise the constant oscillation
-            self.phase = 0.
-            self.NR_Kp = -0.05
-            self.NR_Kd = 0.
-            self.NR_Ki = 0.
+            self.phase = 0. 
+            self.NR_Kp = 0.05 # Proportional control of the NR
+            self.NR_Kd = 0. # Derivative control of the NR
+            self.NR_Ki = 0. # Currently not used
             self.fft_angle = np.zeros(fft_length)
             self.fft_pos = np.zeros(fft_length)
             self.fft_freq = np.zeros(fft_length)
@@ -69,8 +69,12 @@ class data_phy():
             self.phase_list_active = None
   
     def fft_index_list(self):
-        '''return the list and average time spacing'''
+        '''Since the sampled data might not be evenly spaced, we need to find the
+        almost evenly spaced data points (spacing indicated by self.sampling_div) 
+        to do the fft. This function returns the a list of indices and the average 
+        spacing between the data points.'''
         current_time = self.time[self.temp_index + self.buffer_length]
+        # Use time_stamp to keep track of the previous recorded time and its index
         time_stamp = current_time
         index = self.fft_length - 2
         index_list = np.zeros(self.fft_length, dtype = int)
@@ -91,6 +95,8 @@ class data_phy():
             return self.index_list, avg_spacing
     
     def fft(self):
+        '''Does the fft when there are enough data points. Returns True if the fft
+        is done, False otherwise.'''
         if(self.time[self.temp_index] > 5 * self.sampling_div):
             index_list, avg_spacing = self.fft_index_list()
             self.avg_spacing = avg_spacing
@@ -115,6 +121,9 @@ class data_phy():
             return False
     
     def NR_phase_calc(self, omega, scan, interpolation = True):
+        '''Calculates the phase with linear interpolation since the desired frequency
+        might not be in the fft_freq array. Returns True if the phase is calculated,
+        False otherwise.'''
         if (self.fft()):
             close_ind = np.argmin(np.abs(self.fft_freq - omega))
             if(not scan):
@@ -126,9 +135,9 @@ class data_phy():
                             - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                         
                         delta_phase_3 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind\
-                            + 1]) - np.angle(self.fft_pos_const[close_ind + 1]))
+                            + 1]) - np.angle(self.fft_pos_const[close_ind + 1]) + np.pi)
                         delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
-                            - np.angle(self.fft_pos_const[close_ind]))
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                         
                         self.phase = delta_phase_0 + (omega - \
                             self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
@@ -147,9 +156,9 @@ class data_phy():
                             - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                         
                         delta_phase_3 =  self.phase_rectify(np.angle(self.fft_pos_active[close_ind\
-                            - 1]) - np.angle(self.fft_pos_const[close_ind - 1]))
+                            - 1]) - np.angle(self.fft_pos_const[close_ind - 1]) + np.pi)
                         delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
-                            - np.angle(self.fft_pos_const[close_ind]))
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                         
                         self.phase = delta_phase_0 + (omega - \
                             self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
@@ -165,14 +174,16 @@ class data_phy():
                         self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
                             - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                         self.phase_active = self.phase_rectify(np.angle(self.fft_pos_active[close_ind]) \
-                            - np.angle(self.fft_pos_const[close_ind]))
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                 else:
                     self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
                         - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                     self.phase_active = self.phase_rectify(np.angle(self.fft_pos_active[close_ind]) \
-                        - np.angle(self.fft_pos_const[close_ind]))
+                        - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                 self.phase_list.pop(0)
                 self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
+                # TODO: not fully understood, but to keep things in consistent with the 
+                # phase feedback(with an extra pi), phase_active is also added pi
                 self.phase_list_active.pop(0)
                 self.phase_list_active.append((self.time[self.temp_index], self.phase_active / np.pi))
                 return True
@@ -214,7 +225,9 @@ class data_phy():
             return False
         
     def NR_update(self, scan = False, interpolation = True, manual = True):
-        '''Needs to be called frequently to update the plot for the phase and amplitude'''
+        '''Calculates multiple phases at this function, or returns the amp and 
+        phase feed back. Needs to be called frequently to update the plot for 
+        the phase and amplitude'''
         if(self.omega_list is None):
             if (self.NR_phase_calc(self.omega, scan, interpolation)):
                 if scan:
@@ -257,7 +270,7 @@ class data_phy():
             return phase
     
     def delay_fit(self, low, high):
-        '''Find the delay time between the two waves'''
+        '''Find the delay time between the two waves in the freq_scan module'''
         delay_time = 0.
         
         def delay_func(time, delay):
@@ -299,7 +312,7 @@ class data(data_phy):
         self.amp = 100.
         self.amp_0 = 50.0 # This is used to characterise the constant oscillation
         self.phase = 0.
-        self.NR_Kp = -0.05
+        self.NR_Kp = 0.05
         self.NR_Kd = 0.
         self.NR_Ki = 0.
         self.fft_angle = np.zeros(fft_length)
@@ -398,6 +411,7 @@ class data(data_phy):
                 self.line_angle, = self.ax_list[0].plot([], [], 'b-')
                 self.line_fft, = self.ax_list[1].plot([], [], 'b-')
                 
+                # Initiate a new dictionary for all the artists objects
                 self.ax_new_list = {self.ax_list[0]: self.line_angle, 
                                     self.ax_list[1]: self.line_fft}
                     
@@ -567,6 +581,7 @@ class data(data_phy):
                 self.line_angle_vel, = self.ax_list[0, 1].plot([], [], 'b-')
                 self.line_pos_vel, = self.ax_list[1, 1].plot([], [], 'r-')
                 
+                # Initiate a new dictionary for all the artists objects
                 self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
                                     self.ax_list[1, 0]: self.line_pos,
                                     self.ax_list[0, 1]: self.line_angle_vel,
@@ -589,8 +604,10 @@ class data(data_phy):
                 self.line_pos, = self.ax_list[0].plot([], [], 'r-')
                 self.line_pos_vel, = self.ax_list[1].plot([], [], 'r-')
                 
+                # Initiate a new dictionary for all the artists objects
                 self.ax_new_list = {self.ax_list[0]: self.line_pos,
                                     self.ax_list[1]: self.line_pos_vel}
+                
                 self.ax_list[0].set_xlabel('Time/s')
                 self.ax_list[0].set_ylabel('Position/steps')
                 self.ax_list[1].set_xlabel('Time/s')
@@ -1075,6 +1092,7 @@ class data(data_phy):
                 self.counter += 1
         
     def handle_close(self, _):
+        '''Turns the original close event to save the figure as well'''
         self.flag_close_event = True
         self.flag_subplot_init = True
             
@@ -1096,6 +1114,7 @@ class data(data_phy):
         NR_phase_amp = False,
         input_spec_info = True,
         ):
+        '''Exports the data to a csv file'''
         try:
             dirc = self.path + '\\' + datetime.now().strftime("%d-%m-csv")
             dirc_fft = self.path + '\\' + datetime.now().strftime("%d-%m-fft-csv")
@@ -1183,6 +1202,8 @@ class data(data_phy):
                     writer.writerow(['time/s', 'phase/pi', 'amplitude/steps', 'phase_active/pi'])
                 else:
                     writer.writerow(['time/s', 'phase/pi'])
+                # Following code tries to align the amplitude data with the phase data
+                # since they have different lengths in the buffer
                 temp_i = 0
                 temp_amp = self.amp_list[0][1]
                 for i in range(len(self.amp_list) - 1):
@@ -1449,6 +1470,10 @@ class live_data(data):
         super().__init__(fft_length, sampling_div, wait_to_stable)
         
     def copy(self, data, NR = False):
+        '''Copy the data from the data class to the live_data class.
+        This method is important because then the plotting will be
+        independent of the parallel data reading thread as indicted
+        in the thread_reader() in cart_pendulum class.'''
         self.time = data.time
         self.angle = data.angle
         self.angular_velocity = data.angular_velocity

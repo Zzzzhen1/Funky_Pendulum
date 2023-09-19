@@ -8,8 +8,8 @@ import matplotlib.animation as animation
 import csv, os
 mpl.use('TkAgg')
 plt.rcParams['axes.grid'] = True
-plt.rcParams.update({'text.usetex': True,
-                     'font.family': 'serif',})
+# plt.rcParams.update({'text.usetex': True,
+#                      'font.family': 'serif',})
 
 # TODO: need to change the data_reading procedure
 

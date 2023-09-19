@@ -200,7 +200,7 @@ class data_analysis():
                 self.csv_list.append(file)
             if file.startswith('measure'):
                 self.data_flag_dict['measure'] = True
-            if file.startswith('freq_scan'):
+            if file.startswith('freq_scan') or file.startswith('auto_freq_scan'):
                 self.data_flag_dict['scan'] = True
             if file.startswith('pid'):
                 self.data_flag_dict['pid'] = True
@@ -546,6 +546,8 @@ class data_analysis():
         axes[1, 0].legend(loc = 'upper left')
         plt.show(block = block)
         self.ax0.clear()
+        # TODO: for analyzing the auto_scan_data, should have a 
+        # non-blocking processing method and plot saving method
         flag_request = True
         while flag_request:
             try:

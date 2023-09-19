@@ -6,7 +6,7 @@ ANGLE_ROTATION = 55 # Rotation of the y-label
 
 class data_frame():
     
-    descritpion = "This class is a single data_frame to store data from arduino"
+    '''This class is a single data_frame to store data from arduino'''
     
     def __init__(
         self,
