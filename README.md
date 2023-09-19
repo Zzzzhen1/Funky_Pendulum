@@ -3,6 +3,9 @@ Inherited from Will and Jeppe. (Their github link)
 Based on the project accomplished by Owen and Zhen during 2023 summer. Code developed by @Zzzzhen1. 
 Any questions about the code please feel free to contact zy336@cam.ac.uk or leave in
 dicussion session in this GitHub repository.
+
+How to use the code? Download the zip file from the code icon. 
+Modules required? 
  
 ## General Description of the project. Should include the following features:
 
