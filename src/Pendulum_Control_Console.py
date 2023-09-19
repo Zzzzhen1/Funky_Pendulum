@@ -29,7 +29,7 @@ class cart_pendulum():
         self.arduino = arduino
         self.data = data
         self.temp_datum = temp_data
-        self.self.df = data_frame
+        self.df = data_frame
         self.module_name = r"\Defaut_Cart_Pendulum"
         self.center_count = 0
         self.distance = 0
