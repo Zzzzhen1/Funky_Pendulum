@@ -59,7 +59,7 @@ if(__name__ == "__main__"):
     duration = 1.8 * fft_lengths * sampling_divs
     ref_csv_dir = refer_dirs + r'\reference_parameters-' + \
         datetime.now().strftime("init-%d-%m.csv")
-    with open(ref_csv_dir, 'w') as f:
+    with open(ref_csv_dir, 'w', newline = '') as f:
         writer = csv.writer(f)
         writer.writerow(['index' ,'start_time', 'freq', 'amp_0'])
         f.close()
