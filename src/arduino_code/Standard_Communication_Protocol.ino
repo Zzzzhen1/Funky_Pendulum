@@ -44,7 +44,7 @@ const float accel = 120000.;    // Pre-set acceleration
 long int safe_steps = 50;        // Safe distance to both switches
 const float safe_speed = 500.0;  // Avoid crushing into the swtich too hard
 float steps = 0.;                // Target position or relative movement, depends on the situation
-float temp_speed = 5000.;        // Temporal speed limit
+float temp_speed = 4000.;        // Temporal speed limit
 float temp_accel = 120000.;     // Temporal acceleration
 
 // NR stage variable
@@ -68,11 +68,11 @@ double circ_buffer_angle[circ_buf_len] = { 0 };  // Circular buffer of the angle
 int circ_buffer_position[circ_buf_len] = { 0 };  // Circular buffer of the cart position to recover the position history.
 
 // PID parameters [Needs another fine tuning because the setup for the motor has changed]
-float Kp = 1000;       //Reasonable: 300-2000
-float Ki = 0;          //Reasonable: 300-1700
-float Kd = 4;          //Reasonable: 2-10
+float Kp = 600;       //Reasonable: 300-2000
+float Ki = 400;          //Reasonable: 300-1700
+float Kd = 2.5;          //Reasonable: 2-10
 float Kp_pos = -0.05;  //Reasonable: 0.001-0.1
-float Ki_pos = 0.04;   //Reasonable: 0.001-0.1
+float Ki_pos = 0.;   //Reasonable: 0.001-0.1
 float Kd_pos = -0.01;  //Reasonable: 0.0001-0.005
 
 // Define the button
@@ -239,9 +239,6 @@ void reset(bool center = true) {
   amp_0 = 50.;
   buf_ind = 0;
   temp_ind = 0;
-  temp_speed = speed_lim;
-  temp_accel = accel;
-  // init_stepper(speed_lim, accel); // TODO: check if this is necessary
   memset(circ_buffer_angle, 0., sizeof(circ_buffer_angle));
   memset(circ_buffer_time, 0., sizeof(circ_buffer_time));
   memset(circ_buffer_position, 0., sizeof(circ_buffer_position));
@@ -634,7 +631,7 @@ void pid() {
         pid_print();
         Serial.println("");
         Serial.println("Resume (ENTER r) or ENTER six numbers split by commas without spaces");
-        Serial.println("For example: 1000,0,4,-0.05,0.04,-0.01");
+        Serial.println("For example: 600,200,2.5,-0.05,0,-0.01");
         Serial.println("In this order:Kp_ang,Ki_ang,Kd_ang,Kp_pos,Ki_pos,Kd_pos");
         Serial.println("[Scroll up to see previous values]");
         Serial.println("Before press ENTER, make sure either the pendulum is stable at downright or upright position!");
