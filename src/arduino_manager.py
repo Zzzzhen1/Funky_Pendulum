@@ -1,11 +1,6 @@
 import numpy as np
 import serial
 import serial.tools.list_ports
-# Initialisation of some constants and variables
-port = 'COM6' 
-baudrate = 230400 # TODO: extract all constants from a larger project file?
-MAX_COUNT = 10 # Number of points waited to plot a frame TODO: change this to manipulate the fps
-ANGLE_ROTATION = 55 # Rotation of the y-label
 
 class arduino():
     
@@ -16,7 +11,7 @@ class arduino():
         port,
         baudrate,
         timeout = None, 
-        dsrdtr = None, # TODO: this is supposedly the reset pin, however not working properly
+        dsrdtr = None, # TODO: this is supposedly referring to the reset pin, however not working properly
     ):
         self.port = port
         self.baudrate = baudrate
@@ -28,6 +23,7 @@ class arduino():
         self.omega = ""
     
     def clear(self):
+        '''Clear the message, receive and command variables'''
         self.message = ""
         self.receive = ""
         self.command = ""
@@ -68,6 +64,7 @@ class arduino():
         self.port = arduino_ports[num]
     
     def initiate(self):
+        '''Start up routine of the arduino'''
         self.find_port()
         self.board = serial.Serial(
             self.port,
@@ -85,10 +82,12 @@ class arduino():
         self.board.write(self.command.encode('ASCII'))
         
     def send_message(self, message):
+        '''Send a message to the arduino'''
         self.message = message
         self.board.write(message.encode('ASCII'))
         
     def send_input_message(self, save_to_omega = True):
+        '''Send a message to the arduino, the message is input by the user'''
         self.message = input() + "\n"
         print("")
         self.board.write(self.message.encode('ASCII'))
@@ -152,6 +151,8 @@ class arduino():
                 print("\nInvalid input, please enter an integer between 1 and 10")
         
     def read_single(self, prt = True, in_waiting = True):
+        '''Read a single line from the arduino, in_waiting for blocking the program 
+        until a line is received'''
         if(in_waiting):
             while(self.board.in_waiting == 0):
                 pass

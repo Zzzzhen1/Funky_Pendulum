@@ -27,7 +27,7 @@ const int max_steps = 200;              // Maximum number of steps per loop, whi
 #define step_vcc_pin 9  // Connect to constant 5V output PIN
 #define dir_pin 10      // Connect to the DIR pin on the driver
 #define dir_vcc_pin 11  // Connect to constant 5V output PIN
-AccelStepper stepper(AccelStepper::DRIVER, step_pin, dir_pin);
+AccelStepper stepper(AccelStepper::DRIVER, step_pin, dir_pin); // Define the stepper by initialising the driver
 
 // Stepper related variables
 int distance = 0;                // Total Rail distance
@@ -68,12 +68,12 @@ double circ_buffer_angle[circ_buf_len] = { 0 };  // Circular buffer of the angle
 int circ_buffer_position[circ_buf_len] = { 0 };  // Circular buffer of the cart position to recover the position history.
 
 // PID parameters [Needs another fine tuning because the setup for the motor has changed]
-float Kp = 600;       //Reasonable: 300-2000
-float Ki = 400;          //Reasonable: 300-1700
-float Kd = 2.5;          //Reasonable: 2-10
-float Kp_pos = -0.05;  //Reasonable: 0.001-0.1
-float Ki_pos = 0.;   //Reasonable: 0.001-0.1
-float Kd_pos = -0.01;  //Reasonable: 0.0001-0.005
+float Kp = 600;       // Reasonable: 300-2000
+float Ki = 400;          // Reasonable: 300-1700
+float Kd = 2.5;          // Reasonable: 2-10
+float Kp_pos = -0.05;  // Reasonable: 0.001-0.1
+float Ki_pos = 0.;   // Reasonable: 0.001-0.1
+float Kd_pos = -0.01;  // Reasonable: 0.0001-0.005
 
 // Define the button
 #define Lbtn_pin 5        // Left switch pin
@@ -308,7 +308,8 @@ bool isFloat(String str, bool neg = false) {
   return true;
 }
 
-// Used in the setSpeed stage, appoint the input two values 
+// Used in the setSpeed stage, assign the input two values 
+// to temp_speed and temp_accel 
 bool isTwoFloat(String str){
   String temp_str = "";
   int comma_count = 0;
@@ -486,7 +487,7 @@ String collect_junk_serial() {
 // Principal set up of the arduino board and serial connection
 void setup() {
   Serial.begin(baudrate);
-  Serial.setTimeout(5000);
+  Serial.setTimeout(20000);
   // Communication begin routine //
   while (Serial.available() == 0) {}
   Serial.println("Successfully Connected");
@@ -546,16 +547,17 @@ void loop() {
   }
 }
 
-// Some control functions
 // Runs the cart centering
 void center() {
   if (Serial) {
     if (state_L && state_R) {
       if (flag_L && flag_R) {
+        // Move to the left switch first
         stepper.setSpeed(safe_speed);
         stepper.move(-1);
         stepper.runSpeedToPosition();
       } else if (!flag_L && flag_R) {
+        // After touched the left switch, move to the right
         stepper.setSpeed(safe_speed);
         stepper.move(1);
         stepper.runSpeedToPosition();
@@ -581,6 +583,7 @@ void center() {
       stepper.move(1);
       stepper.runSpeedToPosition();
       stepper.stop();
+      delay(500);
       stepper.setSpeed(safe_speed);
       stepper.runToNewPosition(pos_L + safe_steps);
       flag_L = 0;
@@ -589,6 +592,7 @@ void center() {
       stepper.move(-1);
       stepper.runSpeedToPosition();
       stepper.stop();
+      delay(500);
       stepper.setSpeed(safe_speed);
       stepper.runToNewPosition(pos_R - safe_steps);
       flag_R = 0;
@@ -631,7 +635,7 @@ void pid() {
         pid_print();
         Serial.println("");
         Serial.println("Resume (ENTER r) or ENTER six numbers split by commas without spaces");
-        Serial.println("For example: 600,200,2.5,-0.05,0,-0.01");
+        Serial.println("For example: 600,400,2.5,-0.05,0,-0.01");
         Serial.println("In this order:Kp_ang,Ki_ang,Kd_ang,Kp_pos,Ki_pos,Kd_pos");
         Serial.println("[Scroll up to see previous values]");
         Serial.println("Before press ENTER, make sure either the pendulum is stable at downright or upright position!");
@@ -651,7 +655,10 @@ void pid() {
         }
       } else {
         if (flag_eq_measure) {
+          // Measure the starting angle
           if (flag_swing) {
+            // Potentially, in this block of code, the measurement of 
+            // ang_eq = get_cumulative_angle() + M_PI
             ang_eq = get_cumulative_angle();
           } else {
             ang_eq = get_cumulative_angle();
@@ -660,6 +667,7 @@ void pid() {
           ang_eq = rectify_angle();
           flag_eq_measure = 0.;
         } else {
+          // Enters the specific motor control command
           pid_control_run(flag_swing);
         }
       }
@@ -673,6 +681,7 @@ void pid() {
 // PID stage stepper control, print through serial: time, angle and position (all with velocity)
 void pid_control_run(bool flag) {
   if (state_L && state_R) {
+    // This is where the data sampling happens
     current_ind = buf_ind % buf_len;
     current_time = millis() / 1000.;
     sample_time = millis();
@@ -689,6 +698,7 @@ void pid_control_run(bool flag) {
 
     cart_run_max();
 
+    // Sampled data is appended to the circular buffer
     circ_buffer_position[current_ind] = pos_cart;
     circ_buffer_angle[current_ind] = ang_cul;
     circ_buffer_time[current_ind] = current_time;
@@ -696,6 +706,7 @@ void pid_control_run(bool flag) {
     circ_buffer_angle[current_ind + buf_len] = ang_cul;
     circ_buffer_time[current_ind + buf_len] = current_time;
 
+    // This is where the communication happens, cutoff by the sample_div
     if (sample_time - sample_time_prev >= sample_div) {
       sample_time_prev = sample_time;
       Serial.print(current_time, 5);
@@ -722,17 +733,22 @@ void pid_control_run(bool flag) {
           ang_eq = rectify_angle();
           flag_switch_regime = 0;
         } else if (abs(abs(ang_dev) - M_PI) < 0.05) {
+          // Presumably, do nothing and wait for the next loop
+          // To be added in the arduino control
           cart_reset(false);
           delay(5000);  // Wait for manual stablisation
         }
       } else {
         // Do the control
         if (Ki != 0.) {
+          // Save calculation time if Ki = 0
           ang_integ = ang_integ_calc();
         }
         if (Ki_pos != 0.) {
+          // Save calculation time if Ki_pos = 0
           pos_integ = pos_integ_calc();
         }
+        // Notice the sign of the position control
         steps = int(Kp * ang_dev + Ki * ang_integ + Kd * ang_vel - Kp_pos * pos_cart - Ki_pos * pos_integ - Kd_pos * vel);
         stepper.move(steps);
         cart_run_max();
@@ -741,9 +757,11 @@ void pid_control_run(bool flag) {
       // without swing up strategy
       // Do the control
       if (Ki != 0.) {
+        // Save calculation time if Ki = 0
         ang_integ = ang_integ_calc();
       }
       if (Ki_pos != 0.) {
+        // Save calculation time if Ki_pos = 0
         pos_integ = pos_integ_calc();
       }
       steps = int(Kp * ang_dev + Ki * ang_integ + Kd * ang_vel - Kp_pos * pos_cart - Ki_pos * pos_integ - Kd_pos * vel);
@@ -751,11 +769,12 @@ void pid_control_run(bool flag) {
       cart_run_max();
     }
     pos_cart_target = stepper.targetPosition();
+    // in case the cart crashes into the switches too hard
     if (pos_cart_target <= -int(distance / 2) + safe_steps || pos_cart_target >= int(distance / 2) - safe_steps) {
       cart_reset();
       reset();
     }
-    buf_ind += 1;
+    buf_ind += 1; // update the buffer indices
     previous_time = current_time;  // Record the begin time of this loop. For test Only.
   } else {
     cart_reset();
@@ -768,7 +787,7 @@ void measure() {
   if (Serial) {
     ang_cul = get_cumulative_angle();
     previous_time = current_time;
-    current_time = micros() / 1000000.;
+    current_time = micros() / 1000000.; // Only for this stage the micros() is used
     sample_time = millis();
     if (sample_time - sample_time_prev >= sample_div) {
       sample_time_prev = sample_time;
@@ -1116,7 +1135,7 @@ double get_angle() {
   return temp_ang;
 }
 
-// Cumulative angle measurement
+// Cumulative angle measurement, will automatically take the first angle as zero angle
 double get_cumulative_angle() {
   double temp_ang = angle_sensor.getCumulativePosition() * AS5600_RAW_TO_RADIANS;
   if (flag_init_ang_cul) {
@@ -1130,6 +1149,7 @@ double get_cumulative_angle() {
 
 // Angular speed measurement in rad/s
 double get_angular_velocity() {
+  // *args mode 1 for rad/s, 0 for rpm
   double temp_ang_vel = angle_sensor.getAngularSpeed(1);
   if (buf_ind < pos_vel_len + 1) {
     return 0;
@@ -1144,6 +1164,7 @@ double ang_integ_calc() {
     double sum = 0;
     double time = 0;
     for (int i = 2; i <= buf_len; i++) {
+      // the order of calculation is important to increase the accuracy
       sum += (circ_buffer_angle[current_ind + i] - ang_eq) * circ_buffer_time[current_ind + i]
              - (circ_buffer_angle[current_ind + i] - ang_eq) * circ_buffer_time[current_ind + i - 1];
     }
@@ -1159,6 +1180,7 @@ double pos_integ_calc() {
     double sum = 0;
     double time = 0;
     for (int i = 2; i <= buf_len; i++) {
+      // the order of calculation is important to increase the accuracy
       sum += double(circ_buffer_position[current_ind + i]) * circ_buffer_time[current_ind + i]
              - double(circ_buffer_position[current_ind + i]) * circ_buffer_time[current_ind + i - 1];
     }
@@ -1226,7 +1248,8 @@ bool cart_run_speed() {
   }
 }
 
-// Runs the cart the max_steps and update the pos_cart
+// Runs the cart the max_steps and update the pos_cart (also check the switches)
+// Needs to take great care if microsteps are used because each step is not necessarily 1 step
 void cart_run_max() {
   if (flag_exit) {
     return;
@@ -1238,10 +1261,12 @@ void cart_run_max() {
     state_R = state_change_R();
     if (!state_L) {
       stepper.stop();
+      delay(500);
       flag_exit = 1;
       return;
     } else if (!state_R) {
       stepper.stop();
+      delay(500);
       flag_exit = 1;
       return;
     }
@@ -1253,7 +1278,8 @@ void cart_run_max() {
   }
 }
 
-// Receive from laptop the comma separated data
+// Receive from laptop the comma separated data in NR stage
+// TODO: the global variables can be avoided by using the return value...
 void NR_receive() {
   int comma_index = message.indexOf(',');
   if (comma_index == -1) {
