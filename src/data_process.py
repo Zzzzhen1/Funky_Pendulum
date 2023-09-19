@@ -1,832 +1,1484 @@
-'''This is in general the data analysis class, currently compatible with the 
-   measure and scan for response data analysis'''
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib as mpl
-import pandas as pd
-import os, csv, tkinter
-from statistics import mean, stdev
+import matplotlib.pyplot as plt
+import time, os, csv
+from datetime import datetime
 from scipy.fft import fft, fftfreq
-from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
 plt.rcParams['axes.grid'] = True
 plt.rcParams["figure.autolayout"] = True
+prop_cycle = plt.rcParams['axes.prop_cycle']
+colors = prop_cycle.by_key()['color']
 mpl.use('TkAgg')
 
-def damp_sin(time, gamma, omega, phi, amp, offset):
-    '''Fit to the natural frequency measurement plot'''
-    return amp * np.exp(- 0.5 * gamma * time) * np.sin(2 * np.pi * omega * time + phi) + offset
+# Initialisation of some constants and variables
+port = 'COM6' 
+baudrate = 230400 # TODO: extract all constants from a larger project file?
+MAX_COUNT = 10 # Number of points waited to plot a frame TODO: change this to manipulate the fps
+ANGLE_ROTATION = 55 # Rotation of the y-label
 
-def sinusoid(time, omega, phi, amp, offset):
-    '''Fit to the amplitude response scan plot'''
-    return amp * np.sin(2 * np.pi * omega * time + phi) + offset
-
-class data_analysis():
-    
-    '''Analysis class to analyse the data
-    
-    -----------------
-    Attributes
-    -----------------
-    1. default buffer length of 16 * 65536
-    2. default directory given by os.getcwd()
-    3. a set of flags to indicate the stage of the analysis
-    process
-    4. a dictionary of properties, keys are assigned by the
-    a list of headers
-    
-    Methods
-    -----------------
-    1. clear_flag(): 
-        reset all the flags to their original state
-    2. clear_data(): 
-        clear all the data
-    3. load_csv():
-        load all the csv files from the input directory, returns 
-        True if there is any csv file, False otherwise. This method
-        will also turn up the flags for the csv type based on the
-        header of the csv file
-    4. read_csv(file_name, flag_pid = False):
-        Args: 
-            file_name: the name of the csv file
-            flag_pid: whether the csv file is a pid type file, if True,
-            read_csv will read the values starting from a different row
-        Yields: 
-            read the csv file and store the data in the data array
-            update the properties dictionary
-        Returns: 
-            True if the csv file is read successfully, False otherwise
-            (including negative time stamp, and sometimes empty file)
-    5. check_csv_type():
-        check whether all the csv files are of the same type, returns
-        True if all the csv files are of the same type, False otherwise
-    6. load_data(row, file):
-        Args:
-            row: a row of data from the csv file
-            file: the csv file name
-        Yields:
-            load the data into the data array, delete the files if negative
-            time stamp is detected
-    7. clean_data(file):
-        Yields:
-            rotate the circular buffer to the correct starting time stamp
-            and return the data array
-    8. restore_figure(start_index = 0, end_index = -1):
-        Args:
-            start_index: the starting index of the data to be plotted
-            end_index: the ending index of the data to be plotted
-        Yields:
-            restore the figure for the scan type data
-    9. fft_index_list(time, fft_length, sampling_div):
-        Args:
-            time: the time array
-            fft_length: the length of the fft
-            sampling_div: the sampling interval
-        Returns:
-            index_list: the list of indices for the fft
-            avg_spacing: the average time spacing, which determines
-            the maximum frequency (refer to the Nyquist-Shannon sampling)
-    10. general_fft(time, angle, position, fft_length, sampling_div):
-        Args:
-            time: the time array
-            angle: the angle array
-            position: the position array
-            fft_length: the number of points used for fast fourier transform
-            sampling_div: the desired sampling interval
-        Returns:
-            fft_angle: the fourier transform of the angle array
-            fft_position: the fourier transform of the position array
-            fft_freq: the frequency array
-            avg: the average time spacing
-    11. phase_rectify(phase):
-        Args:
-            phase: the phase to be rectified
-        Returns:
-            a phase in the range of -0.5 * pi to 1.5 * pi
-    12. phase_calc(fft_freq, omega, fft_angle, fft_pos, interpolation = True):
-        Args:
-            fft_freq: the frequency array
-            omega: the driving frequency in Hz
-            fft_angle: the fourier transform of the angle array
-            fft_pos: the fourier transform of the position array
-            interpolation: whether to use interpolation to calculate the phase
-        Returns:
-            phase: the phase in the range of -0.5 * pi to 1.5 * pi
-    13. scan_fit(time, angle, amp_range):
-        Args:
-            time: the time array
-            angle: the angle array
-            amp_range: the range of the amplitude to be fitted
-        Returns:
-            popt: the optimized parameters to fit the sinusoidal function
-            pcov: the covariance matrix
-    14. scan_fft_plot(axs, start_index = 0, end_index = -1):
-        plot the phase curve and fft on the axes objects
-    15. scan_process(axes, start_time, end_time, rolling_time):
-        calculate the phase and amplitude of the scan data
-        based on the input time range and rolling time
-    16. scan_plot(file, block = True):
-        plot two graphs:
-        1. The angle-time graph with best fit line and parameters
-        2. The phase curve and cumulated error
-        And save the timestamp, the amplitude of the best-fit, and the
-        phase with errors to a csv file
-    17. save_scan_data(exp_data, file):
-        save the scan data to a csv file
-    18. measure_plot(file, block = True):
-        plot the angle-time graph with best fit line and parameters
-        And save the timestamp, the optimized parameters to a csv file
-    19. save_measure_data(exp_data, file):
-        save the measure data to a csv file
-    20. main():
-        the main function of the data analysis class
-        '''
-    
-    def __init__(self):
-        self.buffer_length = 16 * 65536 # The buffer length of the data
-        self.dirc = os.getcwd() # Get the csv file directory, either by input
-        self.csv_list = [] # A list of csv file names
-        self.data_flag_dict = {
-            'measure': False,
-            'scan': False,
-            'pid': False,
-        }
-        self.properties = {} # A dictionary of numbers read from the header
-        self.header = [
-            'special_info',
-            'start_time',
-            'omega',
-            'multiple_omega',
-            'amplitude',
-            'phase/pi',
-            'multiple_phase/pi',
-            'time,angle,position,angular_velocity,cart_velocity',
-            'Kp',
-            'Ki',
-            'Kd',
-            'Kp_pos',
-            'Ki_pos',
-            'Kd_pos',
-        ]
-        self.data = np.zeros((5,self.buffer_length), dtype = float)
-        self.count = 0
-        self.phase_list = []
-        self.amp_list = []
-        
-    def clear_flag(self):
-        '''Clear the flag'''
-        for key in self.data_flag_dict:
-            self.data_flag_dict[key] = False
-    
-    def clear_data(self):
-        '''Clear the data'''
-        self.csv_list = []
-        self.properties = {}
-        self.data = np.zeros((5,self.buffer_length), dtype = float)
-        self.count = 0
-        self.temp_data = np.zeros((5,self.buffer_length), dtype = float)
-        self.phase_list = []
-        self.amp_list = []
-        self.ax0 = None
-        self.txt_list = None
-        
-    def load_csv(self):
-        '''Load the csv file'''
-        self.clear_data()
-        self.dirc = input('Please input the directory of the csv file: ')
-        for file in os.listdir(self.dirc):
-            if file.endswith('.csv'):
-                self.csv_list.append(file)
-            if file.startswith('measure'):
-                self.data_flag_dict['measure'] = True
-            if file.startswith('NR'):
-                self.data_flag_dict['scan'] = True
-            if file.startswith('pid'):
-                self.data_flag_dict['pid'] = True
-        if (len(self.csv_list) == 0):
-            print('No csv file found in the directory!')
-            return False
-        else:
-            return True
-    
-    def read_csv(self, file_name, flag_pid = False):
-        '''Read a single csv file and return the properties and data'''
-        path = self.dirc + '\\' + file_name
-        self.path = path
-        with open(path, 'r') as file:
-            reader = csv.reader(file)
-            try: 
-                for index, row in enumerate(reader):
-                    if(flag_pid):
-                        if(index == 2):
-                            # Read the pid parameters
-                            pid_headers = ['Kp', 'Ki', 'Kd', 'Kp_pos', 'Ki_pos', 'Kd_pos']
-                            for index, param in row:
-                                self.properties.update({pid_headers[index]:param})
-                            continue
-                        if(row[0].startswith('Kp')):
-                            continue
-                        for header in self.header:
-                            if(row[0].startswith(header)):
-                                self.properties.update({header:row[1]})
-                                break
-                        if(row[0].startswith('time')):
-                            continue
-                        if(index >= 8):
-                            self.load_data(row, file)
-                    else:
-                        for header in self.header:
-                            if(row[0] == 'multiple_omega' or row[0] == 'multiple_phase'):
-                                self.properties.update({header:(row[i] for i in range(1, len(row)))})
-                                print(self.properties[header])
-                                # TODO: multiple frequency assessment
-                                return False
-                            if(row[0].startswith(header)):
-                                self.properties.update({header:row[1]})
-                                break
-                        if(row[0].startswith('time')):
-                            continue
-                        if(index >= 6):
-                            self.load_data(row, file)
-            except ValueError:
-                return False
-        return True
-    
-    def check_csv_type(self):
-        '''Check whether all the csv files are of the same type'''
-        sum = 0
-        for key in self.data_flag_dict:
-            sum += self.data_flag_dict[key]
-        if(sum == 0):
-            return False
-        elif(sum == 1):
-            return True
-        else:
-            print('Multiple data type detected!')
-            return False
-    
-    def load_data(self, row, file):
-        '''Load a single row of data'''
-        if(float(row[0]) < 0):
-            print("Detect negative time stamp at " + self.path + " Deleting...")
-            input("Press ENTER to continue")
-            file.close()
-            os.remove(self.path)
-            return
-        if(row[0] != '0.0'):
-            for i in range(5):
-                self.data[i][self.count] = float(row[i])
-            self.count += 1
-                
-    def clean_data(self, file):
-        '''Returns an array with correct starting time stamp'''
-        temp_index = 0
-        time_stamp = self.data[0][0]
-        flag = True
-        for i in range(len(self.data[0])):
-            if(flag):
-                if(self.data[0][i] >= time_stamp):
-                    time_stamp = self.data[0][i]
-                else:
-                    flag = False
-                    temp_index = i
-                    time_stamp = self.data[0][i]
-                    for j in range(len(self.data[0])):
-                        self.data[0][j] -= time_stamp
-                    break
-                    
-        if(temp_index == 0 and time_stamp == 0):
-            print('Empty file found at ' + self.dirc + '\\' + file + " Deleting...")
-            input("Press ENTER to continue")
-            os.remove(self.path)
-            raise FileNotFoundError
-        return self.data[:, temp_index : temp_index + int(self.count / 2)]
-    
-    def restore_figure(self, start_index = 0, end_index = -1):
-        '''Restore the figure for the scan type data'''
-        print("Restoring figure...")
-        self.figure, axes = plt.subplots(2, 2, figsize = (10, 6))
-        self.scan_fft_plot((axes[0, 1], axes[1, 1]), start_index, end_index)
-        try:
-            self.figure.suptitle(self.properties['special_info'])
-        except KeyError:
-            self.figure.suptitle('No special info')
-        self.figure.canvas.manager.set_window_title(self.properties['file_name'])
-        axes[0, 0].plot(self.temp_data[0][0:len(self.temp_data[0]):5], 
-                        self.temp_data[1][0:len(self.temp_data[0]):5], 
-                        'b-', 
-                        label = 'angle_time')
-        axes[0, 0].legend(loc = 'upper left')
-        axes[1, 0].plot(self.temp_data[0][0:len(self.temp_data[0]):5], 
-                        self.temp_data[2][0:len(self.temp_data[0]):5], 
-                        'b-', 
-                        label = 'position_time')
-        axes[1, 0].legend(loc = 'upper left')
-        return self.figure, axes
-    
-    def fft_index_list(self, time, fft_length, sampling_div):
-        '''return the list and average time spacing based on the 
-        given sampling_div and fft_length'''
-        current_time = time[len(time) - 1]
+class data_phy():
+    '''Put all the physics in this class such that people can look at the fft'''
+    def __init__(
+        self,
+        fft_length,
+        sampling_div,
+        wait_to_stable,
+        buffer_length = 4 * 8192,
+        plot_length = 64,
+        ):
+            self.start_time = 0.
+            self.sampling_div = sampling_div
+            self.avg_spacing = 0.
+            self.time = np.zeros(2 * buffer_length)
+            self.angle = np.zeros(2 * buffer_length)
+            self.angular_velocity = np.zeros(2 * buffer_length)
+            self.position = np.zeros(2 * buffer_length)
+            self.position_velocity = np.zeros(2 * buffer_length)
+            self.omega = 2.
+            self.amp = 100.
+            self.amp_0 = 50.0 # This is used to characterise the constant oscillation
+            self.phase = 0.
+            self.NR_Kp = -0.05
+            self.NR_Kd = 0.
+            self.NR_Ki = 0.
+            self.fft_angle = np.zeros(fft_length)
+            self.fft_pos = np.zeros(fft_length)
+            self.fft_freq = np.zeros(fft_length)
+            self.buffer_length = buffer_length
+            self.fft_length = fft_length
+            self.plot_length = plot_length
+            self.index_list = np.zeros(fft_length, dtype = int)
+            self.phase_list = [(0., 0.)] * self.plot_length * 10 * (wait_to_stable + 1)
+            self.amp_list = [(0., 0.)] * self.plot_length * 10
+            self.wait_to_stable = wait_to_stable
+            self.index = 0
+            self.temp_index = 0
+            self.counter = 0
+            self.flag_fig_init = True
+            self.flag_subplot_init = True
+            self.flag_close_event = False
+            self.module_name = ""
+            self.path = ""
+            self.omega_num = 0
+            self.omega_list = None
+            self.multi_phase_list = None
+            self.pos_const = None
+            self.pos_active = None
+            self.setSpeed_param = None
+            self.phase_list_active = None
+  
+    def fft_index_list(self):
+        '''return the list and average time spacing'''
+        current_time = self.time[self.temp_index + self.buffer_length]
         time_stamp = current_time
-        index = fft_length - 2
-        index_list = np.zeros(fft_length, dtype = int)
-        index_list[fft_length - 1] = current_time
+        index = self.fft_length - 2
+        index_list = np.zeros(self.fft_length, dtype = int)
+        index_list[self.fft_length - 1] = current_time
         
-        for i in range(len(time) - 1, 0, -1):
+        for i in range(self.temp_index + self.buffer_length, self.temp_index + 1, -1):
             if index < 0: 
-                index_list = index_list
-                avg_spacing = (current_time - time_stamp) / (fft_length - index - 2)
-                return index_list, avg_spacing
-            if(time_stamp - time[i] >= sampling_div):
+                self.index_list = index_list
+                avg_spacing = (current_time - time_stamp) / (self.fft_length - index - 2)
+                return self.index_list, avg_spacing
+            if(time_stamp - self.time[i] >= self.sampling_div):
                 index_list[index] = i
-                time_stamp = time[i]
+                time_stamp = self.time[i]
                 index -= 1
         if index >= 0:
-            avg_spacing = (current_time - time_stamp) / (fft_length - index - 2)
-            index_list = index_list[index + 1 : fft_length]
-            return index_list, avg_spacing
-        else:
-            index_list = index_list
-            avg_spacing = (current_time - time_stamp) / (fft_length - index - 2)
-            return index_list, avg_spacing
+            avg_spacing = (current_time - time_stamp) / (self.fft_length - index - 2)
+            self.index_list = index_list[index + 1 : self.fft_length]
+            return self.index_list, avg_spacing
     
-    def general_fft(self, time, angle, position, fft_length, sampling_div):
-        '''Return the normalised frequency spectrum of the input angle
-        and position data, and the corresponding frequency array'''
-        index, avg = self.fft_index_list(time, fft_length, sampling_div)
-        temp_angle = fft(angle[index])
-        temp_pos = fft(position[index])
-        fft_angle = temp_angle / np.max(abs(temp_angle))
-        fft_position = temp_pos / np.max(abs(temp_pos))
-        fft_freq = fftfreq(len(index), avg)
-        return fft_angle, fft_position, fft_freq, avg
+    def fft(self):
+        if(self.time[self.temp_index] > 5 * self.sampling_div):
+            index_list, avg_spacing = self.fft_index_list()
+            self.avg_spacing = avg_spacing
+            
+            fft_ang = fft(self.angle[index_list])
+            fft_pos = fft(self.position[index_list])
+            if(self.pos_const is not None):
+                fft_pos_const = fft(self.pos_const[index_list])
+            if(self.pos_active is not None):
+                fft_pos_active = fft(self.pos_active[index_list])
+            fft_freq = fftfreq(len(index_list), avg_spacing)
+            
+            self.fft_angle = fft_ang[1:int(len(fft_freq) / 2)]
+            self.fft_pos = fft_pos[1:int(len(fft_freq) / 2)]
+            if(self.pos_const is not None):
+                self.fft_pos_const = fft_pos_const[1:int(len(fft_freq) / 2)]
+            if(self.pos_active is not None):
+                self.fft_pos_active = fft_pos_active[1:int(len(fft_freq) / 2)]
+            self.fft_freq = fft_freq[1:int(len(fft_freq) / 2)]
+            return True
+        else:
+            return False
+    
+    def NR_phase_calc(self, omega, scan, interpolation = True):
+        if (self.fft()):
+            close_ind = np.argmin(np.abs(self.fft_freq - omega))
+            if(not scan):
+                if interpolation:
+                    if self.fft_freq[close_ind] < omega:
+                        delta_phase_1 = self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            + 1]) - np.angle(self.fft_pos_const[close_ind + 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                        
+                        delta_phase_3 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind\
+                            + 1]) - np.angle(self.fft_pos_const[close_ind + 1]))
+                        delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]))
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                + 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+                                    
+                        self.phase_active = delta_phase_2 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                            + 1] - self.fft_freq[close_ind]) * \
+                            (delta_phase_3 - delta_phase_2)
 
+                    elif self.fft_freq[close_ind] > omega:
+                        delta_phase_1 =  self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            - 1]) - np.angle(self.fft_pos_const[close_ind - 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                        
+                        delta_phase_3 =  self.phase_rectify(np.angle(self.fft_pos_active[close_ind\
+                            - 1]) - np.angle(self.fft_pos_const[close_ind - 1]))
+                        delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]))
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                - 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+                                    
+                        self.phase_active = delta_phase_2 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                            - 1] - self.fft_freq[close_ind]) * \
+                            (delta_phase_3 - delta_phase_2)
+
+                    else:
+                        self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                        self.phase_active = self.phase_rectify(np.angle(self.fft_pos_active[close_ind]) \
+                            - np.angle(self.fft_pos_const[close_ind]))
+                else:
+                    self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                        - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                    self.phase_active = self.phase_rectify(np.angle(self.fft_pos_active[close_ind]) \
+                        - np.angle(self.fft_pos_const[close_ind]))
+                self.phase_list.pop(0)
+                self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
+                self.phase_list_active.pop(0)
+                self.phase_list_active.append((self.time[self.temp_index], self.phase_active / np.pi))
+                return True
+            else:
+                if interpolation:
+                    if self.fft_freq[close_ind] < omega:
+                        delta_phase_1 = self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            + 1]) - np.angle(self.fft_pos[close_ind + 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos[close_ind]) + np.pi)
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                + 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+
+                    elif self.fft_freq[close_ind] > omega:
+                        delta_phase_1 =  self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            - 1]) - np.angle(self.fft_pos[close_ind - 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos[close_ind]) + np.pi)
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                - 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+
+                    else:
+                        self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                            - np.angle(self.fft_pos[close_ind]) + np.pi)
+                else:
+                    self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                        - np.angle(self.fft_pos[close_ind]) + np.pi)
+                if(self.omega_list is None):
+                    self.phase_list.pop(0)
+                    self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
+                return True
+        else:
+            return False
+        
+    def NR_update(self, scan = False, interpolation = True, manual = True):
+        '''Needs to be called frequently to update the plot for the phase and amplitude'''
+        if(self.omega_list is None):
+            if (self.NR_phase_calc(self.omega, scan, interpolation)):
+                if scan:
+                    return 0., 0.
+                else:
+                    if(manual):
+                        self.amp_list.pop(0)
+                        self.amp_list.append((self.time[self.temp_index], self.amp))
+                        return self.amp, self.phase
+                    else:
+                        # This is for the automatic finding of normalised resonance
+                        delta_amp_Kp = self.NR_Kp * ((self.phase + np.pi / 2))/ (2 * np.pi)
+                        try:
+                            delta_amp_Kd = self.NR_Kd * (self.phase_list[-1][1] - self.phase_list[-2][1]) / \
+                                (self.phase_list[-1][0] - self.phase_list[-2][0])
+                        except RuntimeError:
+                            pass
+                        self.amp *= (1 - delta_amp_Kp) * (1 - delta_amp_Kd)
+                        # Need a way to transmit this to a thread...
+                        self.amp_list.pop(0)
+                        self.amp_list.append((self.time[self.temp_index], self.amp))
+                        return self.amp, self.phase
+            else:
+                return 0, 0
+        else:
+            for index, omega in enumerate(self.omega_list):
+                if(self.NR_phase_calc(omega, interpolation)):
+                    self.multi_phase_list[index].pop(0)
+                    self.multi_phase_list[index].append((self.time[self.temp_index], self.phase / np.pi))
+            return 0., 0.
+    
     def phase_rectify(self, phase):
-        '''Shifts the phase to be between 0.5 * pi and -1.5 * pi, which is symmetric abour -0.5*pi'''
+        '''Shifts the phase to be between 0.5 * pi and -1.5*pi, which is symmetric abour -0.5*pi'''
         phase = phase - 2 * np.pi * int(phase / (2 * np.pi))
         if phase > 0.5 * np.pi:
             return phase - 2 * np.pi
+        elif phase <= -1.5 * np.pi:
+            return phase + 2 * np.pi
         else:
             return phase
     
-    def phase_calc(self, fft_freq, omega, fft_angle, fft_pos, interpolation = True):
-        close_ind = np.argmin(np.abs(fft_freq - omega))
-        if interpolation:
-            if fft_freq[close_ind] < omega:
-                delta_phase_1 = self.phase_rectify(np.angle(fft_angle[close_ind\
-                    + 1]) - np.angle(fft_pos[close_ind + 1]) + np.pi)
-                delta_phase_0 = self.phase_rectify(np.angle(fft_angle[close_ind])\
-                    - np.angle(fft_pos[close_ind]) + np.pi)
+    def delay_fit(self, low, high):
+        '''Find the delay time between the two waves'''
+        delay_time = 0.
+        
+        def delay_func(time, delay):
+            return self.amp_0 * np.sin(2 * np.pi * self.omega * (time + self.start_time + delay))
+        
+        popt, pcov = curve_fit(delay_func, 
+                               self.time[low : high], 
+                               self.position[low : high],
+                               p0 = 0.007,
+                               maxfev = 20000)
+        # the idea here is that the proposed position of the cart at this moment 
+        # is the position of the cart at the next moment
+        delay_time = popt[0]
+        delay_error = np.sqrt(np.diag(pcov))[0]
+        return delay_time, delay_error
+    
+class data(data_phy):
+    
+    '''Initialisation of the data class, used to store the data from the arduino
+    and plot the graph with blocking'''
+    
+    def __init__(
+        self,
+        fft_length,
+        sampling_div,
+        wait_to_stable = 1,
+        buffer_length = 4 * 8192,
+        plot_length = 64,
+        ):
+        self.start_time = 0.
+        self.sampling_div = sampling_div
+        self.avg_spacing = 0.
+        self.time = np.zeros(2 * buffer_length)
+        self.angle = np.zeros(2 * buffer_length)
+        self.angular_velocity = np.zeros(2 * buffer_length)
+        self.position = np.zeros(2 * buffer_length)
+        self.position_velocity = np.zeros(2 * buffer_length)
+        self.omega = 2.
+        self.amp = 100.
+        self.amp_0 = 50.0 # This is used to characterise the constant oscillation
+        self.phase = 0.
+        self.NR_Kp = -0.05
+        self.NR_Kd = 0.
+        self.NR_Ki = 0.
+        self.fft_angle = np.zeros(fft_length)
+        self.fft_pos = np.zeros(fft_length)
+        self.fft_freq = np.zeros(fft_length)
+        self.buffer_length = buffer_length
+        self.fft_length = fft_length
+        self.plot_length = plot_length
+        self.index_list = np.zeros(fft_length, dtype = int)
+        self.phase_list = [(0., 0.)] * self.plot_length * 10 * (wait_to_stable + 1)
+        self.amp_list = [(0., 0.)] * self.plot_length * 10
+        self.wait_to_stable = wait_to_stable
+        self.index = 0
+        self.temp_index = 0
+        self.counter = 0
+        self.flag_fig_init = True
+        self.flag_subplot_init = True
+        self.flag_close_event = False
+        self.module_name = ""
+        self.path = ""
+        self.omega_num = 0
+        self.omega_list = None
+        self.multi_phase_list = None
+        self.pos_const = None
+        self.pos_active = None
+        self.setSpeed_param = None
+        self.phase_list_active = None
+    
+    def append_data(
+        self,
+        data_frame,
+        appendPos = True,
+        appendVel = False
+    ):  
+        if(self.index == 0):
+            self.start_time = data_frame.time
+            self.sys_start_time = time.time()
+        temp_index = self.index % self.buffer_length
+        self.time[temp_index] = data_frame.time - self.start_time
+        self.time[temp_index + self.buffer_length] = data_frame.time - self.start_time
+        self.angle[temp_index] = data_frame.angle
+        self.angle[temp_index + self.buffer_length] = data_frame.angle
+        if(appendPos):
+            self.position[temp_index] = data_frame.position
+            self.position[temp_index + self.buffer_length] = data_frame.position
+        if(appendVel):
+            self.angular_velocity[temp_index] = data_frame.angular_velocity
+            self.angular_velocity[temp_index + self.buffer_length] = data_frame.angular_velocity
+            self.position_velocity[temp_index] = data_frame.position_velocity
+            self.position_velocity[temp_index + self.buffer_length] = data_frame.position_velocity
+        self.index += 1
+        self.temp_index = temp_index
+    
+    def clear_data(self):
+        self.time = np.zeros(2 * self.buffer_length)
+        self.angle = np.zeros(2 * self.buffer_length)
+        self.angular_velocity = np.zeros(2 * self.buffer_length)
+        self.position = np.zeros(2 * self.buffer_length)
+        self.position_velocity = np.zeros(2 * self.buffer_length)
+        self.index = 0
+        self.temp_index = 0
+        self.counter = 0
+        self.fft_angle = np.zeros(self.fft_length)
+        self.fft_pos = np.zeros(self.fft_length)
+        self.fft_freq = np.zeros(self.fft_length)
+        self.amp = 100.
+        self.phase = 0.
+        self.omega = 2.
+        self.avg_spacing = 0.
+        self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
+        self.amp_list = [(0., 0.)] * self.plot_length * 10
+        self.index_list = np.zeros(self.fft_length, dtype = int)
+        self.omega_num = 0
+        self.omega_list = None
+        self.multi_phase_list = None
+        self.pos_const = None
+        self.pos_active = None
+        self.setSpeed_param = None
+        self.phase_list_active = None
+        
+    def clear_figure(self):
+        plt.close("all")
+        self.flag_fig_init = True
+        self.flag_subplot_init = True
+        self.flag_close_event = False
+    
+    def init_plot(self, module_name, scan = True):
+        if(self.flag_fig_init):
+            self.flag_fig_init = False
+            plt.ion()
+            if(module_name == "measure"):
+                if(self.flag_subplot_init):
+                    self.figure, self.ax_list = plt.subplots(1, 2, figsize = (8, 5))
+                    self.figure.suptitle('Measure')
+                    self.flag_subplot_init = False
+                self.line_angle, = self.ax_list[0].plot([], [], 'b-')
+                self.line_fft, = self.ax_list[1].plot([], [], 'b-')
                 
-                phase = delta_phase_0 + (omega - \
-                    fft_freq[close_ind]) / (fft_freq[close_ind\
-                        + 1] - fft_freq[close_ind]) * \
-                            (delta_phase_1 - delta_phase_0)
-
-            elif fft_freq[close_ind] > omega:
-                delta_phase_1 =  self.phase_rectify(np.angle(fft_angle[close_ind\
-                    - 1]) - np.angle(fft_pos[close_ind - 1]) + np.pi)
-                delta_phase_0 = self.phase_rectify(np.angle(fft_angle[close_ind])\
-                    - np.angle(fft_pos[close_ind]) + np.pi)
-                
-                phase = delta_phase_0 + (omega - \
-                    fft_freq[close_ind]) / (fft_freq[close_ind\
-                        - 1] - fft_freq[close_ind]) * \
-                            (delta_phase_1 - delta_phase_0)
-
-            else:
-                phase = self.phase_rectify(np.angle(fft_angle[close_ind]) \
-                    - np.angle(fft_pos[close_ind]) + np.pi)
-        else:
-            phase = self.phase_rectify(np.angle(fft_angle[close_ind]) \
-                - np.angle(fft_pos[close_ind]) + np.pi)
-        
-        return phase / np.pi
-     
-    def scan_fit(self, time, angle,
-                 amp_range):
-        '''Fit the sinusoidal function to the data, and return the 
-        optimized parameters and the covariance matrix'''
-        popt, pcov = curve_fit(sinusoid, time, angle,
-                               p0 = [float(self.properties['omega']), np.pi, 
-                                     0.5*(amp_range[0] + amp_range[1]), 0.],
-                               bounds = ((0., 0, amp_range[0], -0.6),
-                                         (4., 2 * np.pi, amp_range[1], 0.6)),
-                               maxfev = 2000000000)
-        return popt, pcov
-
-    def scan_fft_plot(self, axs, start_index = 0, end_index = -1):
-        '''Plot phase curve and fft on the axes objects'''
-        for i in range(len(self.temp_data[0][start_index:end_index])):
-            if(self.temp_data[0][i + start_index] - self.temp_data[0][0] \
-                > 5):
-                fft_angle, fft_position, fft_freq, avg = self.general_fft(
-                    self.temp_data[0][:i + start_index],
-                    self.temp_data[1][:i + start_index],
-                    self.temp_data[2][:i + start_index],
-                    self.fft_length,
-                    self.sampling_div
-                )
-                phase = self.phase_calc(
-                    fft_freq,
-                    float(self.properties['omega']),
-                    fft_angle,
-                    fft_position
-                )
-                self.phase_list.append(phase)
-                axs[1].plot(self.temp_data[0][i + start_index], phase, 'bo', markersize = 2)
-        if(len(self.temp_data[0]) == 0):
-            return
-        fft_angle, fft_position, fft_freq, avg = self.general_fft(
-            self.temp_data[0][start_index:end_index],
-            self.temp_data[1][start_index:end_index],
-            self.temp_data[2][start_index:end_index],
-            self.fft_length,
-            self.sampling_div
-        )
-        axs[0].plot(fft_freq[1:int(len(fft_freq)/2)], 
-                    abs(fft_angle[1:int(len(fft_freq)/2)]), 
-                    'b-', 
-                    label = 'angle')
-        axs[0].legend(loc = 'upper right')
-        self.ax0.clear()
-        self.ax0.plot(fft_freq[1:int(len(fft_freq)/2)], 
-                 abs(fft_position[1:int(len(fft_freq)/2)]), 
-                 'r-', 
-                 label = 'position')
-        self.ax0.legend(loc = 'right')
-
-    def scan_process(self, axes, start_time, end_time, rolling_time):
-        self.phase_list = []
-        self.fft_length = int(rolling_time / self.sampling_div)
-        if(self.temp_data[0][0] >= start_time):
-            print("Invalid input of time range")
-            return
-        for i in range(len(self.temp_data[0])):
-            if(self.temp_data[0][i] <= start_time):
-                start_index = i
-            if(self.temp_data[0][i] >= end_time):
-                end_index = i
-                break
-            end_index = -1
-        
-        self.figure, axes = self.restore_figure(start_index, end_index)
-        axes[0, 1].clear()
-        axes[1, 1].clear()
-        
-        self.scan_fft_plot((axes[0, 1], axes[1, 1]), start_index, end_index)
-        
-        amp_ang_max = np.max(abs(self.temp_data[1][start_index:end_index]))
-        amp_pos_max = np.max(abs(self.temp_data[2][start_index:end_index]))
-        
-        popt_angle, pcov_angle = self.scan_fit(self.temp_data[0][start_index:end_index], 
-                                               self.temp_data[1][start_index:end_index],
-                                               amp_range = (amp_ang_max - 0.5, amp_ang_max + 0.1))
-        # be careful of the negative sign in the angle fit
-        popt_position, pcov_position = self.scan_fit(self.temp_data[0][start_index:end_index],
-                                                     self.temp_data[2][start_index:end_index],
-                                                     amp_range = (amp_pos_max - 5, amp_pos_max + 5))
-        axes[0, 0].plot(self.temp_data[0][start_index:end_index],
-                        sinusoid(self.temp_data[0][start_index:end_index], *popt_angle),
-                        'r--', label = 'best-fit-line')
-        axes[0, 0].legend()
-        axes[1, 0].plot(self.temp_data[0][start_index:end_index],
-                        sinusoid(self.temp_data[0][start_index:end_index], *popt_position),
-                        'r--', label = 'best-fit-line')
-        axes[1, 0].legend()
-        
-        print('A_ang = %.4f ' % popt_angle[2] + u"\u00B1" + ' %.4f' % np.sqrt(pcov_angle[2, 2])\
-            + " rad")
-        print('A_pos = %.2f ' % popt_position[2] + u"\u00B1" + ' %.2f' % np.sqrt(pcov_position[2, 2])\
-            + " steps")
-        
-        # phase calculation
-        avg_phase = mean(self.phase_list)
-        err_phase = stdev(self.phase_list)
-        print('phase = %.4f ' % avg_phase + u"\u00B1" + ' %.4f' % err_phase + " pi")
-        # / np.sqrt(len(self.phase_list) - 1) (this represents the error of the mean, which is 
-        # too small in terms of the fluctuation of the phase)
-        
-        plt.show()
-        self.ax0.clear()
-        # self.figure, axes = self.restore_figure()
-        return popt_angle[2], np.sqrt(pcov_angle[2, 2]), \
-            popt_position[2], np.sqrt(pcov_position[2, 2]), \
-                avg_phase, err_phase
-          
-    def scan_plot(self, file, block = True):
-        '''Plot two graphs:
-        1. The angle-time graph with best fit line and parameters
-        2. The phase curve and cumulated error
-        And save the timestamp, the amplitude of the best-fit, and the 
-        phase with errors to a csv file or a temporary data structure'''
-        self.temp_data = self.clean_data(file)
-        # Default values of the rolling fft
-        self.fft_length = 512
-        self.sampling_div = 0.05
-        self.figure, axes = plt.subplots(2, 2, figsize = (10, 6))
-        self.ax0 = axes[0, 1].twinx()
-        self.scan_fft_plot((axes[0, 1], axes[1, 1]))
-        try:
-            self.figure.suptitle(self.properties['special_info'])
-        except KeyError:
-            self.figure.suptitle('No special info')
-        self.figure.canvas.manager.set_window_title(self.properties['file_name'])
-        axes[0, 0].plot(self.temp_data[0][0:len(self.temp_data[0]):5], 
-                        self.temp_data[1][0:len(self.temp_data[0]):5], 
-                        'b-', 
-                        label = 'angle_time')
-        axes[0, 0].legend(loc = 'upper left')
-        axes[1, 0].plot(self.temp_data[0][0:len(self.temp_data[0]):5], 
-                        self.temp_data[2][0:len(self.temp_data[0]):5], 
-                        'b-', 
-                        label = 'position_time')
-        axes[1, 0].legend(loc = 'upper left')
-        plt.show(block = block)
-        self.ax0.clear()
-        flag_request = True
-        while flag_request:
-            try:
-                start_time = float(input('Start time of calculation in seconds: '))
-                if(start_time < self.temp_data[0][0]):
-                    start_time = self.temp_data[0][0]
-                print('Start time = ' + str(start_time)[:5] + ' s')
-                end_time = float(input('\nEnd time of calculation in seconds: '))
-                if(end_time > self.temp_data[0][-1]):
-                    end_time = self.temp_data[0][-1]
-                print('End time = ' + str(end_time)[:5] + ' s')
-                rolling_time = float(input('\nRolling fft window time in seconds: '))
-                print('Rolling window time = ' + str(rolling_time)[:5] + ' s')
-                exp_data = self.scan_process(axes, start_time, end_time, rolling_time)
-                msg = input('\nDo you want to save the data? (y to save, n to continue, r to adjust): ')
-                flag_yn = True
-                while flag_yn:
-                    if(msg == 'y'):
-                        flag_request = False
-                        flag_yn = False
-                        self.save_scan_data(exp_data, file)
-                    elif(msg == 'n'):
-                        flag_request = False
-                        flag_yn = False
-                    elif (msg == 'r'):
-                        flag_yn = False
-                    else:
-                        msg = input('Please enter y or n: ')
-            except (ValueError, AssertionError):
-                print('Invalid input, please try again')
-
-    def save_scan_data(self, exp_data, file):
-        parent_dir = os.path.dirname(self.dirc)
-        current_dir_name = os.path.split(self.dirc)[1]
-        csv_dir = parent_dir + '\\scan_data.csv'
-        flag = True
-        
-        if(os.path.isfile(csv_dir)):
-            flag = False
-        
-        with open(csv_dir, 'a', newline = '') as csvfile:
-            writer = csv.writer(csvfile)
-            if(flag):
-                writer.writerow(['file_name',
-                                 'parent_dir',
-                                 'driving_freq',
-                                 'response_amp', 
-                                 'response_amp_err', 
-                                 'driving_amp', 
-                                 'driving_amp_err', 
-                                 'phase', 
-                                 'phase_err'])
-            writer.writerow([file,
-                             current_dir_name,
-                             float(self.properties['omega']), 
-                             exp_data[0], exp_data[1], 
-                             exp_data[2], exp_data[3], 
-                             exp_data[4], exp_data[5]])
-            csvfile.close()
-            
-    def measure_fit(self, time, angle,
-                    gamma_range = (0.1, 1),
-                    omega_range = (0.9, 1.6),
-                    phi_range = (0, 2 * np.pi),
-                    amp_range = (0., 2 * np.pi),
-                    offset_range = (-0.4, 0.4),
-                    maxfev = 200000000,
-                    ):
-        '''Fit the decaying sinusoidal exponential to the data,
-        and return the optimized parameters and the covariance matrix'''
-        popt, pcov = curve_fit(damp_sin, time, angle, 
-                            p0 = [0.5*(gamma_range[0] + gamma_range[1]), 
-                                  0.5*(omega_range[0] + omega_range[1]), 
-                                  0.5*(phi_range[0] + phi_range[1]), 
-                                  0.5*(amp_range[0] + amp_range[1]), 
-                                  0.5*(offset_range[0] + offset_range[1])], 
-                            bounds = ((gamma_range[0], omega_range[0], phi_range[0], amp_range[0], offset_range[0]), 
-                                    (gamma_range[1], omega_range[1], phi_range[1], amp_range[1], offset_range[1])),
-                                    maxfev = maxfev)
-        return popt, pcov    
-    
-    def measure_init(self, 
-                     restore = False, 
-                     process = False, 
-                     start_index = 0, 
-                     end_index = -1):
-        if(restore):
-            print("Restoring figure...")
-        figure, axes = plt.subplots(1, 2, figsize = (10, 6))
-        fft_angle, _, fft_freq, avg_spacing = self.general_fft(
-            self.temp_data[0][start_index:end_index],
-            self.temp_data[1][start_index:end_index],
-            self.temp_data[2][start_index:end_index],
-            self.fft_length,
-            self.sampling_div)
-        axes[0].plot(self.temp_data[0],
-                     self.temp_data[1],
-                     'b-', label = 'angle')
-        axes[1].plot(fft_freq[1:int(len(fft_freq)/2)],
-                     abs(fft_angle[1:int(len(fft_freq)/2)]),
-                     'b-', label = 'angle')
-        if(process):
-            temp_fft_angle = abs(fft_angle[1:int(len(fft_freq)/2)])
-            peaks, _ = find_peaks(temp_fft_angle, height = 0.8)
-            for i,j in zip(peaks, temp_fft_angle[peaks]):
-                txt = axes[1].annotate(str(fft_freq[i])[:5] + "Hz", xy=(fft_freq[i], j))
-                self.txt_list.append(txt)
-            
-            popt, pcov = self.measure_fit(self.temp_data[0][start_index:end_index],
-                                          self.temp_data[1][start_index:end_index])
-            axes[0].plot(self.temp_data[0][start_index:end_index],
-                         damp_sin(self.temp_data[0][start_index:end_index], *popt),
-                         'r--', label = 'best-fit-line')
-            str_eqn_best_fit = 'y = %.1f' % popt[3] + 'exp(-%.2f' % (popt[0]/2) + 't)cos(%.3f' \
-                % (2*np.pi*popt[1]) + 't + %.2f' % popt[2] + ')'
-            txt_3 = axes[0].text(0.3, 0.9, str_eqn_best_fit, transform = axes[0].transAxes)
-            self.txt_list.append(txt_3)
-            txt_4 = axes[0].text(0.5, 0.8, 'gamma = %.3f' % popt[0] + u"\u00B1" + str(np.sqrt(pcov[0, 0]))[:5] + \
-                ' rad/s', transform = axes[0].transAxes)
-            self.txt_list.append(txt_4)
-            txt_5 = axes[0].text(0.5, 0.7, 'freq = %.3f' % (popt[1]) + u"\u00B1" + \
-                str(np.sqrt(pcov[1, 1]))[:5] + ' Hz', transform = axes[0].transAxes)
-            self.txt_list.append(txt_5)
-            
-        try:
-            figure.suptitle(self.properties['special_info'])
-        except KeyError:
-            figure.suptitle('No special info')
-        figure.canvas.manager.set_window_title(self.properties['file_name'])
-        self.txt_list = []
-        res = (1/(self.temp_data[0][-1] - self.temp_data[0][0]))
-        txt_1 = axes[1].text(0.6, 0.9, 'resolution = ' + str(res)[:5] + ' Hz', 
-                             transform = axes[1].transAxes)
-        txt_2 = axes[1].text(0.6, 0.8, 'sampling_rate = ' + str(1/avg_spacing)[:4] + ' Hz',
-                             transform = axes[1].transAxes)
-        self.txt_list.append(txt_1)
-        self.txt_list.append(txt_2)
-        axes[0].legend(loc = 'upper left')
-        axes[1].legend(loc = 'upper left')
-        axes[1].set_xlim(0, 3)
-        if(process):
-            if(len(peaks) == 0):
-                print("\nNo peak detected, please adjust the time range")
-                return None
-            elif(len(peaks) > 1):
-                print("\nMultiple peaks detected, please adjust the time range")
-                return None
-            return peaks[0], 0.5*res, popt[1], np.sqrt(pcov[1, 1]), popt[0], np.sqrt(pcov[0, 0])
-        return figure, axes
-    
-    def measure_process(self, axes, start_time, end_time):
-        self.fft_length = int((end_time - start_time) / self.sampling_div)
-        if(self.temp_data[0][0] >= start_time):
-            print("Invalid input of time range")
-            return None
-        for i in range(len(self.temp_data[0])):
-            if(self.temp_data[0][i] <= start_time):
-                start_index = i
-            if(self.temp_data[0][i] >= end_time):
-                end_index = i
-                break
-            end_index = -1
-        exp_data = self.measure_init(restore = True, process = True, start_index = start_index, end_index = end_index)
-        plt.show(block = True)
-        for txt in self.txt_list:
-            txt.remove()
-        return exp_data
-    
-    def measure_plot(self, file, block = True):
-        '''Plot two graphs:
-        1. The angle-time graph
-        2. The fft of the angle-time graph'''
-        self.temp_data = self.clean_data(file)
-        # Default values of the rolling fft
-        self.fft_length = 512
-        self.sampling_div = 0.05
-        self.figure, axes = self.measure_init(restore = False)
-        plt.show(block = block)
-        
-        for txt in self.txt_list:
-            txt.remove()
-        
-        flag_request = True
-        while flag_request:
-            try:
-                start_time = float(input('Start time of calculation in seconds: '))
-                if(start_time < self.temp_data[0][0]):
-                    start_time = self.temp_data[0][0]
-                print('Start time = ' + str(start_time)[:5] + ' s')
-                end_time = float(input('\nEnd time of calculation in seconds: '))
-                if(end_time > self.temp_data[0][-1]):
-                    end_time = self.temp_data[0][-1]
-                print('End time = ' + str(end_time)[:5] + ' s')
-                exp_data = self.measure_process(axes, start_time, end_time)
-                if(exp_data == None):
-                    continue
-                msg = input('\nDo you want to save the data? (y to save, n to continue, r to adjust): ')
-                flag_yn = True
-                while flag_yn:
-                    if(msg == 'y'):
-                        flag_request = False
-                        flag_yn = False
-                        self.save_measure_data(exp_data, file)
-                    elif(msg == 'n'):
-                        flag_request = False
-                        flag_yn = False
-                    elif (msg == 'r'):
-                        flag_yn = False
-                    else:
-                        msg = input('Please enter y or n: ')
-            except (ValueError, AssertionError):
-                print('Invalid input, please try again')
-    
-    def save_measure_data(self, exp_data, file):
-        parent_dir = os.path.dirname(self.dirc)
-        current_dir_name = os.path.split(self.dirc)[1]
-        csv_dir = parent_dir + '\\measure_data.csv'
-        flag = True
-        
-        if(os.path.isfile(csv_dir)):
-            flag = False
-            
-        with open(csv_dir, 'a', newline = '') as csvfile:
-            writer = csv.writer(csvfile)
-            if(flag):
-                writer.writerow(['file_name',
-                                 'parent_dir',
-                                 'omega_peak',
-                                 'omega_peak_err',
-                                 'omega_fit',
-                                 'omega_fit_err',
-                                 'gamma_fit',
-                                 'gamma_fit_err'])
-            writer.writerow([file,
-                             current_dir_name,
-                             exp_data[0],
-                             exp_data[1],
-                             exp_data[2],
-                             exp_data[3],
-                             exp_data[4],
-                             exp_data[5]])
-            csvfile.close()
-    
-    def main(self):
-        '''Main function of the data analysis class'''
-        self.load_csv()
-        if(self.check_csv_type()):
-            if(self.data_flag_dict['measure']):
-                for file in self.csv_list:
-                    self.properties.update({'file_name':file})
-                    print('\n-----------------------------------')
-                    print("processing " + file)
-                    if(self.read_csv(file)):
-                        self.measure_plot(file)
-                        self.clear_data()
-                        
-            elif(self.data_flag_dict['scan']):
-                for file in self.csv_list:
-                    self.properties.update({'file_name':file})
-                    print('\n-----------------------------------')
-                    print("processing " + file)
-                    if(self.read_csv(file)):
-                        self.scan_plot(file)
-                        self.clear_data()
-                
-                    if('multiple_omega' in self.properties):
-                        print("Multiple frequency detected, currently not supported")
-                        input("Press ENTER to continue")
-                        continue
+                self.ax_new_list = {self.ax_list[0]: self.line_angle, 
+                                    self.ax_list[1]: self.line_fft}
                     
-            elif(self.data_flag_dict['pid']):
-                # TODO: to reconstruct the pid history
-                # Further ideas --> the data goes into reinforcement learning
-                print("PID data processing is not implemented yet")
+                self.ax_list[0].set_xlabel('Time/s')
+                self.ax_list[0].set_ylabel('Angle/rad')
+                self.ax_list[1].set_xlabel('Frequency/Hz')
+                self.ax_list[1].set_xlim(0, self.omega)
+                self.ax_list[1].set_ylabel('Arbitrary Unit')
+                
+            elif(module_name == "NR"):
+                if(self.flag_subplot_init):
+                    self.figure, self.ax_list = plt.subplots(2, 2, figsize=(8, 5))
+                    self.flag_subplot_init = False
+                    self.figure.suptitle('NR')
+                    if(self.omega_list is None):
+                        self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
+                    else: 
+                        self.phase_list = None
+                        self.multi_phase_list = []
+                        for i in range(self.omega_num):
+                            self.multi_phase_list.append([(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10)
+                    self.amp_list = [(0., 0.)] * self.plot_length * 10
+                    if(not scan):
+                        self.phase_list_active = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
+                self.line_angle, = self.ax_list[0, 0].plot([], [], 'b-')
+                self.line_pos, = self.ax_list[1, 0].plot([], [], 'r-')
+                self.line_pos_const, = self.ax_list[1, 0].plot([], [], 'g--')
+                self.line_fft_ang, = self.ax_list[0, 1].plot([], [], 'b-', label = 'angle')
+                ax1 = self.ax_list[0, 1].twinx()
+                self.line_fft_pos, = ax1.plot([], [], 'r-', label = 'position')
+                if(self.omega_list is None):
+                    self.line_phase, = self.ax_list[1, 1].plot([], [], 'b-', label = 'phase')
+                else:
+                    self.line_phase_list = []
+                    for i in range(self.omega_num):
+                        _line, = self.ax_list[1, 1].plot([], [], color = colors[i], 
+                                                                      label = '%.3f Hz'%(self.omega_list[i]))
+                        self.line_phase_list.append(_line)
+                if(not scan):
+                    self.line_phase_active, = self.ax_list[1, 1].plot([], [], 'r-', label = 'phase_active')
+                ax2 = self.ax_list[1, 1].twinx()
+                self.line_amp, = ax2.plot([], [], 'k-', label = 'amplitude')
+                
+                self.ax_list[0, 1].legend(loc = 'upper left')
+                self.ax_list[1, 1].legend(loc = 'upper left')
+                ax1.legend(loc = 'upper right')
+                if(self.omega_list is None):
+                    ax2.legend(loc = 'lower left')
+                ax1.grid(False)
+                ax2.grid(False)
+                # Initiate a new dictionary for all the artists objects
+                if(self.omega_list is None):
+                    self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
+                                        self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
+                                        self.ax_list[0, 1]: self.line_fft_ang,
+                                        ax1: self.line_fft_pos,
+                                        ax2: self.line_amp,
+                                        self.ax_list[1, 1]: self.line_phase,}
+                else:
+                    self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
+                                        self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
+                                        self.ax_list[0, 1]: self.line_fft_ang,
+                                        ax1: self.line_fft_pos,
+                                        ax2: self.line_amp,
+                                        self.ax_list[1, 1]: self.line_phase_list,
+                                        }
+                
+                if(not scan):
+                    self.ax_new_list.update({self.ax_list[1, 1]: (self.line_phase, self.line_phase_active)})
+                
+                self.ax_list[0, 0].set_xlabel('Time/s')
+                self.ax_list[0, 0].set_ylabel('Angle/rad')
+                self.ax_list[1, 0].set_xlabel('Time/s')
+                self.ax_list[1, 0].set_ylabel('Position/steps')
+                self.ax_list[0, 1].set_xlabel('Frequency/Hz')
+                if(self.omega_list is None):
+                    self.ax_list[0, 1].set_xlim(0, self.omega)
+                else:
+                    self.ax_list[0, 1].set_xlim(0, self.omega_list[-1])
+                self.ax_list[0, 1].set_ylabel('Arbitrary Unit')
+                self.ax_list[1, 1].set_xlabel('Time/s')
+                self.ax_list[1, 1].set_ylabel('Phase/pi')
+                ax2.set_ylabel('Amplitude/steps')
             
+            elif(module_name == "freq_scan" or module_name == "auto_freq_scan"):
+                if(self.flag_subplot_init):
+                    self.figure, self.ax_list = plt.subplots(2, 2, figsize=(8, 5))
+                    self.flag_subplot_init = False
+                    self.figure.suptitle('NR')
+                    if(self.omega_list is None):
+                        self.phase_list = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
+                    else: 
+                        self.phase_list = None
+                        self.multi_phase_list = []
+                        for i in range(self.omega_num):
+                            self.multi_phase_list.append([(0., 0.)] * self.plot_length* (self.wait_to_stable + 1) * 10)
+                    self.amp_list = [(0., 0.)] * self.plot_length * 10
+                    if(not scan):
+                        self.phase_list_active = [(0., 0.)] * self.plot_length * (self.wait_to_stable + 1) * 10
+                self.line_angle, = self.ax_list[0, 0].plot([], [], 'b-')
+                self.line_pos, = self.ax_list[1, 0].plot([], [], 'r-')
+                self.line_pos_const, = self.ax_list[1, 0].plot([], [], 'g--')
+                self.line_fft_ang, = self.ax_list[0, 1].plot([], [], 'b-', label = 'angle')
+                ax1 = self.ax_list[0, 1].twinx()
+                self.line_fft_pos, = ax1.plot([], [], 'r-', label = 'position')
+                if(self.omega_list is None):
+                    self.line_phase, = self.ax_list[1, 1].plot([], [], 'b-', label = 'phase')
+                else:
+                    self.line_phase_list = []
+                    for i in range(self.omega_num):
+                        _line, = self.ax_list[1, 1].plot([], [], color = colors[i], 
+                                                                      label = '%.3f Hz'%(self.omega_list[i]))
+                        self.line_phase_list.append(_line)
+                if(not scan):
+                    self.line_phase_active, = self.ax_list[1, 1].plot([], [], 'r-', label = 'phase_active')
+                ax2 = self.ax_list[1, 1].twinx()
+                self.line_amp, = ax2.plot([], [], 'k-', label = 'amplitude')
+                
+                self.ax_list[0, 1].legend(loc = 'upper left')
+                self.ax_list[1, 1].legend(loc = 'upper left')
+                ax1.legend(loc = 'upper right')
+                if(self.omega_list is None):
+                    ax2.legend(loc = 'lower left')
+                ax1.grid(False)
+                ax2.grid(False)
+                # Initiate a new dictionary for all the artists objects
+                if(self.omega_list is None):
+                    self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
+                                        self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
+                                        self.ax_list[0, 1]: self.line_fft_ang,
+                                        ax1: self.line_fft_pos,
+                                        ax2: self.line_amp,
+                                        self.ax_list[1, 1]: self.line_phase,}
+                else:
+                    self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
+                                        self.ax_list[1, 0]: (self.line_pos, self.line_pos_const),
+                                        self.ax_list[0, 1]: self.line_fft_ang,
+                                        ax1: self.line_fft_pos,
+                                        ax2: self.line_amp,
+                                        self.ax_list[1, 1]: self.line_phase_list,
+                                        }
+                
+                if(not scan):
+                    self.ax_new_list.update({self.ax_list[1, 1]: (self.line_phase, self.line_phase_active)})
+                
+                self.ax_list[0, 0].set_xlabel('Time/s')
+                self.ax_list[0, 0].set_ylabel('Angle/rad')
+                self.ax_list[1, 0].set_xlabel('Time/s')
+                self.ax_list[1, 0].set_ylabel('Position/steps')
+                self.ax_list[0, 1].set_xlabel('Frequency/Hz')
+                if(self.omega_list is None):
+                    self.ax_list[0, 1].set_xlim(0, self.omega)
+                else:
+                    self.ax_list[0, 1].set_xlim(0, self.omega_list[-1])
+                self.ax_list[0, 1].set_ylabel('Arbitrary Unit')
+                self.ax_list[1, 1].set_xlabel('Time/s')
+                self.ax_list[1, 1].set_ylabel('Phase/pi')
+                ax2.set_ylabel('Amplitude/steps')
+            
+            elif(module_name == "pid"):
+                if(self.flag_subplot_init):
+                    self.figure, self.ax_list = plt.subplots(2, 2, figsize=(8, 5))
+                    self.figure.suptitle('PID')
+                    self.flag_subplot_init = False
+                self.line_angle, = self.ax_list[0, 0].plot([], [], 'b-')
+                self.line_pos, = self.ax_list[1, 0].plot([], [], 'r-')
+                self.line_angle_vel, = self.ax_list[0, 1].plot([], [], 'b-')
+                self.line_pos_vel, = self.ax_list[1, 1].plot([], [], 'r-')
+                
+                self.ax_new_list = {self.ax_list[0, 0]: self.line_angle,
+                                    self.ax_list[1, 0]: self.line_pos,
+                                    self.ax_list[0, 1]: self.line_angle_vel,
+                                    self.ax_list[1, 1]: self.line_pos_vel}
+                
+                self.ax_list[0, 0].set_xlabel('Time/s')
+                self.ax_list[0, 0].set_ylabel('Angle/rad')
+                self.ax_list[1, 0].set_xlabel('Time/s')
+                self.ax_list[1, 0].set_ylabel('Position/steps')
+                self.ax_list[0, 1].set_xlabel('Time/s')
+                self.ax_list[0, 1].set_ylabel('Angular Velocity/rad/s')
+                self.ax_list[1, 1].set_xlabel('Time/s')
+                self.ax_list[1, 1].set_ylabel('Cart Velocity/steps/s')
+                
+            elif(module_name == "setSpeed"):
+                if(self.flag_subplot_init):
+                    self.figure, self.ax_list = plt.subplots(1, 2, figsize=(8, 5))
+                    self.figure.suptitle('setSpeed')
+                    self.flag_subplot_init = False
+                self.line_pos, = self.ax_list[0].plot([], [], 'r-')
+                self.line_pos_vel, = self.ax_list[1].plot([], [], 'r-')
+                
+                self.ax_new_list = {self.ax_list[0]: self.line_pos,
+                                    self.ax_list[1]: self.line_pos_vel}
+                self.ax_list[0].set_xlabel('Time/s')
+                self.ax_list[0].set_ylabel('Position/steps')
+                self.ax_list[1].set_xlabel('Time/s')
+                self.ax_list[1].set_ylabel('Cart Velocity/steps/s')
+                
+            # Configure the events
+            self.figure.canvas.mpl_connect('close_event', self.handle_close)
+            self.figure.canvas.manager.set_window_title(module_name)
+            self.figure.canvas.draw_idle()
+            plt.tight_layout()
+            plt.show(block = False)
+
+    def real_time_plot(self, module_name, scan = False):
+        self.module_name = module_name
+        if(module_name == "measure"):
+            self.fft()
+            if(self.index < self.plot_length * 8):
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.buffer_length + 1
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_angle.set_data(self.time[low_ind:high_ind], 
+                                        self.angle[low_ind:high_ind])
+                    self.line_fft.set_data(self.fft_freq, 
+                                         abs(self.fft_angle))
+                    try:
+                        txt1 = self.ax_list[1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                                            transform = self.ax_list[1].transAxes)
+                        txt2 = self.ax_list[1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                                            transform = self.ax_list[1].transAxes)
+                    except ZeroDivisionError:
+                        pass
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                            
+                    self.ax_list[1].set_xlim(0, 2 * self.omega)
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    try:
+                        txt1.remove()
+                        txt2.remove()
+                    except UnboundLocalError:
+                        pass
+                        
+                self.counter += 1
+                
+            else:
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.temp_index + 1 + self.buffer_length - self.plot_length * 8
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_angle.set_data(self.time[low_ind:high_ind], 
+                                        self.angle[low_ind:high_ind])
+                    self.line_fft.set_data(self.fft_freq, 
+                                         abs(self.fft_angle))
+                    try: 
+                        txt1 = self.ax_list[1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                                            transform = self.ax_list[1].transAxes)
+                        txt2 = self.ax_list[1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                                            transform = self.ax_list[1].transAxes)
+                    except ZeroDivisionError:
+                        pass
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                            
+                    self.ax_list[1].set_xlim(0, 2 * self.omega)
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    try:
+                        txt1.remove()
+                        txt2.remove()
+                    except UnboundLocalError:
+                        pass
+                    
+                self.counter += 1
+        
+        elif(module_name == "freq_scan" or module_name == "auto_freq_scan"):
+            self.fft()
+            self.pos_const = self.amp_0 * np.sin(2 * np.pi * \
+                self.omega * (self.time + self.start_time))
+            delay_time, delay_error = 0., 0.
+            if(self.index < self.plot_length):
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.buffer_length + 1
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_angle.set_data(self.time[low_ind:high_ind],
+                                        self.angle[low_ind:high_ind])
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                           self.position[low_ind:high_ind])
+                    self.line_fft_ang.set_data(self.fft_freq, 
+                                                abs(self.fft_angle))
+                    self.line_fft_pos.set_data(self.fft_freq,
+                                               abs(self.fft_pos))
+                    
+                    if(self.omega_list is None):
+                        if(self.index > 20 and scan):
+                            delay_time, delay_error = self.delay_fit(low_ind, high_ind)
+                        self.line_pos_const.set_data(self.time[low_ind:high_ind], 
+                                                     self.pos_const[low_ind:high_ind])
+                        self.line_phase.set_data(*zip(*self.phase_list))
+                    else:
+                        for index, line in enumerate(self.line_phase_list):
+                            line.set_data(*zip(*self.multi_phase_list[index]))
+                    self.line_amp.set_data(*zip(*self.amp_list))
+                    
+                    if(not scan):
+                        self.line_phase_active.set_data(*zip(*self.phase_list_active))
+                    
+                    try:
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        if(self.index > 20 and scan):
+                            txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
+                                + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
+                    except ZeroDivisionError:
+                        pass
+                    
+                    if(self.omega_list is None):
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                    else:
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join("%.3f" % i for i in self.omega_list) + 'Hz')
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                        
+                    if(self.omega_list is None):
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega)
+                    else:
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega_list[-1])
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    try:
+                        txt1.remove()
+                        txt2.remove()
+                        txt3.remove()
+                    except UnboundLocalError:
+                        pass
+                    
+                self.counter += 1
+                
+            else:
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.temp_index + 1 + self.buffer_length - self.plot_length
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_angle.set_data(self.time[low_ind:high_ind],
+                                        self.angle[low_ind:high_ind])
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                           self.position[low_ind:high_ind])
+                    self.line_fft_ang.set_data(self.fft_freq, 
+                                                abs(self.fft_angle))
+                    self.line_fft_pos.set_data(self.fft_freq,
+                                               abs(self.fft_pos))
+                    
+                    if(self.omega_list is None):
+                        if(scan):
+                            delay_time, delay_error = self.delay_fit(low_ind, high_ind)
+                        self.line_phase.set_data(*zip(*self.phase_list))
+                        self.line_pos_const.set_data(self.time[low_ind:high_ind], 
+                                                     self.pos_const[low_ind:high_ind])
+                    else:
+                        for index, line in enumerate(self.line_phase_list):
+                            line.set_data(*zip(*self.multi_phase_list[index]))
+                    self.line_amp.set_data(*zip(*self.amp_list))
+                    
+                    if(not scan):
+                        self.line_phase_active.set_data(*zip(*self.phase_list_active))
+                    
+                    try:
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        if(scan):
+                            txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
+                                + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
+                    except ZeroDivisionError:
+                        pass
+                    
+                    if(self.omega_list is None):
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                    else:
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join("%.3f" % i for i in self.omega_list) + 'Hz')
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                
+                    if(self.omega_list is None):
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega)
+                    else:
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega_list[-1])
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    try:
+                        txt1.remove()
+                        txt2.remove()
+                        txt3.remove()
+                    except UnboundLocalError:
+                        pass
+                    
+                self.counter += 1
+                
+        elif(module_name == "NR"):
+            self.fft()
+            self.pos_const = self.amp_0 * np.sin(2 * np.pi * \
+                self.omega * (self.time + self.start_time))
+            self.pos_active = self.position - self.pos_const
+            delay_time, delay_error = 0., 0.
+            if(self.index < self.plot_length):
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.buffer_length + 1
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_angle.set_data(self.time[low_ind:high_ind],
+                                        self.angle[low_ind:high_ind])
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                           self.position[low_ind:high_ind])
+                    self.line_fft_ang.set_data(self.fft_freq, 
+                                                abs(self.fft_angle))
+                    self.line_fft_pos.set_data(self.fft_freq,
+                                               abs(self.fft_pos))
+                    
+                    if(self.omega_list is None):
+                        if(self.index > 20 and scan):
+                            delay_time, delay_error = self.delay_fit(low_ind, high_ind)
+                        self.line_pos_const.set_data(self.time[low_ind:high_ind], 
+                                                     self.pos_const[low_ind:high_ind])
+                        self.line_phase.set_data(*zip(*self.phase_list))
+                    else:
+                        for index, line in enumerate(self.line_phase_list):
+                            line.set_data(*zip(*self.multi_phase_list[index]))
+                    self.line_amp.set_data(*zip(*self.amp_list))
+                    
+                    if(not scan):
+                        self.line_phase_active.set_data(*zip(*self.phase_list_active))
+                    
+                    try:
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        if(self.index > 20 and scan):
+                            txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
+                                + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
+                    except ZeroDivisionError:
+                        pass
+                    
+                    if(self.omega_list is None):
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                    else:
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join("%.3f" % i for i in self.omega_list) + 'Hz')
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                        
+                    if(self.omega_list is None):
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega)
+                    else:
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega_list[-1])
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    try:
+                        txt1.remove()
+                        txt2.remove()
+                        txt3.remove()
+                    except UnboundLocalError:
+                        pass
+                    
+                self.counter += 1
+                
+            else:
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.temp_index + 1 + self.buffer_length - self.plot_length
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_angle.set_data(self.time[low_ind:high_ind],
+                                        self.angle[low_ind:high_ind])
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                           self.position[low_ind:high_ind])
+                    self.line_fft_ang.set_data(self.fft_freq, 
+                                                abs(self.fft_angle))
+                    self.line_fft_pos.set_data(self.fft_freq,
+                                               abs(self.fft_pos))
+                    
+                    if(self.omega_list is None):
+                        if(scan):
+                            delay_time, delay_error = self.delay_fit(low_ind, high_ind)
+                        self.line_phase.set_data(*zip(*self.phase_list))
+                        self.line_pos_const.set_data(self.time[low_ind:high_ind], 
+                                                     self.pos_const[low_ind:high_ind])
+                    else:
+                        for index, line in enumerate(self.line_phase_list):
+                            line.set_data(*zip(*self.multi_phase_list[index]))
+                    self.line_amp.set_data(*zip(*self.amp_list))
+                    
+                    if(not scan):
+                        self.line_phase_active.set_data(*zip(*self.phase_list_active))
+                    
+                    try:
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                        if(scan):
+                            txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
+                                + u"\u00B1" + str(1000*delay_error)[:5] + 'ms', transform = self.ax_list[1, 0].transAxes)
+                    except ZeroDivisionError:
+                        pass
+                    
+                    if(self.omega_list is None):
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                    else:
+                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join("%.3f" % i for i in self.omega_list) + 'Hz')
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                
+                    if(self.omega_list is None):
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega)
+                    else:
+                        self.ax_list[0, 1].set_xlim(0, 2 * self.omega_list[-1])
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    try:
+                        txt1.remove()
+                        txt2.remove()
+                        txt3.remove()
+                    except UnboundLocalError:
+                        pass
+                    
+                self.counter += 1
+                
+        elif(module_name == "pid"):
+            if(self.index < self.plot_length and self.index > 1):
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.buffer_length + 1
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_angle.set_data(self.time[low_ind:high_ind],
+                                        self.angle[low_ind:high_ind])
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                           self.position[low_ind:high_ind])
+                    self.line_angle_vel.set_data(self.time[low_ind:high_ind],
+                                            self.angular_velocity[low_ind:high_ind])
+                    self.line_pos_vel.set_data(self.time[low_ind:high_ind],
+                                            self.position_velocity[low_ind:high_ind])
+                    try:
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                    except ZeroDivisionError:
+                        pass
+                    if(self.pid_param == 'r'):
+                        self.figure.suptitle('PID parameters (resumed previous values)')
+                    else:
+                        self.figure.suptitle('PID parameters(' + self.pid_param + ')')
+                    
+                    for axes in self.ax_list:
+                        for ax in axes:
+                            ax.relim()
+                            ax.autoscale_view()
+                            for label in ax.get_yticklabels():
+                                label.set_rotation(ANGLE_ROTATION)
+                        
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    try:
+                        txt1.remove()
+                    except UnboundLocalError:
+                        pass
+                    
+                self.counter += 1
+                
+            else:
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.temp_index + 1 + self.buffer_length - self.plot_length
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_angle.set_data(self.time[low_ind:high_ind],
+                                        self.angle[low_ind:high_ind])
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                           self.position[low_ind:high_ind])
+                    self.line_angle_vel.set_data(self.time[low_ind:high_ind],
+                                            self.angular_velocity[low_ind:high_ind])
+                    self.line_pos_vel.set_data(self.time[low_ind:high_ind],
+                                            self.position_velocity[low_ind:high_ind])
+                    try:
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                                                transform = self.ax_list[0, 1].transAxes)
+                    except ZeroDivisionError:
+                        pass
+                    
+                    if(self.pid_param == 'r'):
+                        self.figure.suptitle('PID parameters (resumed previous values)')
+                    else:
+                        self.figure.suptitle('PID parameters(' + self.pid_param + ')')
+                    
+                    for axes in self.ax_list:
+                        for ax in axes:
+                            ax.relim()
+                            ax.autoscale_view()
+                            for label in ax.get_yticklabels():
+                                label.set_rotation(ANGLE_ROTATION)
+                        
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    try:
+                        txt1.remove()
+                    except UnboundLocalError:
+                        pass
+                    
+                self.counter += 1            
+        
+        elif(module_name == "setSpeed"):
+            if(self.index < self.plot_length):
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.buffer_length + 1
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                             self.position[low_ind:high_ind])
+                    self.line_pos_vel.set_data(self.time[low_ind:high_ind],
+                                               self.position_velocity[low_ind:high_ind])
+                    
+                    if(self.setSpeed_param is not None):
+                        self.figure.suptitle(self.setSpeed_param)
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                            
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    
+                self.counter += 1
+            else:
+                if(self.counter % MAX_COUNT == 0):
+                    low_ind = self.temp_index + self.buffer_length + 1 - self.plot_length
+                    high_ind = self.temp_index + self.buffer_length + 1
+                    
+                    self.line_pos.set_data(self.time[low_ind:high_ind],
+                                             self.position[low_ind:high_ind])
+                    self.line_pos_vel.set_data(self.time[low_ind:high_ind],
+                                               self.position_velocity[low_ind:high_ind])
+                    
+                    if(self.setSpeed_param is not None):
+                        self.figure.suptitle(self.setSpeed_param)
+                    
+                    for ax in self.ax_new_list:
+                        ax.relim()
+                        ax.autoscale_view()
+                        for label in ax.get_yticklabels():
+                            label.set_rotation(ANGLE_ROTATION)
+                            
+                    self.figure.canvas.draw()
+                    self.figure.canvas.flush_events()
+                    
+                self.counter += 1
+        
+    def handle_close(self, _):
+        self.flag_close_event = True
+        self.flag_subplot_init = True
+            
+        try:
+            dirc = self.path + '\\' + datetime.now().strftime("%d-%m-pdf")
+            os.makedirs(dirc)
+        except OSError:
+            pass
+        filename = dirc + '\\' + self.module_name + \
+            datetime.now().strftime("-%H-%M-%S") + ".pdf"
+        self.figure.savefig(filename, dpi = 600)
+        self.figure.clf()
+        self.figure.canvas.flush_events()
+        plt.close("all")
+
+    def export_csv(
+        self, 
+        module_name,
+        NR_phase_amp = False,
+        input_spec_info = True,
+        ):
+        try:
+            dirc = self.path + '\\' + datetime.now().strftime("%d-%m-csv")
+            dirc_fft = self.path + '\\' + datetime.now().strftime("%d-%m-fft-csv")
+            if(NR_phase_amp):
+                dirc_phase_amp = self.path + '\\' + datetime.now().strftime("%d-%m-phase_amp-csv")
+                os.makedirs(dirc_phase_amp)
+            os.makedirs(dirc)
+            os.makedirs(dirc_fft)
+        except OSError:
+            pass
+        filename = dirc + '\\' + module_name + \
+            datetime.now().strftime("-%H-%M-%S")
+        filename_fft = dirc_fft + '\\' + "fft-" + module_name + \
+            datetime.now().strftime("-%H-%M-%S")
+        try:
+            filename_phase_amp = dirc_phase_amp + '\\phase_amp-' + module_name + \
+                datetime.now().strftime("-%H-%M-%S")
+        except UnboundLocalError:
+            pass
+        special_info = ""
+        with open(filename + '.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            if(input_spec_info):
+                special_info = input("Any special info to add to the csv file?\n\n")
+            writer.writerow(["special_info", special_info])
+            if(module_name == "pid"):
+                try:
+                    writer.writerow(["Kp", "Ki", "Kd", "Kp_pos", "Ki_pos", "Kd_pos"])
+                    writer.writerow([self.pid_param.split(',')[i] for i in range(6)])
+                except (AttributeError, IndexError):
+                    pass
+            writer.writerow(["start_time", str(self.start_time)])
+            if(self.omega_list is None):
+                writer.writerow(["omega", str(self.omega)])
+            else:
+                writer.writerow(["multiple_omega", *(str(i) for i in self.omega_list)])
+            try:
+                writer.writerow(["amplitude", str(self.amp_list[-1][1]), "amp_0", str(self.amp_0)])
+                if(self.omega_list is None):
+                    writer.writerow(["phase/pi", str(self.phase_list[-1][1])])
+                else:
+                    writer.writerow(["multiple_phase/pi", *(str(i[-1][1]) for i in self.multi_phase_list)])
+            except (AttributeError, IndexError):
+                pass
+            writer.writerow(["time", "angle", "position", "angular_velocity", "cart_velocity"])
+            for i in range(len(self.time)):
+                writer.writerow([self.time[i], self.angle[i], self.position[i],\
+                    self.angular_velocity[i], self.position_velocity[i]])
+            csvfile.close()
+        if(module_name != "pid" and module_name != "setSpeed"):
+            with open(filename_fft + '.csv', 'w', newline = '') as csvfile:
+                writer = csv.writer(csvfile)
+                if(input_spec_info):
+                    special_info = input("\nAny special info to add to the fft-csv file?\n\n")
+                writer.writerow(["special_info", special_info])
+                writer.writerow(["start_time", str(self.start_time)])
+                if(self.omega_list is None):
+                    writer.writerow(["omega", str(self.omega)])
+                else:
+                    writer.writerow(["multiple_omega", *(str(i) for i in self.omega_list)])
+                try:
+                    writer.writerow(["amplitude", str(self.amp_list[-1][1])])
+                    if(self.omega_list is None):
+                        writer.writerow(["phase/pi", str(self.phase_list[-1][1])])
+                    else:
+                        writer.writerow(["multiple_phase/pi", *(str(i[-1][1]) for i in self.multi_phase_list)])
+                except (AttributeError, IndexError):
+                    pass
+                writer.writerow(['freq', 'fft_angle', 'fft_position'])
+                for i in range(len(self.fft_freq)):
+                    writer.writerow([self.fft_freq[i], self.fft_angle[i], self.fft_pos[i]])
+                csvfile.close()
+                
+        if(NR_phase_amp):
+            with open(filename_phase_amp + ".csv", 'w', newline = '') as csvfile:
+                writer = csv.writer(csvfile)
+                if(input_spec_info):
+                    special_info = input("\nAny special info to add to the phase_amp-csv file?\n\n")
+                writer.writerow(["special_info", special_info])
+                writer.writerow(["start_time", str(self.start_time)])
+                writer.writerow(["omega", str(self.omega)])
+                writer.writerow(["NR_Kp", "NR_Ki", "NR_Kd"])
+                writer.writerow([str(self.NR_Kp), str(self.NR_Ki), str(self.NR_Kd)])
+                if(self.phase_list_active is not None):
+                    writer.writerow(['time/s', 'phase/pi', 'amplitude/steps', 'phase_active/pi'])
+                else:
+                    writer.writerow(['time/s', 'phase/pi'])
+                temp_i = 0
+                temp_amp = self.amp_list[0][1]
+                for i in range(len(self.amp_list) - 1):
+                    if(self.amp_list[i + 1][0]):
+                        temp_i = i
+                        temp_amp = self.amp_list[i][1]
+                        break
+                for i in range(len(self.phase_list)):
+                    if(i == len(self.phase_list) - 1):
+                        pass
+                    else:
+                        if(self.phase_list[i + 1][0] == 0):
+                            continue
+                    if(self.phase_list_active is not None):
+                        if(temp_i == len(self.amp_list) - 1):
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
+                                temp_amp, self.phase_list_active[i][1]])
+                        elif(self.phase_list[i][0] < self.amp_list[temp_i + 1][0]):
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
+                                temp_amp, self.phase_list_active[i][1]])
+                        else:
+                            temp_i += 1
+                            temp_amp = self.amp_list[temp_i][1]
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1],\
+                                temp_amp, self.phase_list_active[i][1]])
+                    else:
+                        if(temp_i == len(self.amp_list) - 1):
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1]])
+                        elif(self.phase_list[i][0] < self.amp_list[temp_i + 1][0]):
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1]])
+                        else:
+                            temp_i += 1
+                            temp_amp = self.amp_list[temp_i][1]
+                            writer.writerow([self.phase_list[i][0], self.phase_list[i][1]])
+                csvfile.close()
+
+        print("\nExported to " + filename + "\n")
+        if(module_name != 'pid' and module_name != 'setSpeed'):
+            print("\nExported to " + filename_fft + "\n")
+        if(NR_phase_amp):
+            print("\nExported to " + filename_phase_amp + "\n")
+        
+    def fft_index_list(self):
+        '''return the list and average time spacing'''
+        current_time = self.time[self.temp_index + self.buffer_length]
+        time_stamp = current_time
+        index = self.fft_length - 2
+        index_list = np.zeros(self.fft_length, dtype = int)
+        index_list[self.fft_length - 1] = current_time
+        
+        for i in range(self.temp_index + self.buffer_length, self.temp_index + 1, -1):
+            if index < 0: 
+                self.index_list = index_list
+                avg_spacing = (current_time - time_stamp) / (self.fft_length - index - 2)
+                return self.index_list, avg_spacing
+            if(time_stamp - self.time[i] >= self.sampling_div):
+                index_list[index] = i
+                time_stamp = self.time[i]
+                index -= 1
+        if index >= 0:
+            avg_spacing = (current_time - time_stamp) / (self.fft_length - index - 2)
+            self.index_list = index_list[index + 1 : self.fft_length]
+            return self.index_list, avg_spacing
+    
+    def fft(self):
+        if(self.time[self.temp_index] > 5 * self.sampling_div):
+            index_list, avg_spacing = self.fft_index_list()
+            self.avg_spacing = avg_spacing
+            
+            fft_ang = fft(self.angle[index_list])
+            fft_pos = fft(self.position[index_list])
+            if(self.pos_const is not None):
+                fft_pos_const = fft(self.pos_const[index_list])
+            if(self.pos_active is not None):
+                fft_pos_active = fft(self.pos_active[index_list])
+            fft_freq = fftfreq(len(index_list), avg_spacing)
+            
+            self.fft_angle = fft_ang[1:int(len(fft_freq) / 2)]
+            self.fft_pos = fft_pos[1:int(len(fft_freq) / 2)]
+            if(self.pos_const is not None):
+                self.fft_pos_const = fft_pos_const[1:int(len(fft_freq) / 2)]
+            if(self.pos_active is not None):
+                self.fft_pos_active = fft_pos_active[1:int(len(fft_freq) / 2)]
+            self.fft_freq = fft_freq[1:int(len(fft_freq) / 2)]
+            return True
         else:
-            return
+            return False
+    
+    def NR_phase_calc(self, omega, scan, interpolation = True):
+        if (self.fft()):
+            close_ind = np.argmin(np.abs(self.fft_freq - omega))
+            if(not scan):
+                if interpolation:
+                    if self.fft_freq[close_ind] < omega:
+                        delta_phase_1 = self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            + 1]) - np.angle(self.fft_pos_const[close_ind + 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                        
+                        delta_phase_3 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind\
+                            + 1]) - np.angle(self.fft_pos_const[close_ind + 1]))
+                        delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]))
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                + 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+                                    
+                        self.phase_active = delta_phase_2 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                            + 1] - self.fft_freq[close_ind]) * \
+                            (delta_phase_3 - delta_phase_2)
+
+                    elif self.fft_freq[close_ind] > omega:
+                        delta_phase_1 =  self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            - 1]) - np.angle(self.fft_pos_const[close_ind - 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                        
+                        delta_phase_3 =  self.phase_rectify(np.angle(self.fft_pos_active[close_ind\
+                            - 1]) - np.angle(self.fft_pos_const[close_ind - 1]))
+                        delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
+                            - np.angle(self.fft_pos_const[close_ind]))
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                - 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+                                    
+                        self.phase_active = delta_phase_2 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                            - 1] - self.fft_freq[close_ind]) * \
+                            (delta_phase_3 - delta_phase_2)
+
+                    else:
+                        self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                            - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                        self.phase_active = self.phase_rectify(np.angle(self.fft_pos_active[close_ind]) \
+                            - np.angle(self.fft_pos_const[close_ind]))
+                else:
+                    self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                        - np.angle(self.fft_pos_const[close_ind]) + np.pi)
+                    self.phase_active = self.phase_rectify(np.angle(self.fft_pos_active[close_ind]) \
+                        - np.angle(self.fft_pos_const[close_ind]))
+                self.phase_list.pop(0)
+                self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
+                self.phase_list_active.pop(0)
+                self.phase_list_active.append((self.time[self.temp_index], self.phase_active / np.pi))
+                return True
+            else:
+                if interpolation:
+                    if self.fft_freq[close_ind] < omega:
+                        delta_phase_1 = self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            + 1]) - np.angle(self.fft_pos[close_ind + 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos[close_ind]) + np.pi)
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                + 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+
+                    elif self.fft_freq[close_ind] > omega:
+                        delta_phase_1 =  self.phase_rectify(np.angle(self.fft_angle[close_ind\
+                            - 1]) - np.angle(self.fft_pos[close_ind - 1]) + np.pi)
+                        delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
+                            - np.angle(self.fft_pos[close_ind]) + np.pi)
+                        
+                        self.phase = delta_phase_0 + (omega - \
+                            self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
+                                - 1] - self.fft_freq[close_ind]) * \
+                                    (delta_phase_1 - delta_phase_0)
+
+                    else:
+                        self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                            - np.angle(self.fft_pos[close_ind]) + np.pi)
+                else:
+                    self.phase = self.phase_rectify(np.angle(self.fft_angle[close_ind]) \
+                        - np.angle(self.fft_pos[close_ind]) + np.pi)
+                if(self.omega_list is None):
+                    self.phase_list.pop(0)
+                    self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
+                return True
+        else:
+            return False
         
-if __name__ == '__main__':
-    '''Currently not compatible with multiple frequency assessment'''
-    data = data_analysis()
-    data.main()
+    def NR_update(self, scan = False, interpolation = True, manual = True):
+        '''Needs to be called frequently to update the plot for the phase and amplitude'''
+        if(self.omega_list is None):
+            if (self.NR_phase_calc(self.omega, scan, interpolation)):
+                if scan:
+                    return 0., 0.
+                else:
+                    if(manual):
+                        self.amp_list.pop(0)
+                        self.amp_list.append((self.time[self.temp_index], self.amp))
+                        return self.amp, self.phase
+                    else:
+                        # This is for the automatic finding of normalised resonance
+                        delta_amp_Kp = self.NR_Kp * ((self.phase + np.pi / 2))/ (2 * np.pi)
+                        try:
+                            delta_amp_Kd = self.NR_Kd * (self.phase_list[-1][1] - self.phase_list[-2][1]) / \
+                                (self.phase_list[-1][0] - self.phase_list[-2][0])
+                        except RuntimeError:
+                            pass
+                        self.amp *= (1 - delta_amp_Kp) * (1 - delta_amp_Kd)
+                        # Need a way to transmit this to a thread...
+                        self.amp_list.pop(0)
+                        self.amp_list.append((self.time[self.temp_index], self.amp))
+                        return self.amp, self.phase
+            else:
+                return 0, 0
+        else:
+            for index, omega in enumerate(self.omega_list):
+                if(self.NR_phase_calc(omega, scan, interpolation)):
+                    self.multi_phase_list[index].pop(0)
+                    self.multi_phase_list[index].append((self.time[self.temp_index], self.phase / np.pi))
+            return 0., 0.
+    
+    def phase_rectify(self, phase):
+        '''Shifts the phase to be between 0.5 * pi and -1.5*pi, which is symmetric abour -0.5*pi'''
+        phase = phase - 2 * np.pi * int(phase / (2 * np.pi))
+        if phase > 0.5 * np.pi:
+            return phase - 2 * np.pi
+        elif phase <= -1.5 * np.pi:
+            return phase + 2 * np.pi
+        else:
+            return phase
+    
+    def delay_fit(self, low, high):
+        '''Find the delay time between the two waves'''
+        delay_time = 0.
         
-# TODO: add the axes labels and titles
-# TODO: add fft_plot
+        def delay_func(time, delay):
+            return self.amp_0 * np.sin(2 * np.pi * self.omega * (time + self.start_time + delay))
+        
+        popt, pcov = curve_fit(delay_func, 
+                               self.time[low : high], 
+                               self.position[low : high],
+                               p0 = 0.007,
+                               maxfev = 20000)
+        # the idea here is that the proposed position of the cart at this moment 
+        # is the position of the cart at the next moment
+        delay_time = popt[0]
+        delay_error = np.sqrt(np.diag(pcov))[0]
+        return delay_time, delay_error
+    
+    # TODO: fix plot_length with updated index_list (secondary)
+    # TODO: add a sampling rate selection in arduino (secondary)
+    # TODO: to make the step function in the NR stage continuous (secondary)
+    # TODO: add a different title for downward and upward control (secondary)
+    
+class live_data(data):
+    
+    '''This is the class for live graph plotting without blocking. Inherit from the data class.'''
+    
+    def __init__(
+        self,
+        fft_length,
+        sampling_div,
+        wait_to_stable,
+        ):
+        super().__init__(fft_length, sampling_div, wait_to_stable)
+        
+    def copy(self, data, NR = False):
+        self.time = data.time
+        self.angle = data.angle
+        self.angular_velocity = data.angular_velocity
+        self.position = data.position
+        self.position_velocity = data.position_velocity
+        self.index = data.index
+        self.temp_index = data.temp_index
+        self.counter = data.counter
+        data.fft_angle = self.fft_angle
+        data.fft_pos = self.fft_pos
+        data.fft_freq = self.fft_freq
+        self.phase = data.phase
+        self.omega = data.omega
+        self.module_name = data.module_name
+        self.path = data.path
+        self.avg_spacing = data.avg_spacing
+        self.index_list = data.index_list
+        self.start_time = data.start_time
+        try:
+            self.pid_param = data.pid_param
+        except AttributeError:
+            pass
+        # Important, update the amp and phase in the data class
+        data.amp_list = self.amp_list
+        data.amp = self.amp
+        data.phase = self.phase
+        data.multi_phase_list = self.multi_phase_list
+        data.pos_const = self.pos_const
+        data.pos_active = self.pos_active
+        self.omega_num = data.omega_num
+        self.omega_list = data.omega_list
+        self.setSpeed_param = data.setSpeed_param
+    
