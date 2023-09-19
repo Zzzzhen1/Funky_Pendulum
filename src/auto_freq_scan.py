@@ -31,7 +31,7 @@ if(__name__ == "__main__"):
     temp_datum = live_data(fft_length = fft_lengths, 
                 sampling_div = sampling_divs, 
                 wait_to_stable = wait_to_stables) # variable for thread plotting
-    cartER = cart_pendulum(arduino_board, datum, temp_datum)
+    cartER = cart_pendulum(arduino_board, datum, temp_datum, df)
     
     cartER.path = os.getcwd()
     

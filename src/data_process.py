@@ -1115,6 +1115,7 @@ class data(data_phy):
                 datetime.now().strftime("-%H-%M-%S")
         except UnboundLocalError:
             pass
+        special_info = ""
         with open(filename + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             if(input_spec_info):

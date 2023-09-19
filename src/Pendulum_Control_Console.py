@@ -24,10 +24,12 @@ class cart_pendulum():
         self,
         arduino,
         data,
-        temp_data,):
+        temp_data,
+        data_frame,):
         self.arduino = arduino
         self.data = data
         self.temp_datum = temp_data
+        self.self.df = data_frame
         self.module_name = r"\Defaut_Cart_Pendulum"
         self.center_count = 0
         self.distance = 0
@@ -171,12 +173,12 @@ class cart_pendulum():
                 self.temp_datum.flag_close_event = True
                 break
             try:
-                df.update_data(self.arduino.receive.rstrip().split(','), \
+                self.df.update_data(self.arduino.receive.rstrip().split(','), \
                     appendPos = appendPos, appendVel = appendVel)
-                self.data.append_data(df, appendPos = appendPos, appendVel = appendVel)
+                self.data.append_data(self.df, appendPos = appendPos, appendVel = appendVel)
                 if(thread_check):
                     print("time_sys: %.3f time_read: %.3f thread_counter: %d" % \
-                        ((time.time() - self.data.sys_start_time), (df.time - self.data.start_time), self.thread_counter))
+                        ((time.time() - self.data.sys_start_time), (self.df.time - self.data.start_time), self.thread_counter))
                     self.thread_counter += 1
             except ValueError:
                 self.arduino.board.reset_input_buffer()
@@ -613,7 +615,7 @@ if(__name__ == "__main__"):
     temp_datum = live_data(fft_length = fft_lengths, 
                 sampling_div = sampling_divs, 
                 wait_to_stable = wait_to_stables) # variable for thread plotting
-    cartER = cart_pendulum(arduino_board, datum, temp_datum)
+    cartER = cart_pendulum(arduino_board, datum, temp_datum, df)
 
     cartER.main()
     print("\nProgram ends.")
