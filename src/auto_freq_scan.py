@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib as mpl, matplotlib.pyplot as plt
-import time, os, threading
+import time, os, threading, csv
 from datetime import datetime
 # import modules from other python files
 from data_process import data, live_data
@@ -60,14 +60,16 @@ if(__name__ == "__main__"):
     ref_csv_dir = refer_dirs + r'\reference_parameters-' + \
         datetime.now().strftime("init-%d-%m.csv")
     with open(ref_csv_dir, 'w') as f:
-        f.write(['index' ,'start_time', 'freq', 'amp_0'])
+        writer = csv.writer(f)
+        writer.writerow(['index' ,'start_time', 'freq', 'amp_0'])
         f.close()
     index = 0
     for freq in freq_array:
         for amp in amp_array:
             index += 1
             with open(ref_csv_dir, 'a') as f:
-                f.write([index, datetime.now().strftime("%d-%m-%Y %H:%M:%S"), freq, amp])
+                writer = csv.writer(f)
+                writer.writerow([index, datetime.now().strftime("%d-%m-%Y %H:%M:%S"), freq, amp])
                 f.close()
             time.sleep(0.1)
             cartER.main_auto_freq_scan(
