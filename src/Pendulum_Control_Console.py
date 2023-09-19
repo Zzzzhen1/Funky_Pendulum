@@ -458,11 +458,13 @@ class cart_pendulum():
                             auto_freq,
                             auto_amp,
                             duration,
+                            trans_fade_time = 40,
                             ):
         self.module_name = r"auto_freq_scan"
         # TODO: extract the list of data from a csv file, which is generated 
         # using another python code, then run the freq_scan module automatically. 
         # This csv file will also be the reference parameters backup.
+        self.path = os.getcwd()
         try:
             self.data.path = self.path + r"\auto_freq_scan"
             os.makedirs(self.data.path)
@@ -475,6 +477,7 @@ class cart_pendulum():
         self.arduino.read_all()
         self.arduino.send_message("1\n") # to center the cart as a routine
         self.arduino.read_single()
+        time.sleep(trans_fade_time)
         self.arduino.read_all()
         self.arduino.send_message("4\n") # to turn on the frequency scan mode
         time.sleep(1)

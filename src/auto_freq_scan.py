@@ -20,7 +20,7 @@ ANGLE_ROTATION = 55 # Rotation of the y-label
 if(__name__ == "__main__"):
     fft_lengths = 1024
     sampling_divs = 0.04
-    wait_to_stables = 0
+    wait_to_stables = 1
     #  Initialisation of the arduino board and the data class
     arduino_board = arduino(port, baudrate)
     df = data_frame()
@@ -31,5 +31,25 @@ if(__name__ == "__main__"):
                 sampling_div = sampling_divs, 
                 wait_to_stable = wait_to_stables) # variable for thread plotting
     cartER = cart_pendulum(arduino_board, datum)
+    
+    cartER.path = os.getcwd()
+    
+    # Trial run
+    cartER.main_auto_freq_scan(
+        auto_freq = 1.5,
+        auto_amp = 100,
+        duration = 60,
+    )
+    
+    # Initialisation of the auto_scan parameters
+    # start_freq = 0.9
+    # end_freq = 1.3
+    # num_freq = 20
+    # freq_array = np.linspace(start_freq, end_freq, num_freq)
+    # start_amp = 10
+    # end_amp = 200
+    # num_amp = 20
+    # amp_array = np.linspace(start_amp, end_amp, num_amp)
+    # duration = 2 * fft_lengths * sampling_divs
     
     # TODO: read reference parameters from a csv file and then implement cartER.main_auto_freq_scan()
