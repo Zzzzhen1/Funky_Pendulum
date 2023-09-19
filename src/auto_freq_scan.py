@@ -14,7 +14,7 @@ colors = prop_cycle.by_key()['color']
 mpl.use('TkAgg')
 # Initialisation of some constants and variables
 port = 'COM6' 
-baudrate = 230400 # TODO: extract all constants from a project file?
+baudrate = 230400
 MAX_COUNT = 10 # Number of points waited to plot a frame, used to set the fps
 ANGLE_ROTATION = 55 # Rotation of the y-label
 
@@ -64,6 +64,7 @@ if(__name__ == "__main__"):
         writer.writerow(['index' ,'start_time', 'freq', 'amp_0'])
         f.close()
     index = 0
+    # Start scanning for different amplitudes and frequencies
     for freq in freq_array:
         for amp in amp_array:
             index += 1
@@ -78,5 +79,3 @@ if(__name__ == "__main__"):
                 duration = duration,
             )
     
-    
-    # TODO: read reference parameters from a csv file and then implement cartER.main_auto_freq_scan()

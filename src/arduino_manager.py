@@ -15,8 +15,8 @@ class arduino():
         self,
         port,
         baudrate,
-        timeout = None,
-        dsrdtr = None
+        timeout = None, 
+        dsrdtr = None, # TODO: this is supposedly the reset pin, however not working properly
     ):
         self.port = port
         self.baudrate = baudrate
@@ -79,7 +79,7 @@ class arduino():
         self.read_single()
         
     def send_command(self):
-        # possible commands: reboot, center, pid, measure, NR 
+        '''possible commands: reboot, center, pid, measure, NR, setSpeed, freq_scan'''
         self.command = input() + "\n"
         print("")
         self.board.write(self.command.encode('ASCII'))
@@ -96,6 +96,7 @@ class arduino():
             self.omega = self.message
     
     def send_list_omega(self):
+        '''Send a list of frequencies / a single frequency to the arduino'''
         temp_flag = True
         while(temp_flag):
             try:
