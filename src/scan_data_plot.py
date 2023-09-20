@@ -8,7 +8,7 @@ from matplotlib import cm
 def fit_driving_amp(data_amp_array, ref_amp_list):
     # Fit the driving amplitude
     temp_array = []
-    for index, driving_amp in enumerate(data_amp_array):
+    for driving_amp in data_amp_array:
         temp_amp = ref_amp_list[0]
         for ref_amp in ref_amp_list:
             if abs(driving_amp - ref_amp) < abs(driving_amp - temp_amp):
@@ -20,11 +20,11 @@ if (__name__ == '__main__'):
     # Load data from CSV
     while True:
         try:
-            # file_path = input('Enter file path: ')
-            file_path = r'C:\Programming\Python\CartER_III\scan_data-20-09.csv'
+            file_path = input('Enter file path: ')
+            # file_path = r'C:\Programming\Python\CartER_III\scan_data-20-09.csv'
             data = pd.read_csv(file_path)
-            # ref_file_path = input('Enter reference file path: ')
-            ref_file_path = r'C:\Programming\Python\CartER_III\reference_parameters-init-19-09.csv'
+            ref_file_path = input('Enter reference file path: ')
+            # ref_file_path = r'C:\Programming\Python\CartER_III\reference_parameters-init-19-09.csv'
             ref_data = pd.read_csv(ref_file_path)
             break
         except FileNotFoundError:
