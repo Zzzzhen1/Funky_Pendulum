@@ -458,7 +458,7 @@ class data_analysis():
                  label = 'position')
         self.ax0.legend(loc = 'right')
 
-    def scan_process(self, axes, start_time, end_time, rolling_time):
+    def scan_process(self, axes, start_time, end_time, rolling_time, auto_scan = False):
         self.phase_list = []
         self.fft_length = int(rolling_time / self.sampling_div)
         if(self.temp_data[0][0] >= start_time):
@@ -508,15 +508,19 @@ class data_analysis():
         print('phase = %.4f ' % avg_phase + u"\u00B1" + ' %.4f' % err_phase + " pi")
         # / np.sqrt(len(self.phase_list) - 1) (this represents the error of the mean, which is 
         # too small in terms of the fluctuation of the phase)
-        
-        plt.show()
-        self.ax0.clear()
+        if(auto_scan):
+            plt.pause(2)
+            plt.close('all')
+            self.ax0.clear()
+        else:
+            plt.show()
+            self.ax0.clear()
         # self.figure, axes = self.restore_figure()
         return popt_angle[2], np.sqrt(pcov_angle[2, 2]), \
             popt_position[2], np.sqrt(pcov_position[2, 2]), \
                 avg_phase, err_phase
           
-    def scan_plot(self, file, block = True):
+    def scan_plot(self, file, block = True, auto_scan = False):
         '''Plot two graphs:
         1. The angle-time graph with best fit line and parameters
         2. The phase curve and cumulated error
@@ -544,45 +548,58 @@ class data_analysis():
                         'b-', 
                         label = 'position_time')
         axes[1, 0].legend(loc = 'upper left')
-        plt.show(block = block)
-        self.ax0.clear()
-        # TODO: for analyzing the auto_scan_data, should have a 
-        # non-blocking processing method and plot saving method
-        flag_request = True
-        while flag_request:
+        if(auto_scan):
+            self.parent_path = os.path.dirname(self.dirc)
             try:
-                start_time = float(input('Start time of calculation in seconds: '))
-                if(start_time < self.temp_data[0][0]):
-                    start_time = self.temp_data[0][0]
-                print('Start time = ' + str(start_time)[:5] + ' s')
-                end_time = float(input('\nEnd time of calculation in seconds: '))
-                if(end_time > self.temp_data[0][-1]):
-                    end_time = self.temp_data[0][-1]
-                print('End time = ' + str(end_time)[:5] + ' s')
-                rolling_time = float(input('\nRolling fft window time in seconds: '))
-                print('Rolling window time = ' + str(rolling_time)[:5] + ' s')
-                exp_data = self.scan_process(axes, start_time, end_time, rolling_time)
-                msg = input('\nDo you want to save the data? (y to save, n to continue, r to adjust): ')
-                flag_yn = True
-                while flag_yn:
-                    if(msg == 'y'):
-                        flag_request = False
-                        flag_yn = False
-                        self.save_scan_data(exp_data, file)
-                    elif(msg == 'n'):
-                        flag_request = False
-                        flag_yn = False
-                    elif (msg == 'r'):
-                        flag_yn = False
-                    else:
-                        msg = input('Please enter y or n: ')
-            except (ValueError, AssertionError):
-                print('Invalid input, please try again')
+                os.mkdir(self.parent_path + '\\auto_scan_pdf')
+            except OSError:
+                pass
+            plt.pause(2)
+            plt.savefig(self.parent_path + '\\auto_scan_pdf\\' + file[:-4] + '.pdf', dpi = 600)
+            plt.close('all')
+            self.ax0.clear()
+            exp_data = self.scan_process(axes, 30, self.temp_data[0][-1], 40, auto_scan = True)
+            self.save_scan_data(exp_data, file)
+        else:
+            plt.show(block = block)
+            self.ax0.clear()
+            # TODO: for analyzing the auto_scan_data, should have a 
+            # non-blocking processing method and plot saving method
+            flag_request = True
+            while flag_request:
+                try:
+                    start_time = float(input('Start time of calculation in seconds: '))
+                    if(start_time < self.temp_data[0][0]):
+                        start_time = self.temp_data[0][0]
+                    print('Start time = ' + str(start_time)[:5] + ' s')
+                    end_time = float(input('\nEnd time of calculation in seconds: '))
+                    if(end_time > self.temp_data[0][-1]):
+                        end_time = self.temp_data[0][-1]
+                    print('End time = ' + str(end_time)[:5] + ' s')
+                    rolling_time = float(input('\nRolling fft window time in seconds: '))
+                    print('Rolling window time = ' + str(rolling_time)[:5] + ' s')
+                    exp_data = self.scan_process(axes, start_time, end_time, rolling_time)
+                    msg = input('\nDo you want to save the data? (y to save, n to continue, r to adjust): ')
+                    flag_yn = True
+                    while flag_yn:
+                        if(msg == 'y'):
+                            flag_request = False
+                            flag_yn = False
+                            self.save_scan_data(exp_data, file)
+                        elif(msg == 'n'):
+                            flag_request = False
+                            flag_yn = False
+                        elif (msg == 'r'):
+                            flag_yn = False
+                        else:
+                            msg = input('Please enter y or n: ')
+                except (ValueError, AssertionError):
+                    print('Invalid input, please try again')
 
     def save_scan_data(self, exp_data, file):
         parent_dir = os.path.dirname(self.dirc)
         current_dir_name = os.path.split(self.dirc)[1]
-        csv_dir = parent_dir + '\\scan_data.csv'
+        csv_dir = parent_dir + '\\scan_data.csv' # Free to change the name of the csv file
         flag = True
         
         if(os.path.isfile(csv_dir)):
@@ -810,7 +827,10 @@ class data_analysis():
                     print('\n-----------------------------------')
                     print("processing " + file)
                     if(self.read_csv(file)):
-                        self.scan_plot(file)
+                        if(file.startswith('auto_scan')):
+                            self.scan_plot(file, auto_scan = True)
+                        else:
+                            self.scan_plot(file)
                         self.clear_data()
                 
                     if('multiple_omega' in self.properties):
