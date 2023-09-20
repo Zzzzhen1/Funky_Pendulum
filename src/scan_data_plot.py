@@ -9,9 +9,15 @@ while True:
     try:
         file_path = input('Enter file path: ')
         data = pd.read_csv(file_path)
+        ref_file_path = input('Enter reference file path: ')
+        ref_data = pd.read_csv(ref_file_path)
         break
     except FileNotFoundError:
         print('File not found. Please try again.')
+
+data_array = data.to_numpy()
+ref_data_array = ref_data.to_numpy()
+
 
 # Calculate response amplitude to driving amplitude ratio
 data['amp_ratio'] = data['response_amp'] / data['driving_amp']
