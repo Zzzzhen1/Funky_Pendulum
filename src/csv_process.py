@@ -483,7 +483,7 @@ class data_analysis():
         
         popt_angle, pcov_angle = self.scan_fit(self.temp_data[0][start_index:end_index], 
                                                self.temp_data[1][start_index:end_index],
-                                               amp_range = (amp_ang_max - 0.5, amp_ang_max + 0.1))
+                                               amp_range = (0, amp_ang_max + 0.1))
         # be careful of the negative sign in the angle fit
         popt_position, pcov_position = self.scan_fit(self.temp_data[0][start_index:end_index],
                                                      self.temp_data[2][start_index:end_index],
@@ -509,7 +509,7 @@ class data_analysis():
         # / np.sqrt(len(self.phase_list) - 1) (this represents the error of the mean, which is 
         # too small in terms of the fluctuation of the phase)
         if(auto_scan):
-            plt.pause(2)
+            plt.pause(5)
             plt.close('all')
             self.ax0.clear()
         else:
@@ -827,7 +827,7 @@ class data_analysis():
                     print('\n-----------------------------------')
                     print("processing " + file)
                     if(self.read_csv(file)):
-                        if(file.startswith('auto_scan')):
+                        if(file.startswith('auto_freq_scan')):
                             self.scan_plot(file, auto_scan = True)
                         else:
                             self.scan_plot(file)
