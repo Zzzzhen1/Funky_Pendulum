@@ -483,7 +483,7 @@ class data_analysis():
         
         popt_angle, pcov_angle = self.scan_fit(self.temp_data[0][start_index:end_index], 
                                                self.temp_data[1][start_index:end_index],
-                                               amp_range = (0, amp_ang_max + 0.1))
+                                               amp_range = (amp_ang_max - 0.1, amp_ang_max + 0.2))
         # be careful of the negative sign in the angle fit
         popt_position, pcov_position = self.scan_fit(self.temp_data[0][start_index:end_index],
                                                      self.temp_data[2][start_index:end_index],
