@@ -1,5 +1,17 @@
 // General description:
-
+// This code sets the arduino board ready for 7 different functions: (start from 0)
+// 0. Reset the arduino board
+// 1. Center the cart
+// 2. Measure the natural frequency and quality factor of the cart
+// by activating the rotary sensor 
+// 3. Set and test out the maximum speed and acceleration (set by the laptop) 
+// of the stepper motor by runnnig in a sinusoidal motion at 1 Hz
+// 4. Frequency scan by running the cart in a sinusoidal motion at different frequencies
+// 5. PID control of the inverted or downright pendulum (swing-up is included but is not
+// recommended to use since it's not ready)
+// 6. Normalised resonance of the cart by a feedback sent back from the laptop
+// User can automate their measurement by setting the code in the laptop via constantly
+// running certain functions, and save the data from that running. 
 
 // Include all the necessary head files
 #include "Arduino.h"
@@ -681,7 +693,7 @@ void pid() {
 // PID stage stepper control, print through serial: time, angle and position (all with velocity)
 void pid_control_run(bool flag) {
   if (state_L && state_R) {
-    // This is where the data sampling happens
+    // This is where the data sampling and calculation happens
     current_ind = buf_ind % buf_len;
     current_time = millis() / 1000.;
     sample_time = millis();
@@ -698,7 +710,7 @@ void pid_control_run(bool flag) {
 
     cart_run_max();
 
-    // Sampled data is appended to the circular buffer
+    // Sampled data is stored in the circular buffers
     circ_buffer_position[current_ind] = pos_cart;
     circ_buffer_angle[current_ind] = ang_cul;
     circ_buffer_time[current_ind] = current_time;
@@ -899,7 +911,7 @@ void setSpeed() {
   }
 }
 
-// Runs the scanning for response stage, pretty much the duplicate of the NR stage
+// Runs the scanning for response stage, pretty much the duplicate from the NR code
 void freq_scan() {
   if (Serial) {
     if (state_L && state_R) {
@@ -1115,6 +1127,7 @@ float get_velocity() {
   int temp_ind = current_ind + buf_len - 2 * pos_vel_len;
   if (buf_ind > pos_vel_len + 1) {
     for (int i = 1; i <= pos_vel_len; i++) {
+      // Substraction has to happen before the division to avoid the loss of accuracy
       double temp_vel = (circ_buffer_position[temp_ind + pos_vel_len + i] - circ_buffer_position[temp_ind + i])
                         / (circ_buffer_time[temp_ind + pos_vel_len + i] - circ_buffer_time[temp_ind + i]);
       if (isnan(temp_vel)) {
@@ -1125,7 +1138,7 @@ float get_velocity() {
     }
     return sum / pos_vel_len;
   } else {
-    return 0.;  // Have not had enough data to calculate the velocity
+    return 0.;  // Have not had enough data to calculate the velocity, thus return 0
   }
 }
 
@@ -1147,7 +1160,8 @@ double get_cumulative_angle() {
   }
 }
 
-// Angular speed measurement in rad/s
+// Angular speed measurement in rad/s, it's nice to have the chip 
+// on the rotary sensor calculates the speed
 double get_angular_velocity() {
   // *args mode 1 for rad/s, 0 for rpm
   double temp_ang_vel = angle_sensor.getAngularSpeed(1);
@@ -1159,10 +1173,12 @@ double get_angular_velocity() {
 }
 
 // Integral control calculation for angle
+// that proportional to the supposed angle integral
 double ang_integ_calc() {
   if (buf_ind >= buf_len) {
     double sum = 0;
     double time = 0;
+    // Start index has been chosen deliberately here. 
     for (int i = 2; i <= buf_len; i++) {
       // the order of calculation is important to increase the accuracy
       sum += (circ_buffer_angle[current_ind + i] - ang_eq) * circ_buffer_time[current_ind + i]
@@ -1174,11 +1190,13 @@ double ang_integ_calc() {
   return 0;
 }
 
-// Integral control calculation for position
+// Integral control calculation for position, returns a value 
+// that proportional to the supposed position integral
 double pos_integ_calc() {
   if (buf_ind >= buf_len) {
     double sum = 0;
     double time = 0;
+    // Start index has been chosen deliberately here. 
     for (int i = 2; i <= buf_len; i++) {
       // the order of calculation is important to increase the accuracy
       sum += double(circ_buffer_position[current_ind + i]) * circ_buffer_time[current_ind + i]
@@ -1191,7 +1209,8 @@ double pos_integ_calc() {
   }
 }
 
-// Rectify the equilibrium angle in terms of the culmulative angle
+// Rectify the equilibrium angle in terms of the culmulative angle 
+// to make those two angles in the same regime
 double rectify_angle() {
   if (ang_eq - ang_cul >= 2 * M_PI) {
     ang_eq = ang_eq - 2 * M_PI;
@@ -1279,7 +1298,7 @@ void cart_run_max() {
 }
 
 // Receive from laptop the comma separated data in NR stage
-// TODO: the global variables can be avoided by using the return value...
+// TODO: the global variables can be avoided by using the return value... (Secondary)
 void NR_receive() {
   int comma_index = message.indexOf(',');
   if (comma_index == -1) {
