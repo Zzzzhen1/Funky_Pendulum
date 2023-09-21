@@ -22,11 +22,11 @@ if (__name__ == '__main__'):
     # Load data from CSV
     while True:
         try:
-            # file_path = input('Enter file path: ')
-            file_path = r'C:\Programming\Python\CartER_III\scan_data-20-09.csv'
+            file_path = input('Enter file path: ')
+            # file_path = r'C:\Programming\Python\CartER_III\scan_data-19-09.csv'
             data = pd.read_csv(file_path)
-            # ref_file_path = input('Enter reference file path: ')
-            ref_file_path = r'C:\Programming\Python\CartER_III\reference_parameters-init-19-09.csv'
+            ref_file_path = input('Enter reference file path: ')
+            # ref_file_path = r'C:\Programming\Python\CartER_III\reference_parameters-init-19-09.csv'
             ref_data = pd.read_csv(ref_file_path)
             break
         except FileNotFoundError:
