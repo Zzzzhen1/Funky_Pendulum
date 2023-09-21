@@ -11,8 +11,6 @@ plt.rcParams['axes.grid'] = True
 # plt.rcParams.update({'text.usetex': True,
 #                      'font.family': 'serif',})
 
-# TODO: need to change the data_reading procedure
-
 while True:
     filename = input("Enter the file name: ")
     if os.path.isfile(filename):
