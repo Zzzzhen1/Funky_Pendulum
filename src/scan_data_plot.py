@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import cm
-# prop_cycle = plt.rcParams['axes.prop_cycle']
-# colors = prop_cycle.by_key()['color']
+from scipy.optimize import curve_fit
 
 def fit_driving_amp(data_amp_array, ref_amp_list):
     # Fit the driving amplitude
@@ -16,15 +15,18 @@ def fit_driving_amp(data_amp_array, ref_amp_list):
         temp_array.append(temp_amp)
     return pd.Series(temp_array)
 
+def parabolic_func(x, a, b, c):
+    return a * x**2 + b * x + c
+
 if (__name__ == '__main__'):
     # Load data from CSV
     while True:
         try:
-            file_path = input('Enter file path: ')
-            # file_path = r'C:\Programming\Python\CartER_III\scan_data-20-09.csv'
+            # file_path = input('Enter file path: ')
+            file_path = r'C:\Programming\Python\CartER_III\scan_data-20-09.csv'
             data = pd.read_csv(file_path)
-            ref_file_path = input('Enter reference file path: ')
-            # ref_file_path = r'C:\Programming\Python\CartER_III\reference_parameters-init-19-09.csv'
+            # ref_file_path = input('Enter reference file path: ')
+            ref_file_path = r'C:\Programming\Python\CartER_III\reference_parameters-init-19-09.csv'
             ref_data = pd.read_csv(ref_file_path)
             break
         except FileNotFoundError:
@@ -58,6 +60,18 @@ if (__name__ == '__main__'):
                      label = str(driving_amp) + ' step', 
                      color = colors[index],
                      capsize = 1)
+        top_indices = np.array(np.argmax(abs(subset['amp_ratio'])))
+        min_index = np.min(top_indices) - 1
+        max_index = np.max(top_indices) + 1
+        top_indices = np.append(top_indices, min_index)
+        top_indices = np.append(top_indices, max_index)
+        x_data = subset['driving_freq'].iloc[top_indices]
+        y_data = abs(subset['amp_ratio']).iloc[top_indices]
+        popt,pcov = curve_fit(parabolic_func, x_data, y_data, maxfev = 2000000)
+        x_fit = np.linspace(min(x_data), max(x_data), 1000)
+        y_fit = parabolic_func(x_fit, *popt)
+        plt.plot(x_fit, y_fit, color = colors[index])
+        print('driving_amp: %d, peak freq: '%(int(driving_amp)) + str(x_fit[np.argmax(y_fit)])[:6] + ' Hz')
     plt.xlabel('Driving Frequency / Hz')
     plt.ylabel('Response Amp / Driving Amp')
     plt.title('Response Amplitude to Driving Amplitude Ratio vs Driving Frequency')
