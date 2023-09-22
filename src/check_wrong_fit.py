@@ -56,7 +56,7 @@ if __name__ == "__main__":
                 date = datetime(hour = row.split(" ")[0].split(":")[0],
                                 minute = row.split(" ")[0].split(":")[1],
                                 seconds = row.split(" ")[0].split(":")[2],)
-                if(timedelta(seconds = 2) > (date - datetime(hour = int(pdf_time_list[0]),
+                if(timedelta(seconds = 2) > abs(date - datetime(hour = int(pdf_time_list[0]),
                                                               minute = int(pdf_time_list[1]),
                                                               second = int(pdf_time_list[2]),))):
                     pdf_date_list = row.split(" ")[1].split("-")
