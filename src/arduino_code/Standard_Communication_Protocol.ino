@@ -21,6 +21,10 @@
 #include "AccelStepper.h"
 #include "ezButton.h"
 
+// // Function name announcement area
+// bool cart_run_speed();
+// void cart_center_run_speed();
+
 // Initialization of Arduino Board
 const int baudrate = 230400;
 
@@ -51,7 +55,7 @@ float pos_cart_target = 0;       // Target position of the cart. Won't change un
 float pos_integ = 0;             // Integral control bit for position
 float vel = 0;                   // Cart velocity calculated using buffer arrays.
 const float speed_lim = 4000.0;  // Maximum speed, also the speed for the run() method
-float run_speed = 800.0;        // Speed that the stepper normally runs at
+float run_speed = 2000.0;        // Speed that the stepper normally runs at
 const float accel = 120000.;    // Pre-set acceleration
 long int safe_steps = 50;        // Safe distance to both switches
 const float safe_speed = 500.0;  // Avoid crushing into the swtich too hard
@@ -284,13 +288,14 @@ void single_command_check() {
 // Reset the cart. This is a safety measure.
 void cart_reset(bool kill = true) {
   stepper.stop();
-  delay(500);
-  stepper.setSpeed(safe_speed);
-  stepper.runToNewPosition(0);
   // Final moment print to trigger stage changes in laptop
   if (kill) {
     Serial.println("Kill switch hit.");
   }
+  delay(500);
+  stepper.setSpeed(run_speed);
+  stepper.moveTo(0);
+  cart_center_run_speed();
 }
 
 // Check whether a input string is fully made of numbers
@@ -384,7 +389,7 @@ bool isMultiFreq(String str) {
 
 // Receive the input made up of multiple float numbers. Return the pointer to the float array
 // [First time using the pointer in C++. It would make the code much clearer if other part 
-// of the code can be converted to pointer as well.]
+// of the receive message code can be converted to use pointer method as well.]
 float* isMultiFloat(String str){
   String temp_str = "";
   static float temp_float[MAX_SIZE] = {0};
@@ -405,7 +410,7 @@ float* isMultiFloat(String str){
       temp_str += str.charAt(i);
     }
   }
-  return temp_float;
+  return temp_float; // Return a pointer to the static temp_float array
 }
 
 // Read message from Serial port, wait infinitely
@@ -577,9 +582,10 @@ void center() {
         // Calculate and move to the central position. Then, set this position as zero.
         distance = pos_R - pos_L;
         stepper.setSpeed(run_speed);
-        stepper.runToNewPosition(pos_L + int(distance / 2));
-        // stepper.moveTo(pos_L + int(distance / 2));
-        // 
+        // stepper.runToNewPosition(pos_L + int(distance / 2));
+        stepper.moveTo(pos_L + int(distance / 2));
+        cart_center_run_speed();
+        delay(500);
         flag_center = 0;
         center_count += 1;
         flag_command = 1;
@@ -588,9 +594,7 @@ void center() {
         Serial.print(distance);
         Serial.println("");
         stepper.setCurrentPosition(0);
-        delay(1000);
         reset(false);
-        init_stepper(speed_lim, accel);
       }
     } else if (!state_L) {
       pos_L = stepper.currentPosition();
@@ -1254,19 +1258,28 @@ bool cart_run() {
   }
 }
 
-// TODO: need to fix the run_speed() (secondary)
 // Runs the cart one step at constant speed and update the pos_cart
 bool cart_run_speed() {
-  if (stepper.runSpeedToPosition()) {
+  pos_cart = stepper.currentPosition();
+  if (pos_cart != pos_cart_target) {
     if (pos_cart > pos_cart_target) {
-      pos_cart -= 1;
+      stepper.move(-1);
+      stepper.runSpeedToPosition();
     } else {
-      pos_cart += 1;
+      stepper.move(+1);
+      stepper.runSpeedToPosition();
     }
-    return 1;
+    return true;
   } else {
-    return 0;
+    return false;
   }
+}
+
+// Blocking runSpeed() method to center the cart using run_speed
+void cart_center_run_speed(){
+  stepper.setSpeed(run_speed);
+  pos_cart_target = stepper.targetPosition();
+  while(cart_run_speed());
 }
 
 // Runs the cart the max_steps and update the pos_cart (also check the switches)
