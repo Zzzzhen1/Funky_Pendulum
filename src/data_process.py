@@ -1506,4 +1506,5 @@ class live_data(data):
         self.omega_num = data.omega_num
         self.omega_list = data.omega_list
         self.setSpeed_param = data.setSpeed_param
-    
+
+# TODO: uniform the datetime as a single variable in the data class

@@ -578,6 +578,8 @@ void center() {
         distance = pos_R - pos_L;
         stepper.setSpeed(run_speed);
         stepper.runToNewPosition(pos_L + int(distance / 2));
+        // stepper.moveTo(pos_L + int(distance / 2));
+        // 
         flag_center = 0;
         center_count += 1;
         flag_command = 1;
