@@ -195,6 +195,7 @@ class data_analysis():
         '''Load the csv file'''
         self.clear_data()
         self.dirc = input('Please input the directory of the csv file: ')
+        self.parent_name_list = os.path.basename(self.dirc).split('-')
         for file in os.listdir(self.dirc):
             if file.endswith('.csv'):
                 self.csv_list.append(file)
@@ -511,12 +512,13 @@ class data_analysis():
         if(auto_scan):
             plt.pause(5)
             try:
-                os.mkdir(self.parent_path + '\\auto_scan_fit_pdf')
+                os.mkdir(self.parent_path + '\\auto_scan_fit_pdf-%s-%s\\'%(self.parent_name_list[0], \
+                self.parent_name_list[1]))
             except OSError:
                 pass
             plt.pause(2)
-            plt.savefig(self.parent_path + '\\auto_scan_fit_pdf\\' + \
-                self.properties['file_name'][:-4] + '.pdf', dpi = 600)
+            plt.savefig(self.parent_path + '\\auto_scan_fit_pdf-%s-%s\\'%(self.parent_name_list[0], \
+                self.parent_name_list[1]) + self.properties['file_name'][:-4] + '.pdf', dpi = 600)
             plt.close('all')
             self.ax0.clear()
         else:
@@ -558,11 +560,13 @@ class data_analysis():
         if(auto_scan):
             self.parent_path = os.path.dirname(self.dirc)
             try:
-                os.mkdir(self.parent_path + '\\auto_scan_pdf')
+                os.mkdir(self.parent_path + '\\auto_scan_pdf-%s-%s\\'%(self.parent_name_list[0], \
+                self.parent_name_list[1]))
             except OSError:
                 pass
             plt.pause(2)
-            plt.savefig(self.parent_path + '\\auto_scan_pdf\\' + file[:-4] + '.pdf', dpi = 600)
+            plt.savefig(self.parent_path + '\\auto_scan_pdf-%s-%s\\'%(self.parent_name_list[0], \
+                self.parent_name_list[1]) + file[:-4] + '.pdf', dpi = 600)
             plt.close('all')
             self.ax0.clear()
             exp_data = self.scan_process(axes, 30, self.temp_data[0][-1], 40, auto_scan = True)
