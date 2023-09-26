@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -19,10 +20,14 @@ def parabolic_func(x, a, b, c):
     return a * x**2 + b * x + c
 
 if (__name__ == '__main__'):
+    # Turn on the saving mode
+    flag_save = True
+    
     # Load data from CSV
     while True:
         try:
             file_path = input('Enter file path: ')
+            parent_dir = os.path.dirname(file_path)
             # file_path = r'C:\Programming\Python\CartER_III\scan_data-19-09.csv'
             data = pd.read_csv(file_path)
             ref_file_path = input('Enter reference file path: ')
@@ -32,6 +37,11 @@ if (__name__ == '__main__'):
         except FileNotFoundError:
             print('File not found. Please try again.')
 
+    try:
+        os.mkdir(parent_dir + '/plots')
+    except FileExistsError:
+        pass
+    
     data_array = data.to_numpy()
     ref_data_array = ref_data.to_numpy()
     _, _, _, _, _, data_amp_array, _, _, _, = zip(*data_array)
@@ -80,6 +90,8 @@ if (__name__ == '__main__'):
     plt.title('Response Amplitude to Driving Amplitude Ratio vs Driving Frequency')
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
     plt.grid(True)
+    if flag_save:
+        plt.savefig(parent_dir + '/plots/amp_ratio_vs_driving_freq.png', dpi = 600)
 
     # Plot phase against driving frequency with different colors
     plt.figure('Phase vs Driving Frequency', figsize = (10, 5))
@@ -101,6 +113,8 @@ if (__name__ == '__main__'):
     plt.title('Phase vs Driving Frequency')
     plt.grid(True)
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
+    if flag_save:
+        plt.savefig(parent_dir + '/plots/phase_vs_driving_freq.png', dpi = 600)
     
     data.sort_values(by='rectified_driving_amps', inplace=True)
     plt.figure('Response Amplitude to Driving Amplitude Ratio vs Driving Amplitude', figsize = (10, 5))
@@ -122,6 +136,8 @@ if (__name__ == '__main__'):
     plt.title('Response Amplitude to Driving Amplitude Ratio vs Driving Amplitude')
     plt.grid(True)
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
+    if flag_save:
+        plt.savefig(parent_dir + '/plots/amp_ratio_vs_driving_amp.png', dpi = 600)
     
     data.sort_values(by='response_amp', inplace=True)
     plt.figure('Response Amplitude to Driving Amplitude Ratio vs Response Amplitude', figsize = (10, 5))
@@ -143,6 +159,8 @@ if (__name__ == '__main__'):
     plt.title('Response Amplitude to Driving Amplitude Ratio vs Response Amplitude')
     plt.grid(True)
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
+    if flag_save:
+        plt.savefig(parent_dir + '/plots/amp_ratio_vs_response_amp.png', dpi = 600)
     
     data.sort_values(by='rectified_driving_amps', inplace=True)
     plt.figure('Phase vs Driving Amplitude', figsize = (10, 5))
@@ -164,6 +182,8 @@ if (__name__ == '__main__'):
     plt.title('Phase vs Driving Amplitude')
     plt.grid(True)
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
+    if flag_save:
+        plt.savefig(parent_dir + '/plots/phase_vs_driving_amp.png', dpi = 600)
     
     data.sort_values(by='response_amp', inplace=True)
     plt.figure('Phase vs Response Amplitude', figsize = (10, 5))
@@ -185,6 +205,9 @@ if (__name__ == '__main__'):
     plt.title('Phase vs Response Amplitude')
     plt.grid(True)
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
+    if flag_save:
+        plt.savefig(parent_dir + '/plots/phase_vs_response_amp.png', dpi = 600)
+        plt.close('all')
     
     # Plot the 3D plot
     plt.figure('Response Ratio vs. Driving Amplitude vs. Driving Frequency', figsize = (10, 5))
@@ -204,5 +227,4 @@ if (__name__ == '__main__'):
         ax.set_xlabel('Driving Amplitude / step')
         ax.set_ylabel('Response Amplitude / rad')
         ax.set_zlabel('Phase / pi')
-    
     plt.show()
