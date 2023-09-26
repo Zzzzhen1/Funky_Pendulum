@@ -46,8 +46,7 @@ if (__name__ == '__main__'):
     data.sort_values(by='driving_freq', inplace=True)
 
     # Plot the amplitude ratio against driving frequency with different colors
-    plt.figure(figsize = (10, 5))
-    plt.suptitle('Response Amplitude to Driving Amplitude Ratio vs Driving Frequency')
+    plt.figure('Response Amplitude to Driving Amplitude Ratio vs Driving Frequency', figsize = (10, 5))
     for index, driving_amp in enumerate(driving_amps):
         subset = data[data['rectified_driving_amps'] == driving_amp]
         plt.plot(subset['driving_freq'], 
@@ -74,7 +73,7 @@ if (__name__ == '__main__'):
             y_fit = parabolic_func(x_fit, *popt)
             plt.plot(x_fit, y_fit, color = colors[index])
             print('driving_amp: %d, peak freq: '%(int(driving_amp)) + str(x_fit[np.argmax(y_fit)])[:6] + ' Hz')
-        except ValueError:
+        except (ValueError, IndexError):
             pass
     plt.xlabel('Driving Frequency / Hz')
     plt.ylabel('Response Amp / Driving Amp')
@@ -83,8 +82,7 @@ if (__name__ == '__main__'):
     plt.grid(True)
 
     # Plot phase against driving frequency with different colors
-    plt.figure(figsize = (10, 5))
-    plt.suptitle('Phase vs Driving Frequency')
+    plt.figure('Phase vs Driving Frequency', figsize = (10, 5))
     for index, driving_amp in enumerate(driving_amps):
         subset = data[data['rectified_driving_amps'] == driving_amp]
         plt.plot(subset['driving_freq'], 
@@ -105,8 +103,7 @@ if (__name__ == '__main__'):
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
     
     data.sort_values(by='rectified_driving_amps', inplace=True)
-    plt.figure(figsize = (10, 5))
-    plt.suptitle('Response Amplitude to Driving Amplitude Ratio vs Driving Amplitude')
+    plt.figure('Response Amplitude to Driving Amplitude Ratio vs Driving Amplitude', figsize = (10, 5))
     for index, driving_freq in enumerate(driving_freqs):
         subset = data[data['driving_freq'] == driving_freq]
         plt.plot(subset['rectified_driving_amps'], 
@@ -127,8 +124,7 @@ if (__name__ == '__main__'):
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
     
     data.sort_values(by='response_amp', inplace=True)
-    plt.figure(figsize = (10, 5))
-    plt.suptitle('Response Amplitude to Driving Amplitude Ratio vs Response Amplitude')
+    plt.figure('Response Amplitude to Driving Amplitude Ratio vs Response Amplitude', figsize = (10, 5))
     for index, driving_freq in enumerate(driving_freqs):
         subset = data[data['driving_freq'] == driving_freq]
         plt.plot(abs(subset['response_amp']), 
@@ -149,8 +145,7 @@ if (__name__ == '__main__'):
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
     
     data.sort_values(by='rectified_driving_amps', inplace=True)
-    plt.figure(figsize = (10, 5))
-    plt.suptitle('Phase vs Driving Amplitude')
+    plt.figure('Phase vs Driving Amplitude', figsize = (10, 5))
     for index, driving_freq in enumerate(driving_freqs):
         subset = data[data['driving_freq'] == driving_freq]
         plt.plot(subset['rectified_driving_amps'], 
@@ -171,8 +166,7 @@ if (__name__ == '__main__'):
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
     
     data.sort_values(by='response_amp', inplace=True)
-    plt.figure(figsize = (10, 5))
-    plt.suptitle('Phase vs Response Amplitude')
+    plt.figure('Phase vs Response Amplitude', figsize = (10, 5))
     for index, driving_freq in enumerate(driving_freqs):
         subset = data[data['driving_freq'] == driving_freq]
         plt.plot(abs(subset['response_amp']), 
@@ -193,8 +187,7 @@ if (__name__ == '__main__'):
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
     
     # Plot the 3D plot
-    plt.figure(figsize = (10, 5))
-    plt.suptitle('Response Ratio vs. Driving Amplitude vs. Driving Frequency')
+    plt.figure('Response Ratio vs. Driving Amplitude vs. Driving Frequency', figsize = (10, 5))
     ax = plt.axes(projection='3d')
     for index, driving_freq in enumerate(driving_freqs):
         subset = data[data['driving_freq'] == driving_freq]
@@ -208,5 +201,8 @@ if (__name__ == '__main__'):
                      subset['phase'], 
                      color = colors[index],
                      label = str(driving_freq)[:4] + ' Hz')
+        ax.set_xlabel('Driving Amplitude / step')
+        ax.set_ylabel('Response Amplitude / rad')
+        ax.set_zlabel('Phase / pi')
     
     plt.show()
