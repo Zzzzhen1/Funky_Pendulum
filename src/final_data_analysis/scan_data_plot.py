@@ -46,6 +46,8 @@ if (__name__ == '__main__'):
     ref_data_array = ref_data.to_numpy()
     _, _, _, _, _, data_amp_array, _, _, _, = zip(*data_array)
     driving_amps = ref_data['amp_0'].unique()
+    # Add the 4 step driving amplitude since the minimum error is 1 step, turn on when necessary
+    # driving_amps = np.append(driving_amps, [4,26]) 
     driving_freqs = ref_data['freq'].unique()
     colors = cm.rainbow(np.linspace(0, 1, len(driving_amps)))
     # Calculate response amplitude to driving amplitude ratio
@@ -79,9 +81,13 @@ if (__name__ == '__main__'):
             x_data = subset['driving_freq'].iloc[top_indices]
             y_data = abs(subset['amp_ratio']).iloc[top_indices]
             popt,pcov = curve_fit(parabolic_func, x_data, y_data, maxfev = 2000000)
-            x_fit = np.linspace(min(x_data), max(x_data), 1000)
+            x_fit = np.linspace(min(x_data), max(x_data), 10000)
             y_fit = parabolic_func(x_fit, *popt)
             plt.plot(x_fit, y_fit, color = colors[index])
+            plt.annotate('%.4f Hz'%(x_fit[np.argmax(y_fit)]),
+                         xy = (x_fit[np.argmax(y_fit)], max(y_fit)),
+                         xytext = (x_fit[np.argmax(y_fit)] + 0.05, max(y_fit)),
+                         arrowprops = dict(facecolor = colors[index], shrink = 0.05))
             print('driving_amp: %d, peak freq: '%(int(driving_amp)) + str(x_fit[np.argmax(y_fit)])[:6] + ' Hz')
         except (ValueError, IndexError):
             pass
