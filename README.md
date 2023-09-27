@@ -14,6 +14,22 @@ Modules required?
 3. What should students do to run the program. (Undecided yet: possibly use vscode or other editor space)
 4. Possible changes that can be made in the program and how can students revert their changes. (In both python and Arduino)
 
+## Getting Started
+Necessary Python modules:
+1. numpy
+2. scipy
+3. matplotlib
+4. pyserial
+5. pandas
+
+use "pip install __module_name__" to configure the corresponding module for your python
+
+Necessary Arduino Libraries:
+1. AccelStepper
+2. AS5600
+3. EasyButton
+4. ...
+
 ## Experiment Setup
 
 TODO: attach the pictures in the images folders here
