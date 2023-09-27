@@ -18,7 +18,7 @@ MAX_COUNT = 10 # Number of points waited to plot a frame TODO: change this to ma
 ANGLE_ROTATION = 55 # Rotation of the y-label
 
 class data_phy():
-    '''Put all the physics in this class such that people can look at the fft'''
+    '''Put all the physics in this class such that people can look at'''
     def __init__(
         self,
         fft_length,
