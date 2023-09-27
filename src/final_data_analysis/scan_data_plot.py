@@ -21,7 +21,7 @@ def fit_driving_amp(data_amp_array, ref_amp_list):
     return pd.Series(temp_array)
 
 def parabolic_func(x, a, b, c):
-    return a * x**2 + b * x + c
+    return a * (x**2 + b * x + c)
 
 if (__name__ == '__main__'):
     # Turn on the saving mode
@@ -105,10 +105,15 @@ if (__name__ == '__main__'):
     # Plot the peak frequency against response amplitude
     plt.figure('Peak Frequency vs Response Amplitude', figsize = (FIG_WIDTH, FIG_HEIGHT))
     peak_freqs = np.array(peak_freqs)
-    plt.plot(peak_freqs[:, 1], peak_freqs[:, 2], 'x')
-    plt.plot(peak_freqs[:, 1], peak_freqs[:, 2], '--')
+    plt.plot(peak_freqs[:, 1], peak_freqs[:, 2], 'bx', markersize = 5)
+    plt.plot(peak_freqs[:, 1], peak_freqs[:, 2], 'b-')
     plt.xlabel('Response Amplitude / rad')
     plt.ylabel('Peak Frequency / Hz')
+    popt, pcov = curve_fit(parabolic_func, peak_freqs[:, 1], peak_freqs[:, 2], maxfev = 2000000)
+    x_fit = np.linspace(min(peak_freqs[:, 1]), max(peak_freqs[:, 1]), 10000)
+    y_fit = parabolic_func(x_fit, *popt)
+    plt.plot(x_fit, y_fit, 'r--')
+    plt.text(0.5, 0.1, 'y = %.2f * (x^2 + %.2f * x + %.2f)'%(popt[0], popt[1], popt[2]), transform=plt.gca().transAxes)
     if flag_save:
         plt.savefig(parent_dir + '/plots/peak_freq_vs_response_amp.png', dpi = 600)
     
