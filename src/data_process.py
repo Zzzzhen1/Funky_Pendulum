@@ -595,9 +595,9 @@ class data(data_phy):
                     self.line_fft.set_data(self.fft_freq, 
                                          abs(self.fft_angle))
                     try:
-                        txt1 = self.ax_list[1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[1].text(0.5, 1.05, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
                                             transform = self.ax_list[1].transAxes)
-                        txt2 = self.ax_list[1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
                                             transform = self.ax_list[1].transAxes)
                     except ZeroDivisionError:
                         pass
@@ -629,9 +629,9 @@ class data(data_phy):
                     self.line_fft.set_data(self.fft_freq, 
                                          abs(self.fft_angle))
                     try: 
-                        txt1 = self.ax_list[1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[1].text(0.5, 1.05, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
                                             transform = self.ax_list[1].transAxes)
-                        txt2 = self.ax_list[1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
                                             transform = self.ax_list[1].transAxes)
                     except ZeroDivisionError:
                         pass
@@ -687,9 +687,9 @@ class data(data_phy):
                         self.line_phase_active.set_data(*zip(*self.phase_list_active))
                     
                     try:
-                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                         if(self.index > 20 and scan):
                             txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
@@ -752,9 +752,9 @@ class data(data_phy):
                         self.line_phase_active.set_data(*zip(*self.phase_list_active))
                     
                     try:
-                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                         if(scan):
                             txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
@@ -823,9 +823,9 @@ class data(data_phy):
                         self.line_phase_active.set_data(*zip(*self.phase_list_active))
                     
                     try:
-                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                         if(self.index > 20 and scan):
                             txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
@@ -888,9 +888,9 @@ class data(data_phy):
                         self.line_phase_active.set_data(*zip(*self.phase_list_active))
                     
                     try:
-                        txt1 = self.ax_list[0, 1].text(0.5, 1.1, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(1 / self.avg_spacing)[:4] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        txt2 = self.ax_list[0, 1].text(0.5, 1.2, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                         if(scan):
                             txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
