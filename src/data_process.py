@@ -27,46 +27,46 @@ class data_phy():
         buffer_length = 4 * 8192,
         plot_length = 64,
         ):
-            self.start_time = 0. # Arduino internal time might not start at zero
-            self.sampling_div = sampling_div
-            self.avg_spacing = 0.
-            self.time = np.zeros(2 * buffer_length)
-            self.angle = np.zeros(2 * buffer_length)
-            self.angular_velocity = np.zeros(2 * buffer_length)
-            self.position = np.zeros(2 * buffer_length)
-            self.position_velocity = np.zeros(2 * buffer_length)
-            self.omega = 2. # driven frequency in Hz
-            self.amp = 100. # amplitude of the active driven force
-            self.amp_0 = 50.0 # This is used to characterise the constant oscillation
-            self.phase = 0. 
-            self.NR_Kp = 0.05 # Proportional control of the NR
-            self.NR_Kd = 0. # Derivative control of the NR
-            self.NR_Ki = 0. # Currently not used
-            self.fft_angle = np.zeros(fft_length)
-            self.fft_pos = np.zeros(fft_length)
-            self.fft_freq = np.zeros(fft_length)
-            self.buffer_length = buffer_length
-            self.fft_length = fft_length
-            self.plot_length = plot_length
-            self.index_list = np.zeros(fft_length, dtype = int)
-            self.phase_list = [(0., 0.)] * self.plot_length * 10 * (wait_to_stable + 1)
-            self.amp_list = [(0., 0.)] * self.plot_length * 10
-            self.wait_to_stable = wait_to_stable
-            self.index = 0
-            self.temp_index = 0
-            self.counter = 0
-            self.flag_fig_init = True
-            self.flag_subplot_init = True
-            self.flag_close_event = False
-            self.module_name = ""
-            self.path = ""
-            self.omega_num = 0
-            self.omega_list = None
-            self.multi_phase_list = None
-            self.pos_const = None
-            self.pos_active = None
-            self.setSpeed_param = None
-            self.phase_list_active = None
+        self.start_time = 0. # Arduino internal time might not start at zero
+        self.sampling_div = sampling_div
+        self.avg_spacing = 0.
+        self.time = np.zeros(2 * buffer_length)
+        self.angle = np.zeros(2 * buffer_length)
+        self.angular_velocity = np.zeros(2 * buffer_length)
+        self.position = np.zeros(2 * buffer_length)
+        self.position_velocity = np.zeros(2 * buffer_length)
+        self.omega = 2. # driven frequency in Hz
+        self.amp = 100. # amplitude of the active driven force
+        self.amp_0 = 50.0 # This is used to characterise the constant oscillation
+        self.phase = 0. 
+        self.NR_Kp = 0.05 # Proportional control of the NR
+        self.NR_Kd = 0. # Derivative control of the NR
+        self.NR_Ki = 0. # Currently not used
+        self.fft_angle = np.zeros(fft_length)
+        self.fft_pos = np.zeros(fft_length)
+        self.fft_freq = np.zeros(fft_length)
+        self.buffer_length = buffer_length
+        self.fft_length = fft_length
+        self.plot_length = plot_length
+        self.index_list = np.zeros(fft_length, dtype = int)
+        self.phase_list = [(0., 0.)] * self.plot_length * 10 * (wait_to_stable + 1)
+        self.amp_list = [(0., 0.)] * self.plot_length * 10
+        self.wait_to_stable = wait_to_stable
+        self.index = 0
+        self.temp_index = 0
+        self.counter = 0
+        self.flag_fig_init = True
+        self.flag_subplot_init = True
+        self.flag_close_event = False
+        self.module_name = ""
+        self.path = ""
+        self.omega_num = 0
+        self.omega_list = None
+        self.multi_phase_list = None
+        self.pos_const = None
+        self.pos_active = None
+        self.setSpeed_param = None
+        self.phase_list_active = None
   
     def fft_index_list(self):
         '''Since the sampled data might not be evenly spaced, we need to find the
@@ -300,46 +300,7 @@ class data(data_phy):
         buffer_length = 4 * 8192,
         plot_length = 64,
         ):
-        self.start_time = 0.
-        self.sampling_div = sampling_div
-        self.avg_spacing = 0.
-        self.time = np.zeros(2 * buffer_length)
-        self.angle = np.zeros(2 * buffer_length)
-        self.angular_velocity = np.zeros(2 * buffer_length)
-        self.position = np.zeros(2 * buffer_length)
-        self.position_velocity = np.zeros(2 * buffer_length)
-        self.omega = 2.
-        self.amp = 100.
-        self.amp_0 = 50.0 # This is used to characterise the constant oscillation
-        self.phase = 0.
-        self.NR_Kp = 0.05
-        self.NR_Kd = 0.
-        self.NR_Ki = 0.
-        self.fft_angle = np.zeros(fft_length)
-        self.fft_pos = np.zeros(fft_length)
-        self.fft_freq = np.zeros(fft_length)
-        self.buffer_length = buffer_length
-        self.fft_length = fft_length
-        self.plot_length = plot_length
-        self.index_list = np.zeros(fft_length, dtype = int)
-        self.phase_list = [(0., 0.)] * self.plot_length * 10 * (wait_to_stable + 1)
-        self.amp_list = [(0., 0.)] * self.plot_length * 10
-        self.wait_to_stable = wait_to_stable
-        self.index = 0
-        self.temp_index = 0
-        self.counter = 0
-        self.flag_fig_init = True
-        self.flag_subplot_init = True
-        self.flag_close_event = False
-        self.module_name = ""
-        self.path = ""
-        self.omega_num = 0
-        self.omega_list = None
-        self.multi_phase_list = None
-        self.pos_const = None
-        self.pos_active = None
-        self.setSpeed_param = None
-        self.phase_list_active = None
+        super().__init__(fft_length, sampling_div, wait_to_stable, buffer_length, plot_length)
     
     def append_data(
         self,
@@ -1246,9 +1207,7 @@ class data(data_phy):
         if(NR_phase_amp):
             print("\nExported to " + filename_phase_amp + "\n")
         
-    # TODO: fix plot_length with updated index_list (secondary)
     # TODO: add a sampling rate selection in arduino (secondary)
-    # TODO: to make the step function in the NR stage continuous (secondary)
     # TODO: add a different title for downward and upward control (secondary)
     
 class live_data(data):
@@ -1301,4 +1260,4 @@ class live_data(data):
         self.omega_list = data.omega_list
         self.setSpeed_param = data.setSpeed_param
 
-# TODO: uniform the datetime as a single variable in the data class
+# TODO: unify the datetime as a single variable in the data class
