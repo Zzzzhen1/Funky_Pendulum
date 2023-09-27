@@ -64,6 +64,7 @@ if (__name__ == '__main__'):
 
     # Plot the amplitude ratio against driving frequency with different colors
     plt.figure('Response Amplitude to Driving Amplitude Ratio vs Driving Frequency', figsize = (FIG_WIDTH, FIG_HEIGHT))
+    peak_freqs = [] # will be appended with (driving_amp, response_amp, peak_freq) tuples
     for index, driving_amp in enumerate(driving_amps):
         subset = data[data['rectified_driving_amps'] == driving_amp]
         plt.plot(subset['driving_freq'], 
@@ -89,10 +90,7 @@ if (__name__ == '__main__'):
             x_fit = np.linspace(min(x_data), max(x_data), 10000)
             y_fit = parabolic_func(x_fit, *popt)
             plt.plot(x_fit, y_fit, color = colors[index])
-            ann = plt.annotate('%.4f Hz'%(x_fit[np.argmax(y_fit)]),
-                               xy = (x_fit[np.argmax(y_fit)], max(y_fit)),
-                               xytext = (x_fit[np.argmax(y_fit)] + 0.05, max(y_fit)),
-                               arrowprops = dict(facecolor = colors[index], shrink = 0.05, alpha = TRANSPARENCY))
+            peak_freqs.append((driving_amp, driving_amp * np.max(y_fit), x_fit[np.argmax(y_fit)]))
             print('driving_amp: %d, peak freq: '%(int(driving_amp)) + str(x_fit[np.argmax(y_fit)])[:6] + ' Hz')
         except (ValueError, IndexError):
             pass
@@ -104,6 +102,16 @@ if (__name__ == '__main__'):
     if flag_save:
         plt.savefig(parent_dir + '/plots/amp_ratio_vs_driving_freq.png', dpi = 600)
 
+    # Plot the peak frequency against response amplitude
+    plt.figure('Peak Frequency vs Response Amplitude', figsize = (FIG_WIDTH, FIG_HEIGHT))
+    peak_freqs = np.array(peak_freqs)
+    plt.plot(peak_freqs[:, 1], peak_freqs[:, 2], 'x')
+    plt.plot(peak_freqs[:, 1], peak_freqs[:, 2], '--')
+    plt.xlabel('Response Amplitude / rad')
+    plt.ylabel('Peak Frequency / Hz')
+    if flag_save:
+        plt.savefig(parent_dir + '/plots/peak_freq_vs_response_amp.png', dpi = 600)
+    
     # Plot phase against driving frequency with different colors
     plt.figure('Phase vs Driving Frequency', figsize = (FIG_WIDTH, FIG_HEIGHT))
     for index, driving_amp in enumerate(driving_amps):
