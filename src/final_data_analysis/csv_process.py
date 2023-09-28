@@ -637,12 +637,12 @@ class data_analysis():
             csvfile.close()
             
     def measure_fit(self, time, angle,
-                    gamma_range = (0.1, 1),
-                    omega_range = (0.9, 1.6),
-                    phi_range = (0, 2 * np.pi),
-                    amp_range = (0., 2 * np.pi),
-                    offset_range = (-0.4, 0.4),
-                    maxfev = 200000000,
+                    gamma_range = (0.1, 1), # search range for damping factor, in rad/s
+                    omega_range = (0.9, 1.6), # search range for natural frequency, in Hz
+                    phi_range = (0, 2 * np.pi), # search range for phase, in rad
+                    amp_range = (0., 2 * np.pi), # search range for amplitude, in rad
+                    offset_range = (-0.4, 0.4), # search range for offset, in rad
+                    maxfev = 200000000, # maximum number of iterations
                     ):
         '''Fit the decaying sinusoidal exponential to the data,
         and return the optimized parameters and the covariance matrix'''
