@@ -598,24 +598,20 @@ class cart_pendulum():
                 break
 
 if(__name__ == "__main__"):
-    
-    # Start up routine of the test
-    fft_lengths = 512 # TODO: add some possible values
+    # Initiation parameters
+    fft_lengths = 512 # Possible values are 2**n (same as 2^n), possible to choose other numbers
     sampling_divs = 0.04 # The minimum sampling division set in Arduino is 50 ms
-    wait_to_stables = 1
-    # fft_length = int(input("fft_length: "))
-    # sampling_div = float(input("sampling_div: "))
-    # wait_to_stable = int(input("wait_to_stable: "))
+    wait_to_stables = 1 # NR stage parameter, but also controls the updating rate of phase plot
         
     #  Initialisation of the arduino board and the data class
-    arduino_board = arduino(port, baudrate)
-    df = data_frame()
+    arduino_board = arduino(port, baudrate) # initiate the arduino class
+    df = data_frame() # a moment data frame class
     datum = data(fft_length = fft_lengths, 
                 sampling_div = sampling_divs, 
-                wait_to_stable = wait_to_stables)
+                wait_to_stable = wait_to_stables) # a data class for storing data
     temp_datum = live_data(fft_length = fft_lengths, 
                 sampling_div = sampling_divs, 
-                wait_to_stable = wait_to_stables) # variable for thread plotting
+                wait_to_stable = wait_to_stables) # variable for non-blocking plot
     cartER = cart_pendulum(arduino_board, datum, temp_datum, df)
 
     cartER.main()
