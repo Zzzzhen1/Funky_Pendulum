@@ -599,7 +599,7 @@ class cart_pendulum():
 
 if(__name__ == "__main__"):
     # Initiation parameters
-    fft_lengths = 512 # Possible values are 2**n (same as 2^n), possible to choose other numbers
+    fft_lengths = 512 # Good values are 2**n (same as 2^n), possible to choose other numbers
     sampling_divs = 0.04 # The minimum sampling division set in Arduino is 50 ms
     wait_to_stables = 1 # NR stage parameter, but also controls the updating rate of phase plot
         
