@@ -41,3 +41,28 @@ TODO: attach the pictures in the images folders here
 [![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg)](https://youtu.be/lTp6GOYrFtM)
 
 ## TODO List
+General:
+1. not fully understood, but to keep things in consistent with the 
+phase feedback(with an extra pi), phase_active is also added pi
+
+From arduino_manager.py:
+1. this is supposedly referring to the reset pin, however not working properly
+
+From data_process.py:
+1. add a sampling rate selection in arduino (secondary)
+2. add a different title for downward and upward control (secondary)
+3. unify the datetime as a single variable in the data class
+
+From Pendulum_Control_Console.py:
+1. ask whether to enter data analysis mode (secondary)
+2. check whether the platformio can do the arduino code upload because the Arduino IDE would be inefficient and faulty (secondary)
+3. what to do if there are two peaks in the measure FFT? Worth mentioning in the handout(Non_linear behaviour)
+4. all the parameters in the code should have a reasonable range
+5. separate the different classes in different python files (secondary)
+6. find delay time (a day of investigation) and make a plot (secondary)
+7. the csv file saved after the scan experiment needs a date and time (secondary)
+8. decide the amplitude of the NR scan drive stage (secondary)
+9. pid data analysis --> stable time stop time (with threshold)... then plot stop_time vs. iteration graph (secondary)
+10. jolt or hold up horizontal (secondary)
+11. add a selection for the PID of normalised resonance (secondary)
+12. decrease plotting fps (secondary)

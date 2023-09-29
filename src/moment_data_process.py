@@ -1,7 +1,7 @@
 # Initialisation of some constants and variables
 port = 'COM6' 
-baudrate = 230400 # TODO: extract all constants from a larger project file?
-MAX_COUNT = 10 # Number of points waited to plot a frame TODO: change this to manipulate the fps
+baudrate = 230400
+MAX_COUNT = 10 # Number of points waited to plot a frame
 ANGLE_ROTATION = 55 # Rotation of the y-label
 
 class data_frame():

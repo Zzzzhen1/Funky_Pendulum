@@ -13,8 +13,8 @@ mpl.use('TkAgg')
 
 # Initialisation of some constants and variables
 port = 'COM6' 
-baudrate = 230400 # TODO: extract all constants from a larger project file?
-MAX_COUNT = 10 # Number of points waited to plot a frame TODO: change this to manipulate the fps
+baudrate = 230400 
+MAX_COUNT = 10 # Number of points waited to plot a frame
 ANGLE_ROTATION = 55 # Rotation of the y-label
 
 class data_phy():
@@ -182,8 +182,6 @@ class data_phy():
                         - np.angle(self.fft_pos_const[close_ind]) + np.pi)
                 self.phase_list.pop(0)
                 self.phase_list.append((self.time[self.temp_index], self.phase / np.pi))
-                # TODO: not fully understood, but to keep things in consistent with the 
-                # phase feedback(with an extra pi), phase_active is also added pi
                 self.phase_list_active.pop(0)
                 self.phase_list_active.append((self.time[self.temp_index], self.phase_active / np.pi))
                 return True
@@ -1205,10 +1203,7 @@ class data(data_phy):
         if(module_name != 'pid' and module_name != 'setSpeed'):
             print("\nExported to " + filename_fft + "\n")
         if(NR_phase_amp):
-            print("\nExported to " + filename_phase_amp + "\n")
-        
-    # TODO: add a sampling rate selection in arduino (secondary)
-    # TODO: add a different title for downward and upward control (secondary)
+            print("\nExported to " + filename_phase_amp + "\n")       
     
 class live_data(data):
     
@@ -1259,5 +1254,3 @@ class live_data(data):
         self.omega_num = data.omega_num
         self.omega_list = data.omega_list
         self.setSpeed_param = data.setSpeed_param
-
-# TODO: unify the datetime as a single variable in the data class

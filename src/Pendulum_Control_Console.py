@@ -12,8 +12,8 @@ colors = prop_cycle.by_key()['color']
 mpl.use('TkAgg')
 # Initialisation of some constants and variables
 port = 'COM6' 
-baudrate = 230400 # TODO: extract all constants from a larger project file?
-MAX_COUNT = 10 # Number of points waited to plot a frame TODO: change this to manipulate the fps
+baudrate = 230400 
+MAX_COUNT = 10 # Number of points waited to plot a frame 
 ANGLE_ROTATION = 55 # Rotation of the y-label
 
 class cart_pendulum():
@@ -466,9 +466,6 @@ class cart_pendulum():
                             trans_fade_time = 40,
                             ):
         self.module_name = r"auto_freq_scan"
-        # TODO: extract the list of data from a csv file, which is generated 
-        # using another python code, then run the freq_scan module automatically. 
-        # This csv file will also be the reference parameters backup.
         self.path = os.getcwd()
         try:
             self.data.path = self.path + r"\auto_freq_scan"
@@ -616,20 +613,3 @@ if(__name__ == "__main__"):
 
     cartER.main()
     print("\nProgram ends.")
-
-# TODO: ask whether to enter data analysis mode (secondary)
-# TODO: check whether the platformio can do the arduino code upload 
-# because the Arduino IDE would be inefficient and faulty (secondary)
-# TODO: what to do if there are two peaks in the measure FFT? Worth mentioning in the handout 
-# (Non_linear behaviour)
-# TODO: all the parameters in the code should have a reasonable range
-# TODO: separate the different classes in different python files (secondary)
-# TODO: find delay time (a day of investigation) and make a plot (secondary)
-# TODO: the csv file saved after the scan experiment needs a date and time (secondary)
-# TODO: decide the amplitude of the NR scan drive stage (secondary)
-# TODO: pid data analysis --> stable time stop time (with threshold)... 
-# then plot stop_time vs. iteration graph (secondary)
-# TODO: jolt or hold up horizontal (secondary)
-# TODO: add a selection for the PID of normalised resonance (secondary)
-# TODO: decrease plotting fps (secondary)
-# TODO: change the sign of the NR_PID coefficients !!!

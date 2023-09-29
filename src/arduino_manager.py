@@ -11,7 +11,7 @@ class arduino():
         port,
         baudrate,
         timeout = None, 
-        dsrdtr = None, # TODO: this is supposedly referring to the reset pin, however not working properly
+        dsrdtr = None, 
     ):
         self.port = port
         self.baudrate = baudrate
