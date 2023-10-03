@@ -43,9 +43,9 @@ For uploading the Arduino code to the Arduino Board,
 
 ## Proof of PID Inversion Control
 
-[<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" width = "600" height = "450">](https://youtu.be/JiOYI30tvMM)
+[<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" width = "640" height = "360">](https://youtu.be/JiOYI30tvMM)
 
-[<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg"> width = "600" height = "450">](https://youtu.be/XKwGB6jRk7I)
+[<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg" width = "640" height = "360">](https://youtu.be/XKwGB6jRk7I)
 
 ## TODO List
 General:
