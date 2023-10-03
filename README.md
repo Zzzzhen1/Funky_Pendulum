@@ -43,7 +43,7 @@ For uploading the Arduino code to the Arduino Board,
 
 ## Proof of PID Inversion Control
 
-<img src = (https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg) width = "200" height = "100">(https://youtu.be/JiOYI30tvMM)
+[<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" width = "200" height = "100">](https://youtu.be/JiOYI30tvMM)
 
 [![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg)](https://youtu.be/XKwGB6jRk7I)
 
