@@ -15,6 +15,9 @@ Modules required?
 4. Possible changes that can be made in the program and how can students revert their changes. (In both python and Arduino)
 
 ## Getting Started
+
+Download the zip file by clicking the 
+
 Necessary Python modules:
 1. numpy
 2. scipy
@@ -28,17 +31,20 @@ Necessary Arduino Libraries:
 1. AccelStepper
 2. AS5600
 3. EasyButton
-4. ...
+4. math
+
+For uploading the Arduino code to the Arduino Board, 
 
 ## Experiment Setup
 
-TODO: attach the pictures in the images folders here
+- TODO: Explain how to use the 3D print file
+- TODO: attach the pictures in the images folders here
 
 ## Upward Balancing Video
 
 [![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg)](https://youtu.be/JiOYI30tvMM)
 
-[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg)]([https://youtu.be/lTp6GOYrFtM](https://youtu.be/XKwGB6jRk7I))
+[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg)](https://youtu.be/XKwGB6jRk7I)
 
 ## TODO List
 General:
