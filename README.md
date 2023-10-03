@@ -48,6 +48,7 @@ Here are some pictures about the wiring and an example setup:
     <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" alt = "Full setup of the Funky Pendulum" width = "640" height = "360">
     <figcaption>Full setup of the Funky Pendulum</figcaption>
 </figure>
+
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Emergency_button___motor_1.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Power_supply_1.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Rotary_encoder_1.jpg" width = "640" height = "360">
