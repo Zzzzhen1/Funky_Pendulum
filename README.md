@@ -45,33 +45,33 @@ See [this branch](https://github.com/Zzzzhen1/Funky_Pendulum/blob/3D_file_branch
 
 Here are some pictures about the wiring and an example setup:
 <figure>
-    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" alt = "Full setup of the Funky Pendulum" width = "640" height = "360">
     <figcaption>Full setup of the Funky Pendulum</figcaption>
+    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" alt = "Full setup of the Funky Pendulum" width = "640" height = "360">
 </figure>
 
 <figure>
-    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Emergency_button___motor_1.jpg" alt = "Emergency stop button to cut off Arduino" width = "640" height = "360">
     <figcaption>Emergency stop button to cut off Arduino</figcaption>
+    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Emergency_button___motor_1.jpg" alt = "Emergency stop button to cut off Arduino" width = "640" height = "360">
 </figure>
 
 <figure>
-    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Power_supply_2.jpg" alt = "Power supply with 20-50V and variable current" width = "640" height = "360">
     <figcaption>Power supply with 20-50V and variable current</figcaption>
+    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Power_supply_2.jpg" alt = "Power supply with 20-50V and variable current" width = "640" height = "360">
 </figure>
 
 <figure>
-    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Rotary_encoder_1.jpg" alt = "AS5600 angle sensor fixed by a tape" width = "640" height = "360">
     <figcaption>AS5600 angle sensor fixed by a tape</figcaption>
+    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Rotary_encoder_1.jpg" alt = "AS5600 angle sensor fixed by a tape" width = "640" height = "360">
 </figure>
 
 <figure>
-    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_driver_3.jpg" alt = "DM542T stepper driver, specifications online" width = "640" height = "360">
     <figcaption>DM542T stepper driver, specifications online</figcaption>
+    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_driver_3.jpg" alt = "DM542T stepper driver, specifications online" width = "640" height = "360">
 </figure>
 
 <figure>
-    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Wiring_1.jpg" alt = "Overall wiring" width = "640" height = "360">
     <figcaption>Overall wiring</figcaption>
+    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Wiring_1.jpg" alt = "Overall wiring" width = "640" height = "360">
 </figure>
 
 - TODO: attach a copy of practical handout here
