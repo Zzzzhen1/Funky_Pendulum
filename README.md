@@ -28,7 +28,7 @@ For uploading the Arduino code to the Arduino Board, you need to either use Ardu
 
 It would require an admin right for any external device connection to classes laptop, so changing parts in the Arduino code would be impossible because you cannot upload any changes to the Arduino. You can still look at the Arduino however. Most parts are with a short description. 
 
-Parts you can play with in the Python code are:
+### Parts you can play with in the Python code are:
 
 (inside the `if __name__ == "__main__` block of the Pendulum_Control_Console.py)
 1. FFT parameters (fft_lengths and sampling_divs, as explained in the handout)
