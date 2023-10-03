@@ -48,8 +48,7 @@ Here are some pictures about the wiring and an example setup:
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Emergency_button___motor_1.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Power_supply_1.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Rotary_encoder_1.jpg" width = "640" height = "360">
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_driver_2.jpg" width = "640" height = "360">
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_motor_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_driver_3.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Wiring_1.jpg" width = "640" height = "360">
 
 - TODO: attach a copy of practical handout here
