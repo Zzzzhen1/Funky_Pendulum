@@ -49,7 +49,7 @@ For uploading the Arduino code to the Arduino Board,
 
 ### Second Inversion Control Video
 
-[<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg" width = "640" height = "360">](https://youtu.be/XKwGB6jRk7I)
+[<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/3D_file_branch(protected)/3D_Printing/Image/Full_Construction.PNG" width = "640" height = "360">](https://youtu.be/XKwGB6jRk7I)
 
 ## TODO List
 General:
