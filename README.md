@@ -24,7 +24,7 @@ Necessary Arduino Libraries:
 
 For uploading the Arduino code to the Arduino Board, you need to either use Arduino IDE or PlatformIO (not compatible yet) to download the above libraries and then upload the code to the microcontroller.
  
-## Useful Tips during your practical
+## Useful Tips for Practical
 
 It would require an admin right for any external device connection to classes laptop, so changing parts in the Arduino code would be impossible because you cannot upload any changes to the Arduino. You can still look at the Arduino however. Most parts are with a short description. 
 
