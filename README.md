@@ -35,11 +35,11 @@ For uploading the Arduino code to the Arduino Board, you need to either use Ardu
 
 ## Proof of PID Inversion Control
 
-### First Inversion Control Video
+### First Inversion Control Video 
 
 [<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" width = "640" height = "360">](https://youtu.be/JiOYI30tvMM)
 
-### Second Inversion Control Video
+### Second Inversion Control Video (Full 3D construction, see Jeppe's docs)
 
 [<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/3D_file_branch(protected)/3D_Printing/Image/Full_Construction.PNG" width = "640" height = "360">](https://youtu.be/XKwGB6jRk7I)
 
