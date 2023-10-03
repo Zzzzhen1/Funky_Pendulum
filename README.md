@@ -22,7 +22,7 @@ Necessary Python modules:
 4. pyserial
 5. pandas
 
-use "pip install _module_name_" to configure the corresponding module for your python
+use `pip install _module_name_` to configure the corresponding module for your python
 
 Necessary Arduino Libraries:
 1. AccelStepper
