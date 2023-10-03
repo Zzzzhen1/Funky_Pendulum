@@ -1,11 +1,12 @@
 # Funky_Pendulum
-Inherited from Will and Jeppe. (Their github link)
+
+This is the continuation of the projects undertaken by [Jeppe](https://github.com/JeppeKlitgaard/CartER/) and [Will](https://github.com/will-hd/CartER).
+
 Based on the project accomplished by Owen and Zhen during 2023 summer. Code developed by @Zzzzhen1. 
 Any questions about the code please feel free to contact zy336@cam.ac.uk or leave in
 dicussion session in this GitHub repository.
 
-How to use the code? Download the zip file from the code icon. 
-Modules required? 
+Download the zip file from the code icon. 
  
 ## General Description of the project. Should include the following features:
 
@@ -16,7 +17,7 @@ Modules required?
 
 ## Getting Started
 
-Download the zip file by clicking the 
+Download the zip file by clicking the **code** icon. Downloading the following Python modules before running the program.
 
 Necessary Python modules:
 1. numpy
@@ -40,9 +41,9 @@ For uploading the Arduino code to the Arduino Board,
 - TODO: Explain how to use the 3D print file
 - TODO: attach the pictures in the images folders here
 
-## Upward Balancing Video
+## Proof of PID Inversion Control
 
-[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg)](https://youtu.be/JiOYI30tvMM)
+<img src = (https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg) width = "200" height = "100">(https://youtu.be/JiOYI30tvMM)
 
 [![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg)](https://youtu.be/XKwGB6jRk7I)
 
