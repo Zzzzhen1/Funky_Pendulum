@@ -44,17 +44,11 @@ Parts you can play with in the Python code are:
 See [this branch](https://github.com/Zzzzhen1/Funky_Pendulum/blob/3D_file_branch(protected)/3D_Printing/README.md) about how to make use of the 3D printing files
 
 Here are some pictures about the wiring and an example setup:
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Arduino_1.jpg" width = "640" height = "360">
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Bearing_1.jpg" width = "640" height = "360">
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Breadboard_1.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" width = "640" height = "360">
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Cart_pendulum_1.jpg" width = "640" height = "360">
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Emergency_button__motor_1.jpg" width = "640" height = "360">
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Pendulum_1.jpg" width = "640" height = "360">
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Pendulum_idlers_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Emergency_button___motor_1.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Power_supply_1.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Rotary_encoder_1.jpg" width = "640" height = "360">
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_driver_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_driver_2.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_motor_1.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Wiring_1.jpg" width = "640" height = "360">
 
