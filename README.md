@@ -2,7 +2,7 @@
 
 This is the continuation of the CartER projects undertaken by [Jeppe](https://github.com/JeppeKlitgaard/CartER/) and [Will](https://github.com/will-hd/CartER).
 
-Based on the project accomplished by Zhen and Owen during 2023 summer. This repository mainly contains the control code and all the necessary components to construct one's own copy. Any questions about the code please feel free to contact [Zhen's cam email](zy336@cam.ac.uk)/[Zhen's gmail](yz20030303@gmail.com) with a proper subject or leave in dicussion session in this GitHub repository.
+Based on the project accomplished by Zhen and Owen during 2023 summer. This repository mainly contains the control code and all the necessary components to construct one's own copy. Any questions about the code please feel free to contact [Zhen's cam email](mailto:zy336@cam.ac.uk) or [Zhen's gmail](mailto:yz20030303@gmail.com) with a proper subject or leave in dicussion session in this GitHub repository.
 
 ## Getting Started
 
@@ -21,7 +21,6 @@ Necessary Arduino Libraries:
 1. AccelStepper
 2. AS5600
 3. EasyButton
-4. math
 
 For uploading the Arduino code to the Arduino Board, you need to either use Arduino IDE or PlatformIO(not compatible yet) to download the above libraries and then upload the code to the microcontroller.
  
