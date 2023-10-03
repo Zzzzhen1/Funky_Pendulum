@@ -22,7 +22,7 @@ Necessary Arduino Libraries:
 2. AS5600
 3. EasyButton
 
-For uploading the Arduino code to the Arduino Board, you need to either use Arduino IDE or PlatformIO(not compatible yet) to download the above libraries and then upload the code to the microcontroller.
+For uploading the Arduino code to the Arduino Board, you need to either use Arduino IDE or PlatformIO (not compatible yet) to download the above libraries and then upload the code to the microcontroller.
  
 ## Useful Tips during your practical
 
@@ -44,7 +44,10 @@ Parts you can play with in the Python code are:
 See [this branch](https://github.com/Zzzzhen1/Funky_Pendulum/blob/3D_file_branch(protected)/3D_Printing/README.md) about how to make use of the 3D printing files
 
 Here are some pictures about the wiring and an example setup:
-<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" width = "640" height = "360">
+<figure>
+    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" alt = "Full setup of the Funky Pendulum" width = "640" height = "360">
+    <figcaption>Full setup of the Funky Pendulum</figcaption>
+</figure>
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Emergency_button___motor_1.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Power_supply_1.jpg" width = "640" height = "360">
 <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Rotary_encoder_1.jpg" width = "640" height = "360">
