@@ -22,7 +22,7 @@ Necessary Python modules:
 4. pyserial
 5. pandas
 
-use `pip install _module_name_` to configure the corresponding module for your python
+use `pip install module_name` to configure the corresponding module for your python
 
 Necessary Arduino Libraries:
 1. AccelStepper
@@ -36,9 +36,9 @@ TODO: attach the pictures in the images folders here
 
 ## Upward Balancing Video
 
-[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg)](https://youtu.be/zVNbTGS4LvY  "Upward Balancing Video")
+[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg)](https://youtu.be/JiOYI30tvMM)
 
-[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg)](https://youtu.be/lTp6GOYrFtM)
+[![Upward Balancing Video](https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_2.jpg)]([https://youtu.be/lTp6GOYrFtM](https://youtu.be/XKwGB6jRk7I))
 
 ## TODO List
 General:
