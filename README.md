@@ -4,6 +4,8 @@ This is the continuation of the CartER projects undertaken by [Jeppe](https://gi
 
 Based on the project accomplished by Zhen and Owen during 2023 summer. This repository mainly contains the control code and all the necessary components to construct one's own copy. Any questions about the code please feel free to contact [Zhen's cam email](mailto:zy336@cam.ac.uk) or [Zhen's gmail](mailto:yz20030303@gmail.com) with a proper subject or leave in dicussion session in this GitHub repository.
 
+One advantage about this setup it is highly reproducible by using cheap microcontroller chip and PLA plastics. A list of components and purchase links will be included at the end of this README file.
+
 ## Getting Started
 
 Download the zip file by clicking the **code** icon on the upper right corner. Download the following Python modules before running the code in the /src folder.
@@ -38,6 +40,10 @@ It would require an admin right for any external device connection to classes la
 (of the methods in the `data_analysis()` class of the csv_process.py)
 1. `measure_fit()` parameters (before handling with the paramters, you need to check out how `damp_sin()` function is defined)
 2. `scan_fit()` parameters (check out how `sinusoid()` function is defined first)
+
+### Some Interesting Results
+
+Check out the [plots](https://github.com/Zzzzhen1/Funky_Pendulum/tree/main/processed_data/plots). They are produced using the data in the /processed_data folder and the csv_process.py. These plots characterise the non-linearity and the change of natural frequency with response amplitude. This is something you can try measuring during the practical.
 
 ## Experiment Setup
 
