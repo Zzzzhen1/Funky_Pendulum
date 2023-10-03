@@ -28,12 +28,12 @@ For uploading the Arduino code to the Arduino Board, you need to either use Ardu
 
 It would require an admin right for any external device connection to classes laptop, so changing parts in the Arduino code would be impossible because you cannot upload any changes to the Arduino. You can still look at the Arduino however. Most parts are with a short description. 
 
-Parts you can change a little bit in the Python code are:
+Parts you can play with in the Python code are:
 
 (inside the `if __name__ == "__main__` block of the Pendulum_Control_Console.py)
 1. FFT parameters (fft_lengths and sampling_divs, as explained in the handout)
 2. wait_to_stables (the Python code will go in a loop until you call an exit, this parameter decides the number of loops waited to update the amplitude and phase in **NR** stage)
-3. NR_Kp and NR_Kd (NR_Ki has not been implemented yet) in the `data_phy()` class `__init__()`
+3. NR_Kp and NR_Kd values and signs (NR_Ki has not been implemented yet) in the `data_phy()` class `__init__()` method
 
 (of the methods in the `data_analysis()` class of the csv_process.py)
 1. `measure_fit()` parameters (before handling with the paramters, you need to check out how `damp_sin()` function is defined)
@@ -41,11 +41,28 @@ Parts you can change a little bit in the Python code are:
 
 ## Experiment Setup
 
-- TODO: Explain how to use the 3D print file
-- TODO: attach the pictures in the images folders here
+See [this branch](https://github.com/Zzzzhen1/Funky_Pendulum/blob/3D_file_branch(protected)/3D_Printing/README.md) about how to make use of the 3D printing files
+
+Here are some pictures about the wiring and an example setup:
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Arduino_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Bearing_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Breadboard_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/CartER_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Cart_pendulum_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Emergency_button__motor_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Pendulum_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Pendulum_idlers_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Power_supply_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Rotary_encoder_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_driver_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_motor_1.jpg" width = "640" height = "360">
+<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Wiring_1.jpg" width = "640" height = "360">
+
 - TODO: attach a copy of practical handout here
 
 ## Proof of PID Inversion Control
+
+Click the picture to see the inversion control video.
 
 ### First Inversion Control Video 
 
@@ -55,7 +72,7 @@ Parts you can change a little bit in the Python code are:
 
 [<img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/3D_file_branch(protected)/3D_Printing/Image/Full_Construction.PNG" width = "640" height = "360">](https://youtu.be/XKwGB6jRk7I)
 
-## TODO List
+## Potential Improvement for the Code
 General:
 1. not fully understood yet, but to keep things in consistent with the 
 phase feedback(with an extra pi), phase_active is also added pi
