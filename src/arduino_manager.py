@@ -95,7 +95,7 @@ class arduino():
             self.omega = self.message
     
     def send_list_omega(self):
-        '''Send a list of frequencies / a single frequency to the arduino'''
+        '''Send a list of frequencies or a single frequency to the arduino, and save it to self.omega_list'''
         temp_flag = True
         while(temp_flag):
             try:
@@ -161,6 +161,7 @@ class arduino():
             print(self.receive)
         
     def read_all(self):
+        '''Read all lines from the arduino'''
         while(self.board.in_waiting == 0):
             pass
         while(self.board.in_waiting):

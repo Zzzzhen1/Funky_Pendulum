@@ -24,12 +24,12 @@ class data_phy():
         fft_length,
         sampling_div,
         wait_to_stable,
-        buffer_length = 4 * 8192,
-        plot_length = 64,
+        buffer_length = 4 * 8192, # Total number of points stored in the circular buffer
+        plot_length = 64, # (Related to) Number of points plotted on the graph
         ):
         self.start_time = 0. # Arduino internal time might not start at zero
         self.sampling_div = sampling_div
-        self.avg_spacing = 0.
+        self.avg_spacing = 0. # Average time spacing between the data points
         self.time = np.zeros(2 * buffer_length)
         self.angle = np.zeros(2 * buffer_length)
         self.angular_velocity = np.zeros(2 * buffer_length)
@@ -41,17 +41,17 @@ class data_phy():
         self.phase = 0. 
         self.NR_Kp = 0.05 # Proportional control of the NR
         self.NR_Kd = 0. # Derivative control of the NR
-        self.NR_Ki = 0. # Currently not used
+        self.NR_Ki = 0. # NOT IMPLEMENTED YET
         self.fft_angle = np.zeros(fft_length)
         self.fft_pos = np.zeros(fft_length)
         self.fft_freq = np.zeros(fft_length)
         self.buffer_length = buffer_length
         self.fft_length = fft_length
         self.plot_length = plot_length
-        self.index_list = np.zeros(fft_length, dtype = int)
-        self.phase_list = [(0., 0.)] * self.plot_length * 10 * (wait_to_stable + 1)
-        self.amp_list = [(0., 0.)] * self.plot_length * 10
-        self.wait_to_stable = wait_to_stable
+        self.index_list = np.zeros(fft_length, dtype = int) # List of indices used for fft
+        self.phase_list = [(0., 0.)] * self.plot_length * 10 * (wait_to_stable + 1) # List of phase values
+        self.amp_list = [(0., 0.)] * self.plot_length * 10 # List of amplitude values
+        self.wait_to_stable = wait_to_stable # NR stage update rate.
         self.index = 0
         self.temp_index = 0
         self.counter = 0
@@ -78,11 +78,14 @@ class data_phy():
         time_stamp = current_time
         index = self.fft_length - 2
         index_list = np.zeros(self.fft_length, dtype = int)
-        index_list[self.fft_length - 1] = current_time
+        index_list[self.fft_length - 1] = current_time # The last element is the current time, choose as default
         
+        # Search for data points that are at least self.sampling_div apart
         for i in range(self.temp_index + self.buffer_length, self.temp_index + 1, -1):
             if index < 0: 
                 self.index_list = index_list
+                # Calculate the average spacing between the data points, since the data points might 
+                # not be evenly spaced
                 avg_spacing = (current_time - time_stamp) / (self.fft_length - index - 2)
                 return self.index_list, avg_spacing
             if(time_stamp - self.time[i] >= self.sampling_div):
@@ -115,6 +118,8 @@ class data_phy():
                 self.fft_pos_const = fft_pos_const[1:int(len(fft_freq) / 2)]
             if(self.pos_active is not None):
                 self.fft_pos_active = fft_pos_active[1:int(len(fft_freq) / 2)]
+                
+            # The frequency array is symmetric about zero, so we only need the positive part
             self.fft_freq = fft_freq[1:int(len(fft_freq) / 2)]
             return True
         else:
@@ -138,7 +143,7 @@ class data_phy():
                             + 1]) - np.angle(self.fft_pos_const[close_ind + 1]) + np.pi)
                         delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
                             - np.angle(self.fft_pos_const[close_ind]) + np.pi)
-                        
+                        # Linear interpolation
                         self.phase = delta_phase_0 + (omega - \
                             self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
                                 + 1] - self.fft_freq[close_ind]) * \
@@ -159,7 +164,7 @@ class data_phy():
                             - 1]) - np.angle(self.fft_pos_const[close_ind - 1]) + np.pi)
                         delta_phase_2 = self.phase_rectify(np.angle(self.fft_pos_active[close_ind])\
                             - np.angle(self.fft_pos_const[close_ind]) + np.pi)
-                        
+                        # Linear interpolation
                         self.phase = delta_phase_0 + (omega - \
                             self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
                                 - 1] - self.fft_freq[close_ind]) * \
@@ -192,7 +197,7 @@ class data_phy():
                             + 1]) - np.angle(self.fft_pos[close_ind + 1]) + np.pi)
                         delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
                             - np.angle(self.fft_pos[close_ind]) + np.pi)
-                        
+                        # Linear interpolation
                         self.phase = delta_phase_0 + (omega - \
                             self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
                                 + 1] - self.fft_freq[close_ind]) * \
@@ -203,7 +208,7 @@ class data_phy():
                             - 1]) - np.angle(self.fft_pos[close_ind - 1]) + np.pi)
                         delta_phase_0 = self.phase_rectify(np.angle(self.fft_angle[close_ind])\
                             - np.angle(self.fft_pos[close_ind]) + np.pi)
-                        
+                        # Linear interpolation
                         self.phase = delta_phase_0 + (omega - \
                             self.fft_freq[close_ind]) / (self.fft_freq[close_ind\
                                 - 1] - self.fft_freq[close_ind]) * \
@@ -244,7 +249,7 @@ class data_phy():
                         except RuntimeError:
                             pass
                         self.amp *= (1 - delta_amp_Kp) * (1 - delta_amp_Kd)
-                        # Need a way to transmit this to a thread...
+                        
                         self.amp_list.pop(0)
                         self.amp_list.append((self.time[self.temp_index], self.amp))
                         return self.amp, self.phase
@@ -306,6 +311,7 @@ class data(data_phy):
         appendPos = True,
         appendVel = False
     ):  
+        '''Appends the data from the arduino to the circular buffer'''
         if(self.index == 0):
             self.start_time = data_frame.time
             self.sys_start_time = time.time()
@@ -326,6 +332,7 @@ class data(data_phy):
         self.temp_index = temp_index
     
     def clear_data(self):
+        '''Clears the data in the circular buffer, standard routine'''
         self.time = np.zeros(2 * self.buffer_length)
         self.angle = np.zeros(2 * self.buffer_length)
         self.angular_velocity = np.zeros(2 * self.buffer_length)
@@ -353,15 +360,17 @@ class data(data_phy):
         self.phase_list_active = None
         
     def clear_figure(self):
+        '''Clears the figure, standard routine'''
         plt.close("all")
         self.flag_fig_init = True
         self.flag_subplot_init = True
         self.flag_close_event = False
     
     def init_plot(self, module_name, scan = True):
+        '''Initialises the plot in terms of different stages'''
         if(self.flag_fig_init):
             self.flag_fig_init = False
-            plt.ion()
+            plt.ion() # Turn on interactive mode, important for the non-blocking plot
             if(module_name == "measure"):
                 if(self.flag_subplot_init):
                     self.figure, self.ax_list = plt.subplots(1, 2, figsize = (8, 5))
@@ -580,6 +589,8 @@ class data(data_phy):
             plt.show(block = False)
 
     def real_time_plot(self, module_name, scan = False):
+        '''Plots the data in real time, non-blocking. Can be improved by combing the 
+        similar parts in the if and else statement.'''
         self.module_name = module_name
         if(module_name == "measure"):
             self.fft()
@@ -1148,6 +1159,7 @@ class data(data_phy):
                 csvfile.close()
                 
         if(NR_phase_amp):
+            # Since the phases have more points than the amplitudes, we need to align them
             with open(filename_phase_amp + ".csv", 'w', newline = '') as csvfile:
                 writer = csv.writer(csvfile)
                 if(input_spec_info):

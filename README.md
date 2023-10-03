@@ -30,6 +30,11 @@ For uploading the Arduino code to the Arduino Board, you need to either use Ardu
 
 It would require an admin right for any external device connection to classes laptop, so changing parts in the Arduino code would be impossible because you cannot upload any changes to the Arduino. You can still look at the Arduino however. Most parts are with a short description. 
 
+Two useful shortcuts in VS Code are:
+1. "Ctrl+K then Ctrl+0" to collapse all the codes
+2. "Ctrl+k then Ctrl+J" to unfold all the collapsed part
+This can help you to navigate certain part of the code
+
 ### Parts you can play with in the Python code are:
 
 (inside the `if __name__ == "__main__` block of the Pendulum_Control_Console.py)

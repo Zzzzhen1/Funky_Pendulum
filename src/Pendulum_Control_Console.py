@@ -16,9 +16,11 @@ baudrate = 230400
 MAX_COUNT = 10 # Number of points waited to plot a frame 
 ANGLE_ROTATION = 55 # Rotation of the y-label
 
+
+# This is simply a class to manage the cart pendulum system, nothing physically interesting
 class cart_pendulum():
     
-    '''Cart pendulum class'''
+    '''Cart pendulum manager class'''
     
     def __init__(
         self,

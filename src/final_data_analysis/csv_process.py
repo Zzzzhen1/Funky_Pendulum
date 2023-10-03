@@ -369,10 +369,13 @@ class data_analysis():
         phase = phase - 2 * np.pi * int(phase / (2 * np.pi))
         if phase > 0.5 * np.pi:
             return phase - 2 * np.pi
+        elif phase <= -1.5 * np.pi:
+            return phase + 2 * np.pi
         else:
             return phase
     
     def phase_calc(self, fft_freq, omega, fft_angle, fft_pos, interpolation = True):
+        '''Function borrowed from data_process.py, calculate the phase'''
         close_ind = np.argmin(np.abs(fft_freq - omega))
         if interpolation:
             if fft_freq[close_ind] < omega:
@@ -460,6 +463,8 @@ class data_analysis():
         self.ax0.legend(loc = 'right')
 
     def scan_process(self, axes, start_time, end_time, rolling_time, auto_scan = False):
+        '''Calculate the phase and amplitude of the scan data based on the
+        input time range and rolling time'''
         self.phase_list = []
         self.fft_length = int(rolling_time / self.sampling_div)
         if(self.temp_data[0][0] >= start_time):
@@ -608,6 +613,7 @@ class data_analysis():
                     print('Invalid input, please try again')
 
     def save_scan_data(self, exp_data, file):
+        '''Save the scan data to a csv file'''
         parent_dir = os.path.dirname(self.dirc)
         current_dir_name = os.path.split(self.dirc)[1]
         csv_dir = parent_dir + '\\scan_data.csv' # Free to change the name of the csv file
@@ -662,6 +668,7 @@ class data_analysis():
                      process = False, 
                      start_index = 0, 
                      end_index = -1):
+        '''Initialise the figure for the measure type data'''
         if(restore):
             print("Restoring figure...")
         figure, axes = plt.subplots(1, 2, figsize = (10, 6))
@@ -727,6 +734,7 @@ class data_analysis():
         return figure, axes
     
     def measure_process(self, axes, start_time, end_time):
+        '''Calculate the frequency and damping factor of the measure data'''
         self.fft_length = int((end_time - start_time) / self.sampling_div)
         if(self.temp_data[0][0] >= start_time):
             print("Invalid input of time range")
@@ -790,6 +798,7 @@ class data_analysis():
                 print('Invalid input, please try again')
     
     def save_measure_data(self, exp_data, file):
+        '''Save the measure data to a csv file'''
         parent_dir = os.path.dirname(self.dirc)
         current_dir_name = os.path.split(self.dirc)[1]
         csv_dir = parent_dir + '\\measure_data.csv'
