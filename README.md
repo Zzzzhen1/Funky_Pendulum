@@ -26,12 +26,24 @@ For uploading the Arduino code to the Arduino Board, you need to either use Ardu
  
 ## Useful Tips during your practical
 
-4. Possible changes that can be made in the program and how can students revert their changes. (In both python and Arduino)
+It would require an admin right for any external device connection to classes laptop, so changing parts in the Arduino code would be impossible because you cannot upload any changes to the Arduino. You can still look at the Arduino however. Most parts are with a short description. 
+
+Parts you can change a little bit in the Python code are:
+
+(inside the `if __name__ == "__main__` block of the Pendulum_Control_Console.py)
+1. FFT parameters (fft_lengths and sampling_divs, as explained in the handout)
+2. wait_to_stables (the Python code will go in a loop until you call an exit, this parameter decides the number of loops waited to update the amplitude and phase in **NR** stage)
+3. NR_Kp and NR_Kd (NR_Ki has not been implemented yet) in the `data_phy()` class `__init__()`
+
+(of the methods in the `data_analysis()` class of the csv_process.py)
+1. `measure_fit()` parameters (before handling with the paramters, you need to check out how `damp_sin()` function is defined)
+2. `scan_fit()` parameters (check out how `sinusoid()` function is defined first)
 
 ## Experiment Setup
 
 - TODO: Explain how to use the 3D print file
 - TODO: attach the pictures in the images folders here
+- TODO: attach a copy of practical handout here
 
 ## Proof of PID Inversion Control
 
