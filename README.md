@@ -32,7 +32,7 @@ It would require an admin right for any external device connection to classes la
 
 Two useful shortcuts in VS Code are:
 1. "Ctrl+K then Ctrl+0" to collapse all the codes
-2. "Ctrl+k then Ctrl+J" to unfold all the collapsed part
+2. "Ctrl+K then Ctrl+J" to unfold all the collapsed part
 
 This can help you to navigate certain part of the code
 
