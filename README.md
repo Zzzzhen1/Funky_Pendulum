@@ -115,6 +115,8 @@ Click the picture to see the inversion control video.
 General:
 1. not fully understood yet, but to keep things in consistent with the 
 phase feedback(with an extra pi), phase_active is also added pi
+2. Hide the delay time display
+3. correct the different stage syncronization
 
 From arduino_manager.py:
 1. this is supposedly referring to the reset pin, however not working properly (secondary)
