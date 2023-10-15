@@ -97,7 +97,6 @@ class cart_pendulum():
             self.flag_list[flag] = False
         if(swing_request):
             self.flag_list["swing_request"] = False
-        time.sleep(0.5)
             
     def reconnect(self, 
                   exp = False, 
@@ -342,6 +341,7 @@ class cart_pendulum():
         if(self.flag_list["swing_request"]):
             self.arduino.read_single()
             # self.arduino.send_input_message(save_to_omega = False)
+            time.sleep(0.1)
             self.arduino.send_message('n' + '\n')
             self.arduino.read_single()
             if(self.arduino.receive.rstrip() == "Continue with swing up strategy." or \
@@ -351,6 +351,8 @@ class cart_pendulum():
             if(self.flag_list["pid_input"]):
                 self.arduino.read_all()
                 self.arduino.send_input_message(save_to_omega = False)
+                # Time waited for Arduino to printout the message through serial port
+                time.sleep(0.01)
                 self.arduino.read_all()
                 if(self.arduino.receive.rstrip() == "Start inversion control."):
                     self.data.pid_param = self.arduino.message.rstrip()
