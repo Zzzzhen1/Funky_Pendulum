@@ -662,6 +662,7 @@ void pid() {
           pid_print();
           Serial.println("Start inversion control.");
           flag_pid_input = 0;
+          delay(50);
         } else if (message == "Terminate") {
           Serial.println("Terminate the process.");
           cart_reset();
