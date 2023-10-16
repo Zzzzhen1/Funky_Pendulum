@@ -86,8 +86,8 @@ Here are some pictures about the wiring and an example setup:
 ---
 
 <figure>
-    <figcaption>DM542T stepper driver, specifications online</figcaption>
-    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_driver_3.jpg" alt = "DM542T stepper driver, specifications online" width = "640" height = "360">
+    <figcaption>Ignore the switches setup and follows your handout. DM542T stepper driver, specifications online</figcaption>
+    <img src = "https://github.com/Zzzzhen1/Funky_Pendulum/blob/image_branch(protected)/image/Stepper_driver_3.jpg" alt = "Ignore the switches setup and follows your handout. DM542T stepper driver, specifications online" width = "640" height = "360">
 </figure>
 
 ---
