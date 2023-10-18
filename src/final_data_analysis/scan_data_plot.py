@@ -87,6 +87,9 @@ if (__name__ == '__main__'):
                      capsize = 1)
         try:
             top_indices = np.array(np.argmax(abs(subset['amp_ratio'])))
+            if top_indices == 0 or top_indices == len(subset['amp_ratio']) - 1:
+                # If the peak is at the edge of the data, then quit the curve fitting
+                raise ValueError
             min_index = np.min(top_indices) - 1
             max_index = np.max(top_indices) + 1
             top_indices = np.append(top_indices, min_index)
