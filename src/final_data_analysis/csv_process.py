@@ -159,6 +159,7 @@ class data_analysis():
             'omega',
             'multiple_omega',
             'amplitude',
+            'amp_0',
             'phase/pi',
             'multiple_phase/pi',
             'time,angle,position,angular_velocity,cart_velocity',
@@ -245,6 +246,8 @@ class data_analysis():
                                 return False
                             if(row[0].startswith(header)):
                                 self.properties.update({header:row[1]})
+                                if(len(row)>3 and row[2] in self.header):
+                                    self.properties.update({row[2]:row[3]})
                                 break
                         if(row[0].startswith('time')):
                             continue
@@ -360,7 +363,11 @@ class data_analysis():
         temp_angle = fft(angle[index])
         temp_pos = fft(position[index])
         fft_angle = temp_angle / np.max(abs(temp_angle))
-        fft_position = temp_pos / np.max(abs(temp_pos))
+        temp = np.max(abs(temp_pos))
+        if temp>0:
+            fft_position = temp_pos / np.max(abs(temp_pos))
+        else:
+            fft_position = 0
         fft_freq = fftfreq(len(index), avg)
         return fft_angle, fft_position, fft_freq, avg
 
@@ -628,6 +635,7 @@ class data_analysis():
                 writer.writerow(['file_name',
                                  'parent_dir',
                                  'driving_freq',
+                                 'amp_0',
                                  'response_amp', 
                                  'response_amp_err', 
                                  'driving_amp', 
@@ -637,29 +645,30 @@ class data_analysis():
             writer.writerow([file,
                              current_dir_name,
                              float(self.properties['omega']), 
+                             float(self.properties['amp_0']), 
                              exp_data[0], exp_data[1], 
                              exp_data[2], exp_data[3], 
                              exp_data[4], exp_data[5]])
             csvfile.close()
             
     def measure_fit(self, time, angle,
-                    gamma_range = (0.1, 1), # search range for damping factor, in rad/s
-                    omega_range = (0.9, 1.6), # search range for natural frequency, in Hz
+                    gamma_range = (0.05, 0.2), # search range for damping factor, in 1/s
+                    f_range = (0.7, 1.6), # search range for natural frequency, in Hz
                     phi_range = (0, 2 * np.pi), # search range for phase, in rad
-                    amp_range = (0., 2 * np.pi), # search range for amplitude, in rad
-                    offset_range = (-0.4, 0.4), # search range for offset, in rad
+                    amp_range = (1.7, 3), # search range for amplitude
+                    offset_range = (-0.4, 0.4), # search range for offset
                     maxfev = 200000000, # maximum number of iterations
                     ):
         '''Fit the decaying sinusoidal exponential to the data,
         and return the optimized parameters and the covariance matrix'''
         popt, pcov = curve_fit(damp_sin, time, angle, 
                             p0 = [0.5*(gamma_range[0] + gamma_range[1]), 
-                                  0.5*(omega_range[0] + omega_range[1]), 
+                                  0.5*(f_range[0] + f_range[1]), 
                                   0.5*(phi_range[0] + phi_range[1]), 
                                   0.5*(amp_range[0] + amp_range[1]), 
                                   0.5*(offset_range[0] + offset_range[1])], 
-                            bounds = ((gamma_range[0], omega_range[0], phi_range[0], amp_range[0], offset_range[0]), 
-                                    (gamma_range[1], omega_range[1], phi_range[1], amp_range[1], offset_range[1])),
+                            bounds = ((gamma_range[0], f_range[0], phi_range[0], amp_range[0], offset_range[0]), 
+                                    (gamma_range[1], f_range[1], phi_range[1], amp_range[1], offset_range[1])),
                                     maxfev = maxfev)
         return popt, pcov    
     
@@ -696,14 +705,14 @@ class data_analysis():
             axes[0].plot(self.temp_data[0][start_index:end_index],
                          damp_sin(self.temp_data[0][start_index:end_index], *popt),
                          'r--', label = 'best-fit-line')
-            str_eqn_best_fit = 'y = %.1f' % popt[3] + 'exp(-%.2f' % (popt[0]/2) + 't)cos(%.3f' \
-                % (2*np.pi*popt[1]) + 't + %.2f' % popt[2] + ')'
-            txt_3 = axes[0].text(0.3, 0.9, str_eqn_best_fit, transform = axes[0].transAxes)
+            str_eqn_best_fit = 'y = %.1f' % popt[3] + 'exp(-%.2f/2' % (popt[0]) + 't)cos(2pi%.3f' \
+                % (popt[1]) + 't + %.2f' % popt[2] + ') + %.2f' % popt[4]
+            txt_3 = axes[0].text(0.15, 0.85, str_eqn_best_fit, transform = axes[0].transAxes)
             self.txt_list.append(txt_3)
             txt_4 = axes[0].text(0.5, 0.8, 'gamma = %.3f' % popt[0] + u"\u00B1" + str(np.sqrt(pcov[0, 0]))[:5] + \
-                ' rad/s', transform = axes[0].transAxes)
+                ' /s', transform = axes[0].transAxes)
             self.txt_list.append(txt_4)
-            txt_5 = axes[0].text(0.5, 0.7, 'freq = %.3f' % (popt[1]) + u"\u00B1" + \
+            txt_5 = axes[0].text(0.5, 0.75, 'freq = %.3f' % (popt[1]) + u"\u00B1" + \
                 str(np.sqrt(pcov[1, 1]))[:5] + ' Hz', transform = axes[0].transAxes)
             self.txt_list.append(txt_5)
             

@@ -25,18 +25,17 @@ def parabolic_func(x, a, b, c):
 
 if (__name__ == '__main__'):
     # Turn on the saving mode
-    flag_save = True
+    flag_save = False
     
     # Load data from CSV
     while True:
         try:
             file_path = input('Enter file path: ')
             parent_dir = os.path.dirname(file_path)
-            # file_path = r'C:\Programming\Python\CartER_III\scan_data-19-09.csv'
             data = pd.read_csv(file_path)
-            ref_file_path = input('Enter reference file path: ')
-            # ref_file_path = r'C:\Programming\Python\CartER_III\reference_parameters-init-19-09.csv'
-            ref_data = pd.read_csv(ref_file_path)
+            # This is for automated scan data analysis:
+            # ref_file_path = input('Enter reference file path: ')
+            # ref_data = pd.read_csv(ref_file_path)
             break
         except OSError:
             print('File not found. Please try again.')
@@ -47,14 +46,22 @@ if (__name__ == '__main__'):
         pass
     
     data_array = data.to_numpy()
-    ref_data_array = ref_data.to_numpy()
+    # This is for automated scan data analysis:
+    # ref_data_array = ref_data.to_numpy()
     _, _, _, _, _, data_amp_array, _, _, _, = zip(*data_array)
-    driving_amps = ref_data['amp_0'].unique()
-    # Add two driving amplitudes since the minimum error is 1 step, turn on when precise driving amplitude is needed
-    # driving_amps = np.append(driving_amps, [np.min(driving_amps) - 1, np.max(driving_amps) + 1]) 
-    # driving_amps = np.sort(driving_amps)
-    driving_freqs = ref_data['freq'].unique()
+    # This is for singly scan data:
+    driving_amps = data['amp_0'].unique()
+    
+    # This is for automated scan data analysis:
+    # driving_amps = ref_data['amp_0'].unique()
+    
+    # This is for singly scan data:
+    driving_freqs = data['driving_freq'].unique()
+    # This is for automated scan data analysis:
+    # driving_freqs = ref_data['freq'].unique()
+    
     colors = cm.rainbow(np.linspace(0, 1, len(driving_amps)))
+    
     # Calculate response amplitude to driving amplitude ratio
     data['response_amp'] = abs(data['response_amp'])
     data['amp_ratio'] = data['response_amp'] / data['driving_amp']
@@ -109,7 +116,11 @@ if (__name__ == '__main__'):
     plt.plot(peak_freqs[:, 1], peak_freqs[:, 2], 'b-')
     plt.xlabel('Response Amplitude / rad')
     plt.ylabel('Peak Frequency / Hz')
-    popt, pcov = curve_fit(parabolic_func, peak_freqs[:, 1], peak_freqs[:, 2], maxfev = 2000000)
+    if len(peak_freqs[:, 1])>2:
+        popt, pcov = curve_fit(parabolic_func, peak_freqs[:, 1], peak_freqs[:, 2], maxfev = 2000000)
+    else:
+        popt = np.array([1,0,0])
+        pcov = np.array([0,0,0])
     x_fit = np.linspace(min(peak_freqs[:, 1]), max(peak_freqs[:, 1]), 10000)
     y_fit = parabolic_func(x_fit, *popt)
     plt.plot(x_fit, y_fit, 'r--')
@@ -145,6 +156,7 @@ if (__name__ == '__main__'):
     
     data.sort_values(by='rectified_driving_amps', inplace=True)
     plt.figure('Response Amplitude to Driving Amplitude Ratio vs Driving Amplitude', figsize = (FIG_WIDTH, FIG_HEIGHT))
+    colors = cm.rainbow(np.linspace(0, 1, len(driving_freqs)))
     for index, driving_freq in enumerate(driving_freqs):
         subset = data[data['driving_freq'] == driving_freq]
         plt.plot(subset['rectified_driving_amps'], 
@@ -232,6 +244,7 @@ if (__name__ == '__main__'):
     plt.title('Phase vs Response Amplitude')
     plt.grid(True)
     plt.legend(loc = 'upper left', bbox_to_anchor=(1.005, 1.05))
+    plt.show()
     if flag_save:
         plt.savefig(parent_dir + '/plots/phase_vs_response_amp.png', dpi = 600)
         plt.close('all')
@@ -241,12 +254,12 @@ if (__name__ == '__main__'):
     ax = plt.axes(projection='3d')
     for index, driving_freq in enumerate(driving_freqs):
         subset = data[data['driving_freq'] == driving_freq]
-        ax.plot3D(subset['rectified_driving_amps'], 
+        ax.plot(subset['rectified_driving_amps'], 
                   subset['response_amp'], 
                   subset['phase'], 
                   '--', 
                   color = colors[index])
-        ax.scatter3D(subset['rectified_driving_amps'], 
+        ax.scatter(subset['rectified_driving_amps'], 
                      subset['response_amp'], 
                      subset['phase'], 
                      color = colors[index],
