@@ -34,16 +34,18 @@ avg_freq_err = 0
 
 with open(filename, "r", newline = '') as file:
     reader = csv.reader(file)
+    # file_name,parent_dir,omega_peak,omega_peak_err,omega_fit,omega_fit_err,gamma_fit,gamma_fit_err
     for row in reader:
         if row[0] == "file_name":
             continue
         else:
-            gamma.append(float(row[4]))
-            gamma_err.append(float(row[5]))
-            omega.append(float(row[2]))
-            omega_err.append(float(row[3]))
-            freq.append(float(row[0]))
-            freq_err.append(float(row[1].rstrip()))
+            #  Could save file_name,parent_dir too
+            gamma.append(float(row[6]))
+            gamma_err.append(float(row[7]))
+            omega.append(float(row[4]))
+            omega_err.append(float(row[5]))
+            freq.append(float(row[2]))
+            freq_err.append(float(row[3].rstrip()))
             
 figure, axes = plt.subplots(3, 1, figsize = (8, 6), sharex = True)
 for i in range(len(gamma)):

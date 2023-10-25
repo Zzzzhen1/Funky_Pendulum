@@ -174,6 +174,7 @@ class data_analysis():
         self.count = 0
         self.phase_list = []
         self.amp_list = []
+        self.extratitle = ''  # or ' - close window to continue...' but this would then be printed too
         
     def clear_flag(self):
         '''Clear the flag'''
@@ -273,7 +274,7 @@ class data_analysis():
     def load_data(self, row, file):
         '''Load a single row of data'''
         if(float(row[0]) < 0):
-            print("Detect negative time stamp at " + self.path + " Deleting...")
+            print("Detected negative time stamp at " + self.path + " Deleting file...")
             input("Press ENTER to continue")
             file.close()
             os.remove(self.path)
@@ -301,7 +302,7 @@ class data_analysis():
                     break
                     
         if(temp_index == 0 and time_stamp == 0):
-            print('Empty file found at ' + self.dirc + '\\' + file + " Deleting...")
+            print('Empty file found at ' + self.dirc + '\\' + file + " Deleting file...")
             input("Press ENTER to continue")
             os.remove(self.path)
             raise FileNotFoundError
@@ -309,13 +310,13 @@ class data_analysis():
     
     def restore_figure(self, start_index = 0, end_index = -1):
         '''Restore the figure for the scan type data'''
-        print("Restoring figure...")
+        print("Restoring figure - close window to continue...")
         self.figure, axes = plt.subplots(2, 2, figsize = (10, 6))
         self.scan_fft_plot((axes[0, 1], axes[1, 1]), start_index, end_index)
         try:
-            self.figure.suptitle(self.properties['special_info'])
+            self.figure.suptitle(self.properties['special_info']+self.extratitle)
         except KeyError:
-            self.figure.suptitle('No special info')
+            self.figure.suptitle('No special info'+self.extratitle)
         self.figure.canvas.manager.set_window_title(self.properties['file_name'])
         axes[0, 0].plot(self.temp_data[0][0:len(self.temp_data[0]):5], 
                         self.temp_data[1][0:len(self.temp_data[0]):5], 
@@ -431,8 +432,7 @@ class data_analysis():
     def scan_fft_plot(self, axs, start_index = 0, end_index = -1):
         '''Plot phase curve and fft on the axes objects'''
         for i in range(len(self.temp_data[0][start_index:end_index])):
-            if(self.temp_data[0][i + start_index] - self.temp_data[0][0] \
-                > 5):
+            if(self.temp_data[0][i + start_index] - self.temp_data[0][0] > 5):
                 fft_angle, fft_position, fft_freq, avg = self.general_fft(
                     self.temp_data[0][:i + start_index],
                     self.temp_data[1][:i + start_index],
@@ -457,14 +457,14 @@ class data_analysis():
             self.fft_length,
             self.sampling_div
         )
-        axs[0].plot(fft_freq[1:int(len(fft_freq)/2)], 
-                    abs(fft_angle[1:int(len(fft_freq)/2)]), 
+        axs[0].plot(fft_freq[0:int((len(fft_freq)+1)/2)], 
+                    abs(fft_angle[0:int((len(fft_freq)+1)/2)]), 
                     'b-', 
                     label = 'angle')
         axs[0].legend(loc = 'upper right')
         self.ax0.clear()
-        self.ax0.plot(fft_freq[1:int(len(fft_freq)/2)], 
-                 abs(fft_position[1:int(len(fft_freq)/2)]), 
+        self.ax0.plot(fft_freq[0:int((len(fft_freq)+1)/2)], 
+                 abs(fft_position[0:int((len(fft_freq)+1)/2)]), 
                  'r-', 
                  label = 'position')
         self.ax0.legend(loc = 'right')
@@ -510,9 +510,9 @@ class data_analysis():
                         'r--', label = 'best-fit-line')
         axes[1, 0].legend()
         
-        print('A_ang = %.4f ' % popt_angle[2] + u"\u00B1" + ' %.4f' % np.sqrt(pcov_angle[2, 2])\
+        print('Angular amplitude = %.4f ' % popt_angle[2] + u"\u00B1" + ' %.4f' % np.sqrt(pcov_angle[2, 2])\
             + " rad")
-        print('A_pos = %.2f ' % popt_position[2] + u"\u00B1" + ' %.2f' % np.sqrt(pcov_position[2, 2])\
+        print('Position amplitude = %.2f ' % popt_position[2] + u"\u00B1" + ' %.2f' % np.sqrt(pcov_position[2, 2])\
             + " steps")
         
         # phase calculation
@@ -555,9 +555,9 @@ class data_analysis():
         self.ax0 = axes[0, 1].twinx()
         self.scan_fft_plot((axes[0, 1], axes[1, 1]))
         try:
-            self.figure.suptitle(self.properties['special_info'])
+            self.figure.suptitle(self.properties['special_info']+self.extratitle)
         except KeyError:
-            self.figure.suptitle('No special info')
+            self.figure.suptitle('No special info'+self.extratitle)
         self.figure.canvas.manager.set_window_title(self.properties['file_name'])
         axes[0, 0].plot(self.temp_data[0][0:len(self.temp_data[0]):5], 
                         self.temp_data[1][0:len(self.temp_data[0]):5], 
@@ -591,33 +591,37 @@ class data_analysis():
             flag_request = True
             while flag_request:
                 try:
-                    start_time = float(input('Start time of calculation in seconds: '))
-                    if(start_time < self.temp_data[0][0]):
-                        start_time = self.temp_data[0][0]
-                    print('Start time = ' + str(start_time)[:5] + ' s')
-                    end_time = float(input('\nEnd time of calculation in seconds: '))
-                    if(end_time > self.temp_data[0][-1]):
-                        end_time = self.temp_data[0][-1]
-                    print('End time = ' + str(end_time)[:5] + ' s')
-                    rolling_time = float(input('\nRolling fft window time in seconds: '))
-                    print('Rolling window time = ' + str(rolling_time)[:5] + ' s')
-                    exp_data = self.scan_process(axes, start_time, end_time, rolling_time)
-                    msg = input('\nDo you want to save the data? (y to save, n to continue, r to adjust): ')
-                    flag_yn = True
-                    while flag_yn:
-                        if(msg == 'y'):
-                            flag_request = False
-                            flag_yn = False
-                            self.save_scan_data(exp_data, file)
-                        elif(msg == 'n'):
-                            flag_request = False
-                            flag_yn = False
-                        elif (msg == 'r'):
-                            flag_yn = False
-                        else:
-                            msg = input('Please enter y or n: ')
+                    result = input('Start time for calculation, in seconds, or n to skip file: ').lower()
+                    if result != 'n':  # skip everything if user says n
+                        start_time = float(result)
+                        if(start_time < self.temp_data[0][0]):
+                            start_time = self.temp_data[0][0]
+                        print('Start time = ' + str(start_time)[:5] + ' s')
+                        end_time = float(input('\nEnd time for calculation, in seconds: '))
+                        if(end_time > self.temp_data[0][-1]):
+                            end_time = self.temp_data[0][-1]
+                        print('End time = ' + str(end_time)[:5] + ' s')
+                        rolling_time = float(input('\nRolling fft window time in seconds: '))
+                        print('Rolling window time = ' + str(rolling_time)[:5] + ' s')
+                        exp_data = self.scan_process(axes, start_time, end_time, rolling_time)
+                        msg = input('\nDo you want to save the data? (y to save, n to continue, r to adjust): ').lower()
+                        flag_yn = True
+                        while flag_yn:
+                            if(msg == 'y'):
+                                flag_request = False
+                                flag_yn = False
+                                self.save_scan_data(exp_data, file)
+                            elif(msg == 'n'):
+                                flag_request = False
+                                flag_yn = False
+                            elif (msg == 'r'):
+                                flag_yn = False
+                            else:
+                                msg = input('Please enter y, n or r: ')
+                    else:
+                        flag_request = False
                 except (ValueError, AssertionError):
-                    print('Invalid input, please try again')
+                    print('Invalid input, please try again or press n to skip file')
 
     def save_scan_data(self, exp_data, file):
         '''Save the scan data to a csv file'''
@@ -679,7 +683,7 @@ class data_analysis():
                      end_index = -1):
         '''Initialise the figure for the measure type data'''
         if(restore):
-            print("Restoring figure...")
+            print("Restoring figure - close window to continue...")
         figure, axes = plt.subplots(1, 2, figsize = (10, 6))
         fft_angle, _, fft_freq, avg_spacing = self.general_fft(
             self.temp_data[0][start_index:end_index],
@@ -690,14 +694,14 @@ class data_analysis():
         axes[0].plot(self.temp_data[0],
                      self.temp_data[1],
                      'b-', label = 'angle')
-        axes[1].plot(fft_freq[1:int(len(fft_freq)/2)],
-                     abs(fft_angle[1:int(len(fft_freq)/2)]),
+        axes[1].plot(fft_freq[0:int((len(fft_freq)+1)/2)],
+                     abs(fft_angle[0:int((len(fft_freq)+1)/2)]),
                      'b-', label = 'angle')
         if(process):
-            temp_fft_angle = abs(fft_angle[1:int(len(fft_freq)/2)])
+            temp_fft_angle = abs(fft_angle[0:int((len(fft_freq)+1)/2)]) # was [1:] but must match fft_freq[]
             peaks, _ = find_peaks(temp_fft_angle, height = 0.8)
             for i,j in zip(peaks, temp_fft_angle[peaks]):
-                txt = axes[1].annotate(str(fft_freq[i])[:5] + "Hz", xy=(fft_freq[i], j))
+                txt = axes[1].annotate(str(round(fft_freq[i],3)) + "Hz", xy=(fft_freq[i], j))
                 self.txt_list.append(txt)
             
             popt, pcov = self.measure_fit(self.temp_data[0][start_index:end_index],
@@ -717,15 +721,16 @@ class data_analysis():
             self.txt_list.append(txt_5)
             
         try:
-            figure.suptitle(self.properties['special_info'])
+            figure.suptitle(self.properties['special_info']+self.extratitle)
         except KeyError:
-            figure.suptitle('No special info')
+            figure.suptitle('No special info'+self.extratitle)
         figure.canvas.manager.set_window_title(self.properties['file_name'])
         self.txt_list = []
-        res = (1/(self.temp_data[0][-1] - self.temp_data[0][0]))
-        txt_1 = axes[1].text(0.6, 0.9, 'resolution = ' + str(res)[:5] + ' Hz', 
+        # res = (1/(self.temp_data[0][-1] - self.temp_data[0][0]))
+        res = (1/(self.temp_data[0][end_index-1] - self.temp_data[0][start_index]))
+        txt_1 = axes[1].text(0.55, 0.9, 'resolution = ' + str(round(res,3)) + ' Hz', 
                              transform = axes[1].transAxes)
-        txt_2 = axes[1].text(0.6, 0.8, 'sampling_rate = ' + str(1/avg_spacing)[:4] + ' Hz',
+        txt_2 = axes[1].text(0.55, 0.8, 'sampling_rate = ' + str(round(1/avg_spacing,1)) + ' Hz',
                              transform = axes[1].transAxes)
         self.txt_list.append(txt_1)
         self.txt_list.append(txt_2)
@@ -743,10 +748,10 @@ class data_analysis():
         return figure, axes
     
     def measure_process(self, axes, start_time, end_time):
-        '''Calculate the frequency and damping factor of the measure data'''
+        '''Calculate the frequency and damping factor of the measured data'''
         self.fft_length = int((end_time - start_time) / self.sampling_div)
         if(self.temp_data[0][0] >= start_time):
-            print("Invalid input of time range")
+            print("Invalid time range input")
             return None
         for i in range(len(self.temp_data[0])):
             if(self.temp_data[0][i] <= start_time):
@@ -778,18 +783,18 @@ class data_analysis():
         flag_request = True
         while flag_request:
             try:
-                start_time = float(input('Start time of calculation in seconds: '))
+                start_time = float(input('Start time for calculation, in seconds: '))
                 if(start_time < self.temp_data[0][0]):
                     start_time = self.temp_data[0][0]
                 print('Start time = ' + str(start_time)[:5] + ' s')
-                end_time = float(input('\nEnd time of calculation in seconds: '))
+                end_time = float(input('\nEnd time for calculation, in seconds: '))
                 if(end_time > self.temp_data[0][-1]):
                     end_time = self.temp_data[0][-1]
                 print('End time = ' + str(end_time)[:5] + ' s')
                 exp_data = self.measure_process(axes, start_time, end_time)
                 if(exp_data == None):
                     continue
-                msg = input('\nDo you want to save the data? (y to save, n to continue, r to adjust): ')
+                msg = input('\nDo you want to save the data? (y to save, n to continue, r to adjust): ').lower()
                 flag_yn = True
                 while flag_yn:
                     if(msg == 'y'):
@@ -863,7 +868,7 @@ class data_analysis():
                         self.clear_data()
                 
                     if('multiple_omega' in self.properties):
-                        print("Multiple frequency detected, currently not supported")
+                        print("Multiple frequencies detected, currently not supported")
                         input("Press ENTER to continue")
                         continue
                     

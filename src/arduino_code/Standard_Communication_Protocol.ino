@@ -25,6 +25,9 @@
 // bool cart_run_speed();
 // void cart_center_run_speed();
 
+// Debugging messages (starting with "DEBUG: ") if debug > 0:
+const int debug = 0;
+
 // Initialization of Arduino Board
 const int baudrate = 230400;
 
@@ -94,8 +97,8 @@ float Kd_pos = -0.01;  // Reasonable: 0.0001-0.005
 // Define the button
 #define Lbtn_pin 5        // Left switch pin
 #define Rbtn_pin 4        // Right switch pin
-ezButton Lbtn(Lbtn_pin);  // Left switch initiation
-ezButton Rbtn(Rbtn_pin);  // Right switch initiation
+ezButton Lbtn(Lbtn_pin);  // Left switch initialisation
+ezButton Rbtn(Rbtn_pin);  // Right switch initialisation
 
 //Equilibrium measuring and time-related variables
 double current_time = 0.;            // Current time in seconds
@@ -138,8 +141,8 @@ bool flag_init_ang_cul = 1;   // Detect the initial cumulative angle --> used to
 bool flag_L = 1;  // Center stage flag for left switch
 bool flag_R = 1;  // Center stage flag for right switch
 // NR stage
-bool flag_omega = 1;  // Receive a input command
-bool flag_amp = 1;    // Receive a input command
+bool flag_omega = 1;  // Receive an input command
+bool flag_amp = 1;    // Receive an input command
 
 // PID stage
 bool flag_swing_request = 1;  // Default: ask for swing up and ask for parameter?
@@ -186,16 +189,16 @@ void init_button() {
 void menu_print() {
   Serial.println("Cart pendulum functions: ");
   Serial.println("Enter 0 to reset the arduino board.");
-  Serial.println("Enter 1 to begin the cart position centering.");
-  Serial.println("Enter 2 to begin the natural frequency and quality factor measuring.");
-  Serial.println("Enter 3 to set max running speed and max acceleration.");
+  Serial.println("Enter 1 to begin centering the cart.");
+  Serial.println("Enter 2 to begin measuring the natural frequency and quality factor.");
+  Serial.println("Enter 3 to set max running speed and acceleration.");
   Serial.println("Enter 4 to begin the frequency scan.");
-  Serial.println("Enter 5 to begin the PID control of inverted pendulum.");
+  Serial.println("Enter 5 to begin the PID control of the inverted pendulum.");
   Serial.println("Enter 6 to begin the normalised resonance.");
 }
 
 // Begin execution of command print
-void command_print(int num) {
+void command_print(int num) {// these must match the messages in Pendulum_Control_Console.py's self.command_dict exactly!
   if (flag_print_command) {
     flag_print_command = 0;
     switch (num) {
@@ -203,22 +206,22 @@ void command_print(int num) {
         Serial.println("Resetting...");
         break;
       case 1:
-        Serial.println("Begin centering.");
+        Serial.println("Beginning centering.");
         break;
       case 2:
-        Serial.println("Begin the natural frequency and quality factor measuring.");
+        Serial.println("Beginning measuring the natural frequency and quality factor.");
         break;
       case 3:
-        Serial.println("Begin the speed and acceleration setting.");
+        Serial.println("Beginning setting the speed and acceleration.");
         break;
       case 4:
-        Serial.println("Begin the frequency scan.");
+        Serial.println("Beginning the frequency scan.");
         break;
       case 5:
-        Serial.println("Begin the PID control.");
+        Serial.println("Beginning PID control.");
         break;
       case 6:
-        Serial.println("Begin the normalised resonance.");
+        Serial.println("Beginning the normalised resonance.");
         break;
     }
     delay(500);
@@ -413,10 +416,19 @@ float* isMultiFloat(String str){
   return temp_float; // Return a pointer to the static temp_float array
 }
 
-// Read message from Serial port, wait infinitely
+// Read message from Serial port, wait indefinitely
 String read_msg() {
-  while (Serial.available() == 0) {}
+  if (debug>0) {Serial.println("DEBUG: Checking if serial is available in read_msg...");}
+  while (Serial.available() == 0) {
+    // state_Rbtn = Rbtn.getState(); // try to allow resetting by pressing RH limit switch
+    if (Rbtn.getState() == 0) {
+      Serial.println("Terminating since limit switch pressed...");
+      reset();
+    }
+  }  // can hang indefinitely!!
+  if (debug>0) {Serial.println("DEBUG: Reading message...");}
   message = Serial.readStringUntil('\n');
+  if (debug>0) {Serial.println("DEBUG: Received message: "+message);}
   message.trim();
   return message;
 }
@@ -454,7 +466,7 @@ String read_cmd() {
         } else {
           flag_command = 1;
           delay(500);
-          Serial.println("Hasn't been centered. Please center the cart first.");
+          Serial.println("Hasn't been centred. Please centre the cart first.");
           delay(500);
           return "";
         }
@@ -533,6 +545,8 @@ void loop() {
         Serial.println("Successfully Connected");
         delay(500);
       }
+      if (debug>0) {Serial.println("DEBUG: Message = "+message);}
+
     }
   } else {
     // Initiate the button in the loop
@@ -543,6 +557,7 @@ void loop() {
     state_Rbtn = Rbtn.getState();
     state_L = state_change_L();
     state_R = state_change_R();
+    if (debug>0) {Serial.println("DEBUG: in middle of loop() after checking switches");}
 
     if (flag_reset) {
       reset();
@@ -562,6 +577,7 @@ void loop() {
     state_Lbtn_prev = state_Lbtn;
     state_Rbtn_prev = state_Rbtn;
   }
+  if (debug>0) {Serial.println("DEBUG: CJBF at end of loop()");}
 }
 
 // Runs the cart centering
@@ -574,7 +590,7 @@ void center() {
         stepper.move(-1);
         stepper.runSpeedToPosition();
       } else if (!flag_L && flag_R) {
-        // After touched the left switch, move to the right
+        // After touching the left switch, move to the right
         stepper.setSpeed(safe_speed);
         stepper.move(1);
         stepper.runSpeedToPosition();
@@ -629,13 +645,13 @@ void pid() {
       Serial.println("Do you want to turn up swing up strategy? type in (y/n)");
       message = read_msg();
       if (message == "y") {
-        Serial.println("Continue with swing up strategy.");
+        Serial.println("Continue with swing-up strategy.");
         flag_swing = 1;
         flag_swing_request = 0;
         stepper.move(200);
         delay(500);
       } else if (message == "n") {
-        Serial.println("Continue without swing up strategy.");
+        Serial.println("Continue without swing-up strategy.");
         flag_swing = 0;
         flag_swing_request = 0;
         delay(500);
@@ -656,7 +672,7 @@ void pid() {
         Serial.println("For example: 600,400,2.5,-0.05,0,-0.01");
         Serial.println("In this order:Kp_ang,Ki_ang,Kd_ang,Kp_pos,Ki_pos,Kd_pos");
         Serial.println("[Scroll up to see previous values]");
-        Serial.println("Before press ENTER, make sure either the pendulum is stable at downright or upright position!");
+        Serial.println("Before press ENTER, make sure the pendulum is stable at either the down or upright position!");
         message = read_msg();
         if (pid_receive()) {
           pid_print();
@@ -825,11 +841,11 @@ void setSpeed() {
     if (flag_setSpeed_request) {
       Serial.print("Current speed: ");
       Serial.print(temp_speed, 1);
-      Serial.print(" step/s Current acceleration: ");
+      Serial.print(" step/s, Current acceleration: ");
       Serial.print(temp_accel, 1);
       Serial.println(" step/s^2");
-      Serial.println("Type in the values for speed and acceleration separated by a comma without spaces:");
-      Serial.println("[Note: in this stage, the cart will be driven at 1 Hz.]");
+      Serial.println("Type in the values for speed and acceleration, separated by a comma and without spaces:");
+      Serial.println("[Note: at this stage, the cart will be driven at 1 Hz.]");
       message = read_msg();
       if (message == "Terminate") {
         Serial.println("Terminating...");
@@ -855,11 +871,11 @@ void setSpeed() {
         Serial.print("Current amplitude: ");
         Serial.print(amp_0, 1);
         Serial.println(" steps.");
-        Serial.println("Type in the amplitude for the following sinusoidal oscillation in steps:");
+        Serial.println("Type in the amplitude for the following sinusoidal oscillation, in steps:");
         message = read_msg();
         if(isFloat(message)){
           amp_0 = message.toFloat();
-          Serial.print("Start with amplitude: ");
+          Serial.print("Starting with amplitude: ");
           Serial.print(amp_0, 1);
           Serial.println(" steps.");
           flag_amp = 0;
@@ -924,13 +940,13 @@ void freq_scan() {
     if (state_L && state_R) {
       if (flag_omega) {
         // receive a frequency value
-        Serial.println("Input a frequency value for driving the cart: (Hz)");
+        Serial.println("Input a frequency value for driving the cart (in Hz):");
         message = read_msg();
         if (isFloat(message)) {
           omega = message.toFloat() * 2 * M_PI;
           memset(omega_list, 0., sizeof(omega_list));
           omega_list[0] = omega;
-          Serial.print("Start with driven frequency: ");
+          Serial.print("Starting with driving frequency: ");
           Serial.print(message);
           Serial.println(" Hz");
           flag_omega = 0;
@@ -958,11 +974,11 @@ void freq_scan() {
           Serial.print("Current amplitude: ");
           Serial.print(amp_0, 1);
           Serial.println(" steps.");
-          Serial.println("Type in the amplitude for the following sinusoidal oscillation in steps:");
+          Serial.println("Type in the amplitude for the following sinusoidal oscillation, in steps:");
           message = read_msg();
-          if(isFloat(message)){
+          if(message.length()>0 && isFloat(message)){
             amp_0 = message.toFloat();
-            Serial.print("Start with amplitude: ");
+            Serial.print("Starting with amplitude: ");
             Serial.print(amp_0, 1);
             Serial.println(" steps.");
             flag_amp = 0;
@@ -1029,13 +1045,13 @@ void NR() {
     if (state_L && state_R) {
       if (flag_omega) {
         // receive a frequency value
-        Serial.println("Input a frequency value for driving the cart: (Hz)");
+        Serial.println("Input a frequency value for driving the cart (in Hz):");
         message = read_msg();
         if (isFloat(message)) {
           omega = message.toFloat() * 2 * M_PI;
           memset(omega_list, 0., sizeof(omega_list));
           omega_list[0] = omega;
-          Serial.print("Start with driven frequency: ");
+          Serial.print("Starting with driving frequency: ");
           Serial.print(message);
           Serial.println(" Hz");
           flag_omega = 0;
@@ -1063,11 +1079,11 @@ void NR() {
           Serial.print("Current amplitude: ");
           Serial.print(amp_0, 1);
           Serial.println(" steps.");
-          Serial.println("Type in the amplitude for the following sinusoidal oscillation in steps:");
+          Serial.println("Type in the amplitude for the following sinusoidal oscillation, in steps:");
           message = read_msg();
           if(isFloat(message)){
             amp_0 = message.toFloat();
-            Serial.print("Start with amplitude: ");
+            Serial.print("Starting with amplitude: ");
             Serial.print(amp_0, 1);
             Serial.println(" steps.");
             flag_amp = 0;

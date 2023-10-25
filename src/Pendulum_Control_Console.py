@@ -79,15 +79,16 @@ class cart_pendulum():
             "No command detected.",
             "Unidentified command. Please try again.",
             "More than one command detected. Resetting the values.",
-            "Hasn't been centered. Please center the cart first.",
+            "Hasn't been centred. Please centre the cart first.",
+            "Terminating since limit switch pressed...",
         }
-        self.command_dict = {
-            "Begin centering.": "center",
-            "Begin the PID control.": "pid",
-            "Begin the natural frequency and quality factor measuring.": "measure",
-            "Begin the normalised resonance.": "NR",
-            "Begin the speed and acceleration setting.": "setSpeed",
-            "Begin the frequency scan.": "freq_scan",
+        self.command_dict = {  # these must match the messages from the Arduino's command_print() exactly!
+            "Beginning centring.": "center",
+            "Beginning PID control.": "pid",
+            "Beginning measuring the natural frequency and quality factor.": "measure",
+            "Beginning the normalised resonance.": "NR",
+            "Beginning setting the speed and acceleration.": "setSpeed",
+            "Beginning the frequency scan.": "freq_scan",
         }
         
     def reset_flag_list(self, swing_request = False):  
@@ -147,11 +148,15 @@ class cart_pendulum():
     
     def command_flag(self): 
         # command flag controlled by the arduino output
-        if(self.arduino.receive.rstrip() not in self.reset_dict \
-            and self.arduino.receive.rstrip() in self.command_dict):
-            self.flag_list[self.command_dict[self.arduino.receive.rstrip()]] = True
+        result = self.arduino.receive.rstrip()
+        while (result.startswith("DEBUG")):  # should have already been handled by arduino.read_single()
+            self.arduino.read_single()
+            result = self.arduino.receive.rstrip()
+        if(result not in self.reset_dict \
+            and result in self.command_dict):
+            self.flag_list[self.command_dict[result]] = True
             self.flag_list["command"] = False
-        elif (self.arduino.receive.rstrip() in self.reset_dict):
+        elif (result in self.reset_dict):
             self.flag_list["command"] = False
             self.flag_list["reset"] = True
         else:
@@ -252,7 +257,7 @@ class cart_pendulum():
                 self.arduino.send_input_message(save_to_omega = False)
                 msg_amp = self.arduino.message.rstrip()
                 self.arduino.read_single()
-                if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
+                if(self.arduino.receive.rstrip().startswith("Starting with amplitude:")):
                     self.flag_list["amp_0"] = False
                     self.data.amp_0 = float(msg_amp)
                     self.temp_datum.amp_0 = float(msg_amp)
@@ -303,8 +308,10 @@ class cart_pendulum():
                 self.arduino.send_input_message(save_to_omega = False)
                 msg_amp = self.arduino.message.rstrip()
                 self.arduino.read_single()
-                if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
+                if(self.arduino.receive.rstrip().startswith("Starting with amplitude:")):
                     self.flag_list["amp_0"] = False
+                    if not isinstance(msg_amp, float):
+                        msg_amp = 50.  # pretend it's sensible,should now have been caught by arduino...
                     self.data.amp_0 = float(msg_amp)
                     self.temp_datum.amp_0 = float(msg_amp)
             else:
@@ -344,14 +351,14 @@ class cart_pendulum():
             time.sleep(0.1)
             self.arduino.send_message('n' + '\n')
             self.arduino.read_single()
-            if(self.arduino.receive.rstrip() == "Continue with swing up strategy." or \
-                self.arduino.receive.rstrip() == "Continue without swing up strategy."):
+            if(self.arduino.receive.rstrip() == "Continue with swing-up strategy." or \
+                self.arduino.receive.rstrip() == "Continue without swing-up strategy."):
                 self.flag_list["swing_request"] = False
         else: 
             if(self.flag_list["pid_input"]):
                 self.arduino.read_all()
                 self.arduino.send_input_message(save_to_omega = False)
-                # Time waited for Arduino to printout the message through serial port
+                # Time waited for Arduino to print out the message through serial port
                 time.sleep(0.01)
                 self.arduino.read_all()
                 if(self.arduino.receive.rstrip() == "Start inversion control."):
@@ -405,7 +412,7 @@ class cart_pendulum():
         else:
             while(self.flag_list["amp"]):
                 print("\n\nCurrent initial active amplitude is %.2f\n"%(self.data.amp))
-                temp_active_amp = input("Please enter the initial active amplitude in steps: ")
+                temp_active_amp = input("Please enter the initial active amplitude, in steps: ")
                 print("")
                 try:
                     temp_active_amp = float(temp_active_amp)
@@ -419,7 +426,7 @@ class cart_pendulum():
                 self.arduino.send_input_message(save_to_omega = False)
                 msg_amp = self.arduino.message.rstrip()
                 self.arduino.read_single()
-                if(self.arduino.receive.rstrip().startswith("Start with amplitude:")):
+                if(self.arduino.receive.rstrip().startswith("Starting with amplitude:")):
                     self.flag_list["amp_0"] = False
                     self.data.amp_0 = float(msg_amp)
                     self.temp_datum.amp_0 = float(msg_amp)

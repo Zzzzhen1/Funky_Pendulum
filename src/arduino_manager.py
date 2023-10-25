@@ -21,6 +21,7 @@ class arduino():
         self.receive = ""
         self.command = ""
         self.omega = ""
+        self.ardprompt = "Arduino> "  # printed at start of each response from Arduino, to show what comes from it rather than from python
     
     def clear(self):
         '''Clear the message, receive and command variables'''
@@ -77,6 +78,7 @@ class arduino():
         
     def send_command(self):
         '''possible commands: reboot, center, pid, measure, NR, setSpeed, freq_scan'''
+        print('Type:')
         self.command = input() + "\n"
         print("")
         self.board.write(self.command.encode('ASCII'))
@@ -104,13 +106,13 @@ class arduino():
                 print("\nPlease enter a valid number")
                 continue
             if(num == 1):
-                print("\nPlease enter the driven frequency: \n")
+                print("\nPlease enter the driving frequency: \n")
                 self.send_input_message()
                 temp_flag = False
                 return False
             elif(num >= 2 and num <= 10): 
                 try:
-                    start_point, end_point = (input("\nPlease enter the start and end frequency in this format (a,b): ").split(','))
+                    start_point, end_point = (input("\nPlease enter the start and end frequency in the format (a,b): ").split(','))
                 except ValueError:
                     print("\nPlease enter a valid range")
                     continue
@@ -155,16 +157,21 @@ class arduino():
         until a line is received'''
         if(in_waiting):
             while(self.board.in_waiting == 0):
-                pass
+                pass        
         self.receive = self.board.readline().decode('ASCII')
+        while (self.receive.startswith("DEBUG")):
+            if(prt):
+                print(self.ardprompt+self.receive)  # show which text came from arduino 'A> '+
+            self.receive = self.board.readline().decode('ASCII')
         if(prt):
-            print(self.receive)
+            print(self.ardprompt+self.receive)  # show which text came from arduino 'A> '+
         
     def read_all(self):
         '''Read all lines from the arduino'''
         while(self.board.in_waiting == 0):
+            # print('waiting')
             pass
         while(self.board.in_waiting):
             self.receive = self.board.readline().decode('utf-8')
-            print(self.receive)
+            print(self.ardprompt+self.receive)
       

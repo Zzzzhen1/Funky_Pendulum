@@ -18,7 +18,7 @@ MAX_COUNT = 10 # Number of points waited to plot a frame
 ANGLE_ROTATION = 55 # Rotation of the y-label
 
 class data_phy():
-    '''Put all the physics in this class such that people can look at'''
+    '''Put all the physics in this class so that people can look at it'''
     def __init__(
         self,
         fft_length,
@@ -534,7 +534,7 @@ class data(data_phy):
                     self.ax_list[0, 1].set_xlim(0, self.omega)
                 else:
                     self.ax_list[0, 1].set_xlim(0, self.omega_list[-1])
-                self.ax_list[0, 1].set_ylabel('Arbitrary Unit')
+                self.ax_list[0, 1].set_ylabel('Arbitrary units')
                 self.ax_list[1, 1].set_xlabel('Time/s')
                 self.ax_list[1, 1].set_ylabel('Phase/pi')
                 ax2.set_ylabel('Amplitude/steps')
@@ -560,9 +560,9 @@ class data(data_phy):
                 self.ax_list[1, 0].set_xlabel('Time/s')
                 self.ax_list[1, 0].set_ylabel('Position/steps')
                 self.ax_list[0, 1].set_xlabel('Time/s')
-                self.ax_list[0, 1].set_ylabel('Angular Velocity/rad/s')
+                self.ax_list[0, 1].set_ylabel('Angular Velocity/(rad/s)')
                 self.ax_list[1, 1].set_xlabel('Time/s')
-                self.ax_list[1, 1].set_ylabel('Cart Velocity/steps/s')
+                self.ax_list[1, 1].set_ylabel('Cart Velocity/(steps/s)')
                 
             elif(module_name == "setSpeed"):
                 if(self.flag_subplot_init):
@@ -579,7 +579,7 @@ class data(data_phy):
                 self.ax_list[0].set_xlabel('Time/s')
                 self.ax_list[0].set_ylabel('Position/steps')
                 self.ax_list[1].set_xlabel('Time/s')
-                self.ax_list[1].set_ylabel('Cart Velocity/steps/s')
+                self.ax_list[1].set_ylabel('Cart Velocity/(steps/s)')
                 
             # Configure the events
             self.figure.canvas.mpl_connect('close_event', self.handle_close)
@@ -589,8 +589,8 @@ class data(data_phy):
             plt.show(block = False)
 
     def real_time_plot(self, module_name, scan = False):
-        '''Plots the data in real time, non-blocking. Can be improved by combing the 
-        similar parts in the if and else statement.'''
+        '''Plots the data in real time, non-blocking. Can be improved by combining the 
+        similar parts in the if and else statements.'''
         self.module_name = module_name
         if(module_name == "measure"):
             self.fft()
@@ -604,9 +604,9 @@ class data(data_phy):
                     self.line_fft.set_data(self.fft_freq, 
                                          abs(self.fft_angle))
                     try:
-                        txt1 = self.ax_list[1].text(0.5, 1.05, 'sampling rate: ' + str(0.5 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[1].text(0.5, 1.05, 'sampling rate: ' + str(round(0.5 / self.avg_spacing,1)) + 'Hz',
                                             transform = self.ax_list[1].transAxes)
-                        txt2 = self.ax_list[1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[1].text(0.5, 1.1, 'resolution: ' + str(round(1 / len(self.index_list) / self.avg_spacing,3)) + 'Hz',
                                             transform = self.ax_list[1].transAxes)
                     except ZeroDivisionError:
                         pass
@@ -638,9 +638,9 @@ class data(data_phy):
                     self.line_fft.set_data(self.fft_freq, 
                                          abs(self.fft_angle))
                     try: 
-                        txt1 = self.ax_list[1].text(0.5, 1.05, 'sampling rate: ' + str(0.5 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[1].text(0.5, 1.05, 'sampling rate: ' + str(round(0.5 / self.avg_spacing,1)) + 'Hz',
                                             transform = self.ax_list[1].transAxes)
-                        txt2 = self.ax_list[1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[1].text(0.5, 1.1, 'resolution: ' + str(round(1 / len(self.index_list) / self.avg_spacing,3)) + 'Hz',
                                             transform = self.ax_list[1].transAxes)
                     except ZeroDivisionError:
                         pass
@@ -696,9 +696,9 @@ class data(data_phy):
                         self.line_phase_active.set_data(*zip(*self.phase_list_active))
                     
                     try:
-                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(0.5 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.03, 'sampling rate: ' + str(round(0.5 / self.avg_spacing,1)) + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.12, 'resolution: ' + str(round(1 / len(self.index_list) / self.avg_spacing,3)) + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                         # if(self.index > 20 and scan):
                         #     txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
@@ -707,9 +707,9 @@ class data(data_phy):
                         pass
                     
                     if(self.omega_list is None):
-                        self.figure.suptitle(module_name + ' Driven Freq: ' + str(self.omega) + 'Hz')
+                        self.figure.suptitle(module_name + ' Driving Freq: ' + str(self.omega) + 'Hz')
                     else:
-                        self.figure.suptitle(module_name + ' Driven Freq: ' + ', '.join("%.3f" % i for i in self.omega_list) + 'Hz')
+                        self.figure.suptitle(module_name + ' Driving Freq: ' + ', '.join("%.3f" % i for i in self.omega_list) + 'Hz')
                     
                     for ax in self.ax_new_list:
                         ax.relim()
@@ -761,9 +761,9 @@ class data(data_phy):
                         self.line_phase_active.set_data(*zip(*self.phase_list_active))
                     
                     try:
-                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(0.5 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(round(0.5 / self.avg_spacing,1)) + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(round(1 / len(self.index_list) / self.avg_spacing,3)) + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                         # if(scan):
                         #     txt3 = self.ax_list[1, 0].text(0.1, 0.1, 'delay time: ' + str(1000*delay_time)[:6] + 'ms' \
@@ -832,9 +832,9 @@ class data(data_phy):
                         self.line_phase_active.set_data(*zip(*self.phase_list_active))
                     
                     try:
-                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(0.5 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(round(0.5 / self.avg_spacing,1)) + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(round(1 / len(self.index_list) / self.avg_spacing,3)) + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                     except ZeroDivisionError:
                         pass
@@ -893,9 +893,9 @@ class data(data_phy):
                         self.line_phase_active.set_data(*zip(*self.phase_list_active))
                     
                     try:
-                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(0.5 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(round(0.5 / self.avg_spacing,1)) + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
-                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(1 / len(self.index_list) / self.avg_spacing)[:5] + 'Hz',
+                        txt2 = self.ax_list[0, 1].text(0.5, 1.1, 'resolution: ' + str(round(1 / len(self.index_list) / self.avg_spacing,3)) + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                     except ZeroDivisionError:
                         pass
@@ -940,12 +940,12 @@ class data(data_phy):
                     self.line_pos_vel.set_data(self.time[low_ind:high_ind],
                                             self.position_velocity[low_ind:high_ind])
                     try:
-                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(0.5 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(round(0.5 / self.avg_spacing,1)) + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                     except ZeroDivisionError:
                         pass
                     if(self.pid_param == 'r'):
-                        self.figure.suptitle('PID parameters (resumed previous values)')
+                        self.figure.suptitle('PID parameters (reusing previous values)')
                     else:
                         self.figure.suptitle('PID parameters(' + self.pid_param + ')')
                     
@@ -979,13 +979,13 @@ class data(data_phy):
                     self.line_pos_vel.set_data(self.time[low_ind:high_ind],
                                             self.position_velocity[low_ind:high_ind])
                     try:
-                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(0.5 / self.avg_spacing)[:4] + 'Hz',
+                        txt1 = self.ax_list[0, 1].text(0.5, 1.05, 'sampling rate: ' + str(round(0.5 / self.avg_spacing,1)) + 'Hz',
                                                 transform = self.ax_list[0, 1].transAxes)
                     except ZeroDivisionError:
                         pass
                     
                     if(self.pid_param == 'r'):
-                        self.figure.suptitle('PID parameters (resumed previous values)')
+                        self.figure.suptitle('PID parameters (reusing previous values)')
                     else:
                         self.figure.suptitle('PID parameters(' + self.pid_param + ')')
                     
@@ -1100,7 +1100,7 @@ class data(data_phy):
         with open(filename + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             if(input_spec_info):
-                special_info = input("Any special info to add to the csv file?\n\n")
+                special_info = input("Title to add to the csv file (if any)\n\n")
             writer.writerow(["special_info", special_info])
             if(module_name == "pid"):
                 try:
