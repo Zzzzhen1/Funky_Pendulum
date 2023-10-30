@@ -1,7 +1,7 @@
 // General description:
 // This code sets the arduino board ready for 7 different functions: (start from 0)
 // 0. Reset the arduino board
-// 1. Center the cart
+// 1. Centre the cart
 // 2. Measure the natural frequency and quality factor of the cart
 // by activating the rotary sensor 
 // 3. Set and test out the maximum speed and acceleration (set by the laptop) 
@@ -189,7 +189,7 @@ void init_button() {
 void menu_print() {
   Serial.println("Cart pendulum functions: ");
   Serial.println("Enter 0 to reset the arduino board.");
-  Serial.println("Enter 1 to begin centering the cart.");
+  Serial.println("Enter 1 to begin centring the cart.");
   Serial.println("Enter 2 to begin measuring the natural frequency and quality factor.");
   Serial.println("Enter 3 to set max running speed and acceleration.");
   Serial.println("Enter 4 to begin the frequency scan.");
@@ -206,7 +206,7 @@ void command_print(int num) {// these must match the messages in Pendulum_Contro
         Serial.println("Resetting...");
         break;
       case 1:
-        Serial.println("Beginning centering.");
+        Serial.println("Beginning centring.");
         break;
       case 2:
         Serial.println("Beginning measuring the natural frequency and quality factor.");
