@@ -191,10 +191,10 @@ void menu_print() {
   Serial.println("Enter 0 to reset the arduino board.");
   Serial.println("Enter 1 to begin centring the cart.");
   Serial.println("Enter 2 to begin measuring the natural frequency and quality factor.");
-  Serial.println("Enter 3 to set max running speed and acceleration.");
-  Serial.println("Enter 4 to begin the frequency scan.");
-  Serial.println("Enter 5 to begin the PID control of the inverted pendulum.");
-  Serial.println("Enter 6 to begin the normalised resonance.");
+  // Serial.println("Enter 3 to set max running speed and acceleration.");
+  Serial.println("Enter 3 to begin the frequency scan.");
+  Serial.println("Enter 4 to begin the PID control of the inverted pendulum.");
+  Serial.println("Enter 5 to begin the normalised resonance.");
 }
 
 // Begin execution of command print
@@ -211,16 +211,16 @@ void command_print(int num) {// these must match the messages in Pendulum_Contro
       case 2:
         Serial.println("Beginning measuring the natural frequency and quality factor.");
         break;
+      // case 3:
+      //   Serial.println("Beginning setting the speed and acceleration.");
+      //   break;
       case 3:
-        Serial.println("Beginning setting the speed and acceleration.");
-        break;
-      case 4:
         Serial.println("Beginning the frequency scan.");
         break;
-      case 5:
+      case 4:
         Serial.println("Beginning PID control.");
         break;
-      case 6:
+      case 5:
         Serial.println("Beginning the normalised resonance.");
         break;
     }
@@ -294,6 +294,8 @@ void cart_reset(bool kill = true) {
   // Final moment print to trigger stage changes in laptop
   if (kill) {
     Serial.println("Kill switch hit.");
+    delay(500);
+    Serial.println('Kill switch hit.');
   }
   delay(500);
   stepper.setSpeed(run_speed);
@@ -459,24 +461,24 @@ String read_cmd() {
       case 2:
         flag_measure = 1;
         return "Measure";
+      // case 3:
+      //   if (center_count >= 1) {
+      //     flag_setSpeed = 1;
+      //     return "setSpeed";
+      //   } else {
+      //     flag_command = 1;
+      //     delay(500);
+      //     Serial.println("Hasn't been centred. Please centre the cart first.");
+      //     delay(500);
+      //     return "";
+      //   }
       case 3:
-        if (center_count >= 1) {
-          flag_setSpeed = 1;
-          return "setSpeed";
-        } else {
-          flag_command = 1;
-          delay(500);
-          Serial.println("Hasn't been centred. Please centre the cart first.");
-          delay(500);
-          return "";
-        }
-      case 4:
         flag_freq_scan = 1;
         return "freqScan";
-      case 5:
+      case 4:
         flag_pid = 1;
         return "PID";
-      case 6:
+      case 5:
         flag_NR = 1;
         return "NR";
       default:
