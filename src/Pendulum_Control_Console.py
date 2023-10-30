@@ -299,6 +299,7 @@ class cart_pendulum():
                 self.flag_list["omega"] = True
             if(self.flag_list["omega"] == False and self.flag_list["multi_freq"] == False):
                 self.data.omega = float(self.arduino.omega.rstrip())
+                self.temp_datum.omega = float(self.arduino.omega.rstrip())
             elif(self.flag_list["omega"] == False and self.flag_list["multi_freq"] == True):
                 self.data.omega_list = self.arduino.omega_list
                 self.data.omega = self.arduino.omega_list[-1] # default to take the largest value in the list
@@ -310,10 +311,14 @@ class cart_pendulum():
                 self.arduino.read_single()
                 if(self.arduino.receive.rstrip().startswith("Starting with amplitude:")):
                     self.flag_list["amp_0"] = False
-                    if not isinstance(msg_amp, float):
-                        msg_amp = 50.  # pretend it's sensible,should now have been caught by arduino...
-                    self.data.amp_0 = float(msg_amp)
-                    self.temp_datum.amp_0 = float(msg_amp)
+                    try:
+                        self.data.amp_0 = float(msg_amp)
+                        self.temp_datum.amp_0 = float(msg_amp)
+                    except ValueError:
+                        msg_amp = 50.
+                        self.data.amp_0 = float(msg_amp)
+                        self.temp_datum.amp_0 = float(msg_amp)
+
             else:
                 if(self.arduino.receive.rstrip() == "Kill switch hit."):
                     print("Kill switch hit. Resetting the system...\n")
