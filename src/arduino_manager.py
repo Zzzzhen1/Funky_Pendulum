@@ -78,7 +78,7 @@ class arduino():
         
     def send_command(self):
         '''possible commands: reboot, center, pid, measure, NR, setSpeed, freq_scan'''
-        print('Type:')
+        # print('Type:')
         self.command = input() + "\n"
         print("")
         self.board.write(self.command.encode('ASCII'))
