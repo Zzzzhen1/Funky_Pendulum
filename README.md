@@ -49,7 +49,7 @@ This can help you to navigate certain part of the code
 
 ### Some Interesting Results
 
-Check out the [plots](https://github.com/Zzzzhen1/Funky_Pendulum/tree/main/processed_data/plots). They are produced using the data in the /processed_data folder and the csv_process.py. These plots characterise the non-linearity and the change of natural frequency with response amplitude. This is something you can try measuring during the practical.
+Check out the [plots](https://github.com/Zzzzhen1/Funky_Pendulum/tree/previous_data(protected)/processed_data/plots). They are produced using the data in the /processed_data folder and the csv_process.py. These plots characterise the non-linearity and the change of natural frequency with response amplitude. This is something you can try measuring during the practical.
 
 ## Experiment Setup
 
