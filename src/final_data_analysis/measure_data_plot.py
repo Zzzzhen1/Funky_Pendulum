@@ -69,7 +69,7 @@ axes[0].errorbar(x, gamma, yerr = gamma_err, fmt = 'bx', capsize = 3, label = r'
 axes[0].set_ylabel(r'$\gamma$/rads$^{-1}$')
 axes[1].errorbar(x, omega, yerr = omega_err, fmt = 'bx', capsize = 3, label = r'$\omega$ by best fit line')
 axes[1].set_ylabel(r'$\omega$/Hz')
-axes[2].errorbar(x, freq, yerr = freq_err, fmt = 'bx', capsize = 3, label = r'$f$')
+axes[2].errorbar(x, freq, yerr = freq_err, fmt = 'bx', capsize = 3, label = r'$f$ by catching the peak')
 axes[2].set_ylabel(r'$f$/Hz')
 axes[0].legend()
 axes[1].legend()
