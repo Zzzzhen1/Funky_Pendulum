@@ -48,7 +48,7 @@ if (__name__ == '__main__'):
     data_array = data.to_numpy()
     # This is for automated scan data analysis:
     # ref_data_array = ref_data.to_numpy()
-    _, _, _, _, _, data_amp_array, _, _, _, = zip(*data_array)
+    # _, _, _, _, _, _, data_amp_array, _, _, _, = zip(*data_array)
     # This is for singly scan data:
     driving_amps = data['amp_0'].unique()
     
@@ -65,7 +65,8 @@ if (__name__ == '__main__'):
     # Calculate response amplitude to driving amplitude ratio
     data['response_amp'] = abs(data['response_amp'])
     data['amp_ratio'] = data['response_amp'] / data['driving_amp']
-    data['rectified_driving_amps'] = fit_driving_amp(data_amp_array, driving_amps)
+    # data['rectified_driving_amps'] = fit_driving_amp(data_amp_array, driving_amps)
+    data['rectified_driving_amps'] = data['amp_0']
 
     data.sort_values(by='driving_freq', inplace=True)
 
